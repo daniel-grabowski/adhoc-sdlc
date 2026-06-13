@@ -1,0 +1,99 @@
+---
+name: adhoc-sdlc
+description: Use when you have small, ad hoc implementation work in the current project that still needs a durable, resumable record (a confirmed plan plus an incremental execution journal with touched files). Triggers include ad hoc fixes, quick features, and refactors you want planned and logged. Plan and execute are separate lifecycle steps.
+author: "Daniel Grabowski <daniel.grabowski@faktoria.io>"
+---
+
+# Adhoc SDLC
+
+## Overview
+
+Use this skill for lightweight ad hoc work in the current project: too small for a formal issue workflow, but worth a durable plan and a resumable execution history. It produces two files under `./adhoc-sdlc`: a confirmed plan (`plan-*.md`) and an incremental execution journal (`execute-*.json`). The helper owns both; you do the work.
+
+The full file contract (frontmatter, files, helper flags, journal operations, handoff/resume/history mechanics) is in `reference.md`; read the section a command points you to.
+
+## Language
+
+Instructions in this skill and its commands are English; that is the source of truth. The behavior adapts to the conversation:
+
+- Match the user's language for all user-facing output: `AskUserQuestion` prompts, status reports, and the prose body of plan files and journal entries.
+- Keep machine-facing identifiers ASCII: semantic names and filenames are always lowercase ASCII kebab-case (the helper normalizes them).
+
+## Commands (router)
+
+The skill exposes sub-commands invoked with a colon. Files live in `~/.codex/skills/adhoc-sdlc/commands/`:
+
+| Command | Helper mode | Role |
+|---------|-------------|------|
+| `/adhoc-sdlc:plan` | `plan` | save a confirmed plan to a file |
+| `/adhoc-sdlc:exec` | `execute` | run the plan + execution journal |
+| `/adhoc-sdlc:handoff` | `handoff` | snapshot session state (history, many files) |
+| `/adhoc-sdlc:resume` | `pack --intent resume` | load one of the 4 most recent sessions |
+| `/adhoc-sdlc:history` | `pack --intent history` | analyze the corpus for an angle (read-only) |
+
+## Lifecycle
+
+1. Discuss and confirm the plan.
+2. Create only the plan file.
+3. When implementation starts, create the execution journal AND a native todo list, both seeded from the plan's key changes and test-plan steps. Seeding the list is mandatory before the first code change.
+4. During work, keep both in sync (see Native todo list); append journal entries incrementally via the helper.
+5. At the end, mark the final todos completed, then update verification and final status.
+
+Do not create `execute-*` as a placeholder when only saving a plan. See `reference.md` for the helper and journal operations.
+
+## Native todo list
+
+The native todo list (Claude Code: `TodoWrite`; Codex: `update_plan`) is the live progress view; the journal (`execute-*`) is the durable, resumable record. Maintain both.
+
+- Seed it at execution start: one item per plan key change plus one for verification/testing. Phrase items as concrete actions.
+- Keep exactly one item `in_progress`; mark it `completed` the moment it is done, before the next. Do not batch.
+- Append the matching journal entry as you finish each task or phase (`execute --append "<note>" --files <touched files>`).
+- If the plan changes mid-flight, adjust the todos and note the deviation in the journal.
+- Every `completed` todo maps to at least one journal entry, so a session can resume from `execute-*` alone (the todo list does not persist).
+- For a plan-only save (no implementation yet), do not create a todo list.
+
+## Plan file
+
+Write the confirmed plan into `plan-*` with: title, summary, key changes, test plan, assumptions. Run the plan command as a guided conversation, not a form.
+
+### Phase 0: mode gate (before planning)
+
+After a brief read of the prompt and before planning, ask one `AskUserQuestion` with three orthogonal toggles, each with a recommendation tailored to the task:
+
+1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the anchors below as an internal checklist and asking only about critical blockers.
+2. Deep code verification. Yes: dispatch an `Explore` subagent (read-only) to check assumptions against the codebase, then analyze and show its findings. No: handle it yourself and decide whether to read code at all.
+3. Test the execution. Yes: pick a method per stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. No: skip tests, but always run a final self-check and record the trace in the journal.
+
+Record the chosen modes in a `## Mode` section of the plan file; that section is the contract `exec` reads. If the user has said "don't ask" (or Phase 0 is skipped), default every toggle to OFF (draft the plan, no subagent, no tests; always a final self-check + journal) and list the assumed modes explicitly.
+
+### Design decisions
+
+Before writing the file, surface the real design decisions and ask about the open ones. Anchors: scope, approach/variants, edge cases, test plan. Think for the user: propose resolutions with a recommendation, verify assumptions in code and data sources instead of guessing, and call out risks and edge cases proactively. Never assume silently. If the user says "don't ask", record the chosen assumptions visibly instead of hiding them.
+
+After writing the file, close the loop: offer to add or change anything, then offer to run execution now. Running execution makes seeding the native task list mandatory before any code change.
+
+## Read-side authority (pack)
+
+For `history`, `resume` and `handoff`, the agent must not scan `adhoc-sdlc/` files directly (`Read`/`Grep`/`Glob`). The helper (`pack`) is the only read-side authority: discovery, frontmatter parsing, section extraction, relevance scoring and budgeting. The agent receives a ready context pack and renders or synthesizes only from it, per the `presentation` field.
+
+Reading `adhoc-sdlc/` files for resume/handoff/history is a layering violation, regardless of being read-only. The letter of the rule is the spirit of the rule.
+
+Does the pack look incomplete? That is not an invitation to `Read`. Incompleteness is a FACT in `stats`/`warnings`/`budget`. The response: fix the flags and re-run `pack` (`--max-items`, `--days`, broader `--keywords`), or report a helper bug. Never bypass the helper.
+
+| Excuse | Reality |
+|--------|---------|
+| "The extract is truncated, I'll read the file" | Truncation is a deliberate budget, not missing data. The extract is a teaser; reach for a specific file's full content only via the narrow exception (the user asks for the raw file), not an unilateral `Read`. |
+| "omitted: N, I might miss something, I'll grep the rest" | `omitted` is a fact about scope. Narrow the angle (`--keywords`) or `--days` and re-run `pack`. |
+| "The file is right there, one `Read` won't hurt" | One `Read` breaks the layer. The pack is the authority, not a shortcut. |
+| "It's only a read, so it's safe" | It's about the layer, not side effects. Read-only does not lift the rule. |
+| "The helper might fail, I'll grep as a plan B" | Fix the `pack` call first. Grepping the corpus is not a fallback. |
+| "I'll quote the truncated extract as final content" | Need the full content? Re-run `pack` with a larger budget, not `Read`. |
+
+Red flags, STOP if you catch yourself:
+
+- `Read`/`Grep`/`Glob` on `adhoc-sdlc/` during resume/handoff/history,
+- "I'll read the corpus by hand because the pack isn't enough",
+- "the file is right next to me / one grep just to be sure",
+- treating `truncated`/`omitted` as a reason to read files.
+
+Narrow exception: you may `Read` a SPECIFIC file only when the user explicitly asks to inspect the raw file, or the helper reports it cannot build a pack.
