@@ -1,5 +1,7 @@
 # adhoc-sdlc
 
+*English · [Polski](README.pl.md)*
+
 A lightweight SDLC for small, ad hoc work in the current project: too small for a formal issue, but worth a durable plan and a resumable execution history.
 
 ## What it does
@@ -9,7 +11,7 @@ The skill turns a quick request into two tracked artifacts under `./adhoc-sdlc`:
 - a confirmed plan (`plan-*.md`),
 - an incremental execution journal (`execute-*.json`) that records what you changed, what you verified, and what is left.
 
-A Python helper owns both files, so the record stays consistent and a session can be resumed later from disk alone.
+A Python helper owns both files, so the record stays consistent and you can resume a session later from disk alone.
 
 ## When to use
 
@@ -61,7 +63,7 @@ The instructions in this skill are written in English, which is the source of tr
 
 ## More detail
 
-See `SKILL.md` for the agent-facing instructions and `reference.md` for the full file contract. The command definitions live in `~/.claude/commands/adhoc-sdlc/`.
+See `SKILL.md` for the agent-facing instructions and `reference.md` for the full file contract. The command definitions live in the plugin's `commands/` directory.
 
 ## Author
 

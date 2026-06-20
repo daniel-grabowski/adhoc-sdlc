@@ -103,7 +103,7 @@ def validate_status(raw: str | None, mode: str) -> str:
 def parse_keywords(raw: str | None, mode: str) -> list[str]:
     if raw is None:
         return []
-    tokens = []
+    tokens: list[str] = []
     for chunk in raw.split(","):
         token = semantic_name(chunk)
         if not token:
@@ -112,7 +112,8 @@ def parse_keywords(raw: str | None, mode: str) -> list[str]:
                 "lista tokenów [a-z0-9-] rozdzielonych przecinkami, bez pustych",
                 f"{mode} --name x --title T --keywords rest,rf001,build",
             )
-        tokens.append(token)
+        if token not in tokens:  # dedup z zachowaniem kolejności pierwszego wystąpienia
+            tokens.append(token)
     return tokens
 
 

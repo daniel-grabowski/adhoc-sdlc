@@ -21,7 +21,7 @@ Instructions in this skill and its commands are English; that is the source of t
 
 ## Commands (router)
 
-The skill exposes sub-commands invoked with a colon. Files live in `~/.claude/commands/adhoc-sdlc/`:
+The skill exposes sub-commands invoked with a colon. Files live in `${CLAUDE_PLUGIN_ROOT}/commands/`:
 
 | Command | Helper mode | Role |
 |---------|-------------|------|
@@ -77,6 +77,8 @@ After writing the file, close the loop: offer to add or change anything, then of
 For `history`, `resume` and `handoff`, the agent must not scan `adhoc-sdlc/` files directly (`Read`/`Grep`/`Glob`). The helper (`pack`) is the only read-side authority: discovery, frontmatter parsing, section extraction, relevance scoring and budgeting. The agent receives a ready context pack and renders or synthesizes only from it, per the `presentation` field.
 
 Reading `adhoc-sdlc/` files for resume/handoff/history is a layering violation, regardless of being read-only. The letter of the rule is the spirit of the rule.
+
+Two directories share the name `adhoc-sdlc`; do not conflate them. The CORPUS `./adhoc-sdlc` (under the project working directory: `plan-*`, `execute-*`, `handoff-*`) is the data this rule protects: never `Read`/`Grep`/`Glob` it for resume/history/handoff. The SKILL directory `${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/` (`SKILL.md`, `reference.md`, `scripts/`) holds instructions and helper code: reading it is expected and required, because the commands point you to its sections. The ban is about the project corpus, never about the skill's own files.
 
 Does the pack look incomplete? That is not an invitation to `Read`. Incompleteness is a FACT in `stats`/`warnings`/`budget`. The response: fix the flags and re-run `pack` (`--max-items`, `--days`, broader `--keywords`), or report a helper bug. Never bypass the helper.
 

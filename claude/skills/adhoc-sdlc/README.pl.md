@@ -1,5 +1,7 @@
 # adhoc-sdlc
 
+*[English](README.md) · Polski*
+
 Lekki cykl SDLC dla małej, doraźnej pracy w bieżącym projekcie: za małej na formalny issue, ale wartej trwałego planu i wznawialnej historii wykonania.
 
 ## Do czego służy
@@ -61,7 +63,7 @@ Instrukcje w tym skillu są po angielsku i to jest źródło prawdy. Zachowanie 
 
 ## Więcej
 
-Po instrukcje dla agenta zajrzyj do `SKILL.md`, a po pełny kontrakt plików do `reference.md`. Definicje komend leżą w `~/.claude/commands/adhoc-sdlc/`.
+Po instrukcje dla agenta zajrzyj do `SKILL.md`, a po pełny kontrakt plików do `reference.md`. Definicje komend leżą w katalogu `commands/` pluginu.
 
 ## Autor
 

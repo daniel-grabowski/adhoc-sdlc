@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Testy przyrostowego dziennika wykonania w JSON (execute-*.json) + dotknięte pliki.
 
-Uruchom: python3 /home/dgrabowski/.codex/skills/adhoc-sdlc/scripts/test_execute_json.py
+Uruchom: python3 /home/dgrabowski/.claude/skills/adhoc-sdlc/scripts/test_execute_json.py
 Stdlib-only (unittest, subprocess). Pokrywa: lifecycle CLI, agregację touched_files w packu,
 walidację kontraktu nowych flag, mieszany korpus md+json oraz backward compat starych dzienników md.
 """
@@ -13,6 +13,7 @@ import sys
 import tempfile
 import unittest
 
+import adhoc_sdlc
 import sdlc_doc
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -195,6 +196,23 @@ class BackwardCompatMdTests(unittest.TestCase):
             r = run("execute", "--root", tmp, "--name", "legacy", "--title", "T", "--append", "krok", "--files", "a.pas")
             self.assertEqual(r.returncode, 2)
             self.assertIn("markdown", r.stderr.lower())
+
+
+class ParseKeywordsTests(unittest.TestCase):
+    """parse_keywords deduplikuje tokeny zachowując kolejność pierwszego wystąpienia."""
+
+    def test_dedup_preserves_first_order(self):
+        self.assertEqual(
+            adhoc_sdlc.parse_keywords("modal,ui,modal,build,ui", "plan"),
+            ["modal", "ui", "build"],
+        )
+
+    def test_none_is_empty(self):
+        self.assertEqual(adhoc_sdlc.parse_keywords(None, "plan"), [])
+
+    def test_dedup_after_normalization(self):
+        # "Modal" i "modal" normalizują się do tego samego tokenu -> jeden wpis.
+        self.assertEqual(adhoc_sdlc.parse_keywords("Modal,modal", "plan"), ["modal"])
 
 
 if __name__ == "__main__":

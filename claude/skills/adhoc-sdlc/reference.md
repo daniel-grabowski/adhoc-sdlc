@@ -43,7 +43,7 @@ Use the bundled helper instead of rewriting file creation logic. It defaults to 
 Create a confirmed plan:
 
 ```bash
-python3 ~/.claude/skills/adhoc-sdlc/scripts/adhoc_sdlc.py plan \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py plan \
   --name "operator panel start stop good button" \
   --title "Operator panel fixes: Start/Stop and Good"
 ```
@@ -51,7 +51,7 @@ python3 ~/.claude/skills/adhoc-sdlc/scripts/adhoc_sdlc.py plan \
 Start or append execution:
 
 ```bash
-python3 ~/.claude/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute \
   --name "operator panel start stop good button" \
   --title "Operator panel fixes: Start/Stop and Good" \
   --append "Implemented the Start/Stop button" \
@@ -98,4 +98,6 @@ No candidates (`stats.matched=0` / `warnings:["no_candidates"]`) -> "no session 
 
 ## History
 
-Retrospective analysis of the corpus (read-only). Requires an "angle". The agent extracts keywords from the angle (judgment) and calls `pack --intent history --angle "<angle>" --keywords a,b [--project] [--days]`. The pack returns `items` with `extracts` (narrowed, scored, budgeted), `signals.keyword_index` (a recurrence signal for grouping) and `presentation` (compact_report, group_by theme_then_date). The agent renders a human report per `presentation`: a title with the angle plus date range plus matched/included/omitted stats, thematic groups, a Conclusions section (recurrence, "already done", SSoT candidates) and at most 1-2 "what next" questions. References come from `items[].path` + `extracts[].heading`. Read-side authority applies (see `SKILL.md`).
+Retrospective analysis of the corpus (read-only). Requires an "angle". The agent extracts keywords from the angle (judgment) and calls `pack --intent history --angle "<angle>" --keywords a,b [--project] [--days]`. The pack returns `items` with `extracts` (narrowed, scored, budgeted), `signals.keyword_index` (a recurrence signal for grouping) and `presentation` (compact_report, group_by theme_then_date).
+
+Stats contract: `matched` = records in scope (time/project), `relevant` = records with a non-zero keyword overlap (the topical hits), `included` = shown after budget, `omitted` = relevant minus included, `below_threshold` = matched minus relevant (in scope, zero keyword overlap, removed by the relevance gate). When keywords are given the `items` are gated to relevant records only; `warnings:["no_relevant"]` means scope is non-empty but nothing matches the theme. Keyword matching is normalized for simple plural/singular (`colors` matches `color`), so a near-miss token still scores. The agent renders a human report per `presentation`: a title with the angle plus date range plus the stats above (lead with `relevant`/`included`; `below_threshold` is the filtered-out noise, never bare `matched`), thematic groups, a Conclusions section (recurrence, "already done", SSoT candidates) and at most 1-2 "what next" questions. References come from `items[].path` + `extracts[].heading`. Read-side authority applies (see `SKILL.md`).

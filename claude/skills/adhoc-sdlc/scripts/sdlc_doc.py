@@ -37,6 +37,21 @@ def _unesc(value: str) -> str:
     return value.replace('\\"', '"').replace("\\\\", "\\")
 
 
+def _as_list(value) -> list[str]:
+    """Wymusza listę stringów dla keywords (defensywnie wobec uszkodzonego frontmatter).
+
+    None/'' -> []; string (np. `keywords: foo` bez nawiasów) -> [string], NIE iteracja po
+    znakach (inaczej _jaccard liczyłby wspólne litery); lista -> elementy jako string bez pustych.
+    """
+    if not value:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item).strip()]
+    return [str(value)]
+
+
 def _parse_fm_block(block: str) -> dict:
     """Parsuje wnętrze bloku frontmatter (bez znaczników ---) na dict metadanych."""
     meta: dict = {}
@@ -190,7 +205,25 @@ WEIGHT_RECENCY = 0.15
 RECENCY_HALF_WINDOW_DAYS = 90
 
 
-def _jaccard(a: list[str], b: list[str]) -> float:
+def _stem_kw(token: str) -> str:
+    """Lekka normalizacja liczby mnogiej do matchowania keywords.
+
+    Usuwa pojedyncze końcowe 's' (colors->color, skins->skin), chroni 'ss' (css,
+    class, less) i krótkie tokeny (len<=3: is, as, css). Stosowana TYLKO do porównań
+    (jaccard/overlap/bramka), nigdy do wyświetlania keywords w raporcie.
+    """
+    t = token.lower()
+    if len(t) > 3 and t.endswith("s") and not t.endswith("ss"):
+        return t[:-1]
+    return t
+
+
+def _norm_kw(tokens) -> set:
+    """Zbiór znormalizowanych tokenów (dedup po rdzeniu) dla porównań keywords."""
+    return {_stem_kw(t) for t in (tokens or [])}
+
+
+def _jaccard(a, b) -> float:
     set_a, set_b = set(a), set(b)
     union = set_a | set_b
     if not union:
@@ -237,7 +270,7 @@ def score_record(rec: dict, query: dict, today_iso: str) -> float:
     q_name = (query.get("name") or "").strip()
 
     if q_keywords:
-        components.append((WEIGHT_KEYWORD, _jaccard(q_keywords, rec.get("keywords") or [])))
+        components.append((WEIGHT_KEYWORD, _jaccard(_norm_kw(q_keywords), _norm_kw(rec.get("keywords")))))
     if q_project:
         match = 1.0 if rec.get("project", "") == q_project else 0.0
         components.append((WEIGHT_PROJECT, match))
@@ -285,7 +318,7 @@ def _extract_execute_json(path) -> dict:
         return {"path": str(path), "meta": {}, "sections": [], "warnings": ["invalid_json"], "touched_files": []}
 
     meta = {k: data.get(k, "") for k in _JSON_META_KEYS}
-    meta["keywords"] = data.get("keywords", []) or []
+    meta["keywords"] = _as_list(data.get("keywords"))
     entries = data.get("entries", []) or []
 
     step_lines = []
@@ -400,7 +433,7 @@ def load_records(root) -> tuple[list[dict], dict]:
             "name": meta.get("name") or (fm.group(3) if fm else path.stem),
             "title": meta.get("title", ""),
             "project": meta.get("project", ""),
-            "keywords": meta.get("keywords", []) or [],
+            "keywords": _as_list(meta.get("keywords")),
             "created": meta.get("created", ""),
             "updated": meta.get("updated", meta.get("created", "")) or "",
             "status": meta.get("status", ""),
@@ -465,8 +498,20 @@ def _public_record(rec: dict) -> dict:
     return {key: rec.get(key) for key in _PUBLIC_KEYS}
 
 
-def _sort_by_score(records: list[dict]) -> list[dict]:
-    return sorted(records, key=lambda r: (r["score"], r.get("updated") or ""), reverse=True)
+def _sort_by_score(records: list[dict], query_keywords: list[str] | None = None) -> list[dict]:
+    """Sortuje malejąco po score; tie-break: liczba trafionych keywords, updated, path.
+
+    Przy równym score większa liczba wspólnych keywords z query to silniejszy sygnał
+    tematyczny (rozstrzyga przed świeżością). path jest finalnym, deterministycznym
+    rozstrzygaczem - eliminuje niestabilną kolejność raportu przy identycznych kluczach.
+    query_keywords=None -> tie-break po keywords nieaktywny (overlap=0 dla wszystkich).
+    """
+    qk = _norm_kw(query_keywords)
+
+    def _overlap(rec: dict) -> int:
+        return len(qk & _norm_kw(rec.get("keywords")))
+
+    return sorted(records, key=lambda r: (r["score"], _overlap(r), r.get("updated") or "", r.get("path") or ""), reverse=True)
 
 
 def _now_iso() -> str:
@@ -534,7 +579,14 @@ def _pack_history(pack, records, query, budget, max_items, today_iso) -> dict:
     candidates = [r for r in records if _in_scope(r, query["project"], query["days"], today_iso)]
     matched = len(candidates)
     _score_all(candidates, query, today_iso)
-    ordered = _sort_by_score(candidates)
+
+    # Bramka trafności: gdy podano keywords, do items wchodzą tylko rekordy z niezerowym
+    # (znormalizowanym) pokryciem keywords. Reszta w scope ma jedynie podłogę recency i jest
+    # szumem tematycznym -> liczona w below_threshold, nie pokazywana jako traf.
+    qk = _norm_kw(query.get("keywords"))
+    relevant = [r for r in candidates if _norm_kw(r.get("keywords")) & qk] if qk else candidates
+    below_threshold = matched - len(relevant)
+    ordered = _sort_by_score(relevant, query.get("keywords"))
 
     cap_items = budget["max_items"]
     if max_items is not None:
@@ -555,11 +607,12 @@ def _pack_history(pack, records, query, budget, max_items, today_iso) -> dict:
 
     keyword_index: dict[str, list[str]] = {}
     for rec in kept:
-        for kw in rec["keywords"]:
+        for kw in dict.fromkeys(rec["keywords"]):
             keyword_index.setdefault(kw, []).append(rec["path"])
 
     pack["items"] = [_public_record(r) for r in kept]
-    pack["stats"] = {"matched": matched, "included": len(kept), "omitted": matched - len(kept)}
+    pack["stats"] = {"matched": matched, "relevant": len(relevant), "included": len(kept),
+                     "omitted": len(relevant) - len(kept), "below_threshold": below_threshold}
     pack["budget"]["used_chars"] = used_chars
     pack["signals"] = {"keyword_index": keyword_index}
     pack["presentation"] = {
@@ -568,11 +621,13 @@ def _pack_history(pack, records, query, budget, max_items, today_iso) -> dict:
         "group_by": "theme_then_date",
         "angle": query["angle"],
         "requires": ["dated_entries", "recurrence_callout", "already_done_callout", "references_path_heading"],
-        "skeleton": ["title_range_stats", "themed_groups", "wnioski", "co_dalej"],
+        "skeleton": ["title_range_stats", "themed_groups", "conclusions", "next_steps"],
         "max_followup_questions": 2,
     }
     if matched == 0:
         pack["warnings"].append("no_candidates")
+    elif qk and not relevant:
+        pack["warnings"].append("no_relevant")
     return pack
 
 
@@ -607,7 +662,7 @@ def _pack_resume(pack, records, query, budget, include_history, history_angle, t
             for rec in others:
                 rec["score"] = score_record(rec, hist_query, today_iso)
                 rec["extracts"] = []
-            related = _sort_by_score(others)[:budget["max_related_items"]]
+            related = _sort_by_score(others, hist_query.get("keywords"))[:budget["max_related_items"]]
             pack["related"] = [_public_record(r) for r in related]
         pack["stats"] = {"matched": len(handoffs), "included": 1 if primary else 0,
                          "omitted": 0}
@@ -631,7 +686,7 @@ def _pack_handoff(pack, records, query, budget, today_iso) -> dict:
     candidates = [r for r in records if _in_scope(r, query["project"], query["days"], today_iso)]
     matched = len(candidates)
     _score_all(candidates, query, today_iso)
-    ordered = _sort_by_score(candidates)
+    ordered = _sort_by_score(candidates, query.get("keywords"))
     related = ordered[:budget["max_related_items"]]
     for rec in related:
         rec["extracts"] = []

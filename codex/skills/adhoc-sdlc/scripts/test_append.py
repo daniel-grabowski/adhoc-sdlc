@@ -6,7 +6,7 @@ updated/status w frontmatter aktualizowane, reszta body bajtowo nienaruszona.
 Test przechodzi na starej (marker) i nowej (parser) implementacji -> dowód
 równoważności refaktoru.
 
-Uruchom: python3 /home/dgrabowski/.codex/skills/adhoc-sdlc/scripts/test_append.py
+Uruchom: python3 /home/dgrabowski/.claude/skills/adhoc-sdlc/scripts/test_append.py
 """
 
 import os

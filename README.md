@@ -1,6 +1,8 @@
 # faktoria-sdlc
 
-SDLC skills for AI coding agents: plan, keep a resumable execution journal, and hand off work between sessions. Works in Claude Code and Codex.
+*English · [Polski](README.pl.md)*
+
+SDLC skills for AI coding agents: plan, keep a resumable execution journal, and hand off work between sessions. Packaged as a Claude Code plugin, a Codex skill, and (on the roadmap) an Antigravity CLI extension.
 
 ## Skills
 
@@ -10,34 +12,49 @@ A lightweight SDLC for small, ad hoc work: too small for a formal issue, but wor
 
 ## Layout
 
-One directory per agent runtime, each mirroring that runtime's install paths:
+One directory per agent runtime, each packaged in that runtime's native format. The Python helper is shared across variants.
 
 ```
-claude/
-  skills/adhoc-sdlc/      ->  ~/.claude/skills/adhoc-sdlc/
-  commands/adhoc-sdlc/    ->  ~/.claude/commands/adhoc-sdlc/
-codex/
-  skills/adhoc-sdlc/      ->  ~/.codex/skills/adhoc-sdlc/
+.claude-plugin/marketplace.json   Claude Code marketplace entry
+claude/                           Claude Code plugin: adhoc-sdlc
+  .claude-plugin/plugin.json
+  skills/adhoc-sdlc/
+  commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
+codex/                            Codex skill (cp -r install)
+  skills/adhoc-sdlc/
+antigravity/                      roadmap: extension format to be confirmed
 ```
 
-In Claude Code the commands live in a separate `commands/` tree; in Codex they live inside the skill. The two variants share the same Python helper.
+In Claude Code the commands live in a top-level `commands/` tree (namespaced by the plugin to `/adhoc-sdlc:*`); in Codex they live inside the skill. The Claude variant references scripts through `${CLAUDE_PLUGIN_ROOT}`; the Codex variant uses its install path.
 
 ## Install
 
-Claude Code:
+### Claude Code (plugin)
+
+From the marketplace:
 
 ```
-cp -r claude/skills/adhoc-sdlc ~/.claude/skills/
-cp -r claude/commands/adhoc-sdlc ~/.claude/commands/
+/plugin marketplace add daniel-grabowski/faktoria-sdlc
+/plugin install adhoc-sdlc@faktoria-sdlc
 ```
 
-Codex:
+For local development against a checkout, load the plugin directory directly:
+
+```
+claude --plugin-dir ./claude
+```
+
+### Codex
 
 ```
 cp -r codex/skills/adhoc-sdlc ~/.codex/skills/
 ```
 
 Then reload skills in your agent.
+
+### Antigravity CLI
+
+Planned. The Antigravity extension format has not been finalized here yet; see [antigravity/README.md](antigravity/README.md) for the current status.
 
 ## License
 

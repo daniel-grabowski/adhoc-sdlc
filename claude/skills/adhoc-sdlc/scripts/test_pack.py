@@ -94,8 +94,10 @@ class HistoryPackTests(unittest.TestCase):
             )
             self.assertEqual(pack["intent"], "history")
             self.assertEqual(pack["stats"]["matched"], 4)
+            self.assertEqual(pack["stats"]["relevant"], 3)  # build-fix odsiane bramką (0 wspólnych keywords)
             self.assertEqual(pack["stats"]["included"], 2)
-            self.assertEqual(pack["stats"]["omitted"], 2)
+            self.assertEqual(pack["stats"]["omitted"], 1)  # relevant(3) - included(2)
+            self.assertEqual(pack["stats"]["below_threshold"], 1)  # build-fix poza progiem trafności
             scores = [it["score"] for it in pack["items"]]
             self.assertEqual(scores, sorted(scores, reverse=True))
             # Najtrafniejszy item dotyczy modali, nie buildu.
@@ -156,6 +158,69 @@ class HistoryPackTests(unittest.TestCase):
             self.assertEqual(pres["group_by"], "theme_then_date")
             self.assertEqual(pres["angle"], "modale tematy")
             self.assertLessEqual(pack["budget"]["used_chars"], pack["budget"]["max_total_chars"])
+
+    def test_skeleton_is_english(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._corpus(tmp)
+            pack = sdlc_doc.build_context_pack(
+                "history", root=tmp, keywords=["modal"], angle="m", today_iso=TODAY_ISO,
+            )
+            # Pole machine-facing: spójny angielski (render i tak po polsku wg języka usera).
+            self.assertEqual(
+                pack["presentation"]["skeleton"],
+                ["title_range_stats", "themed_groups", "conclusions", "next_steps"],
+            )
+
+
+class RelevanceGateTests(unittest.TestCase):
+    """Bramka trafności: z keywords tylko niezerowe pokrycie wchodzi do items, reszta below_threshold."""
+
+    def _corpus(self, root):
+        _write_doc(root, "execute", "modal-fix", _days_ago(1), ["modal", "ui"], "app",
+                   "done", _execute_body("Modal.", "OK."))
+        _write_doc(root, "execute", "build-fix", _days_ago(2), ["build", "fpc"], "app",
+                   "done", _execute_body("Build.", "OK."))
+        _write_doc(root, "execute", "color-fix", _days_ago(3), ["colors", "skin"], "app",
+                   "done", _execute_body("Kolory.", "OK."))
+
+    def test_zero_overlap_records_go_below_threshold(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._corpus(tmp)
+            pack = sdlc_doc.build_context_pack(
+                "history", root=tmp, keywords=["modal"], angle="m", today_iso=TODAY_ISO)
+            self.assertEqual({it["name"] for it in pack["items"]}, {"modal-fix"})
+            self.assertEqual(pack["stats"]["matched"], 3)
+            self.assertEqual(pack["stats"]["relevant"], 1)
+            self.assertEqual(pack["stats"]["below_threshold"], 2)
+
+    def test_plural_singular_match_via_normalization(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._corpus(tmp)
+            # query "color" (l. poj.) trafia rekord z keyword "colors" (l. mn.) po normalizacji.
+            pack = sdlc_doc.build_context_pack(
+                "history", root=tmp, keywords=["color"], angle="m", today_iso=TODAY_ISO)
+            self.assertIn("color-fix", {it["name"] for it in pack["items"]})
+            self.assertEqual(pack["stats"]["relevant"], 1)
+
+    def test_no_relevant_warns_and_empties_items(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._corpus(tmp)
+            pack = sdlc_doc.build_context_pack(
+                "history", root=tmp, keywords=["nonexistent"], angle="m", today_iso=TODAY_ISO)
+            self.assertEqual(pack["items"], [])
+            self.assertEqual(pack["stats"]["relevant"], 0)
+            self.assertEqual(pack["stats"]["below_threshold"], 3)
+            self.assertIn("no_relevant", pack["warnings"])
+
+    def test_no_keywords_disables_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._corpus(tmp)
+            # Bez keywords (sam angle) bramka nieaktywna -> ranking recency, wszystko relevant.
+            pack = sdlc_doc.build_context_pack(
+                "history", root=tmp, keywords=[], angle="cokolwiek", today_iso=TODAY_ISO)
+            self.assertEqual(pack["stats"]["relevant"], 3)
+            self.assertEqual(pack["stats"]["below_threshold"], 0)
+            self.assertNotIn("no_relevant", pack["warnings"])
 
 
 class ResumePackTests(unittest.TestCase):
@@ -265,6 +330,39 @@ class RobustnessTests(unittest.TestCase):
             )
             self.assertGreaterEqual(pack["stats"]["incomplete_frontmatter"], 1)
             self.assertIn("incomplete_frontmatter", pack["warnings"])
+
+    def test_keywords_as_bare_string_is_listified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = os.path.join(tmp, "adhoc-sdlc")
+            os.makedirs(target, exist_ok=True)
+            # Frontmatter z keywords bez nawiasów (uszkodzony/ręcznie pisany korpus).
+            text = (
+                "---\ntype: execute\nname: bare-kw\n"
+                'title: "bare"\nproject: "app"\n'
+                f"keywords: modal\ncreated: {_days_ago(1)}\nupdated: {_days_ago(1)}\n"
+                "status: done\n---\n\n" + _execute_body("Decyzja.", "Wynik.")
+            )
+            with open(os.path.join(target, "execute-2026-06-10-bare-kw.md"), "w",
+                      encoding="utf-8", newline="\n") as fh:
+                fh.write(text)
+            pack = sdlc_doc.build_context_pack(
+                "history", root=tmp, keywords=["modal"], angle="m", today_iso=TODAY_ISO,
+            )
+            # String "modal" -> ["modal"], a nie zbiór znaków -> item trafia i ma poprawne keywords.
+            item = next(it for it in pack["items"] if it["name"] == "bare-kw")
+            self.assertEqual(item["keywords"], ["modal"])
+            self.assertGreater(item["score"], 0.0)
+
+    def test_keyword_index_dedups_duplicate_keywords(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_doc(tmp, "execute", "dup-kw", _days_ago(1), ["modal", "modal"], "app",
+                       "done", _execute_body("Decyzja.", "Wynik."))
+            pack = sdlc_doc.build_context_pack(
+                "history", root=tmp, keywords=["modal"], angle="m", today_iso=TODAY_ISO,
+            )
+            index = pack["signals"]["keyword_index"]
+            # Duplikat keyworda w rekordzie nie powiela ścieżki w indeksie.
+            self.assertEqual(len(index["modal"]), 1)
 
 
 class CliPackTests(unittest.TestCase):

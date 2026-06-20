@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Testy jednostkowe parsera dokumentu sdlc_doc (krok 1 planu read-side).
 
-Uruchom: python3 /home/dgrabowski/.codex/skills/adhoc-sdlc/scripts/test_sdlc_doc.py
+Uruchom: python3 /home/dgrabowski/.claude/skills/adhoc-sdlc/scripts/test_sdlc_doc.py
 (sys.path[0] = katalog skryptu, więc `import sdlc_doc` zadziała).
 Stdlib-only (unittest), bez zależności zewnętrznych.
 """
@@ -289,6 +289,74 @@ class ScoreRecordTests(unittest.TestCase):
         first = sdlc_doc.score_record(rec, query, TODAY_ISO)
         second = sdlc_doc.score_record(rec, query, TODAY_ISO)
         self.assertEqual(first, second)
+
+
+class AsListTests(unittest.TestCase):
+    """_as_list wymusza listę stringów (obrona przed keywords jako gołym stringiem)."""
+
+    def test_none_and_empty_are_empty_list(self):
+        self.assertEqual(sdlc_doc._as_list(None), [])
+        self.assertEqual(sdlc_doc._as_list(""), [])
+        self.assertEqual(sdlc_doc._as_list([]), [])
+
+    def test_bare_string_becomes_single_element(self):
+        # Kluczowe: NIE iteracja po znakach (inaczej _jaccard liczyłby wspólne litery).
+        self.assertEqual(sdlc_doc._as_list("modal"), ["modal"])
+
+    def test_list_passthrough_drops_blanks(self):
+        self.assertEqual(sdlc_doc._as_list(["a", "", "b", "  "]), ["a", "b"])
+
+
+class StemKwTests(unittest.TestCase):
+    """_stem_kw: lekka normalizacja liczby mnogiej do matchowania keywords."""
+
+    def test_strips_trailing_plural_s(self):
+        self.assertEqual(sdlc_doc._stem_kw("colors"), "color")
+        self.assertEqual(sdlc_doc._stem_kw("skins"), "skin")
+
+    def test_protects_double_s_and_short(self):
+        self.assertEqual(sdlc_doc._stem_kw("css"), "css")
+        self.assertEqual(sdlc_doc._stem_kw("class"), "class")
+        self.assertEqual(sdlc_doc._stem_kw("as"), "as")
+
+    def test_leaves_non_s_endings(self):
+        self.assertEqual(sdlc_doc._stem_kw("rest"), "rest")
+        self.assertEqual(sdlc_doc._stem_kw("modal"), "modal")
+
+    def test_norm_kw_dedups_by_stem(self):
+        self.assertEqual(sdlc_doc._norm_kw(["color", "colors"]), {"color"})
+        self.assertEqual(sdlc_doc._norm_kw(None), set())
+
+
+class SortByScoreTiebreakTests(unittest.TestCase):
+    """_sort_by_score: malejąco po score, deterministyczny tie-break (keywords, updated, path)."""
+
+    def test_path_breaks_ties_deterministically(self):
+        recs = [
+            {"score": 0.5, "keywords": [], "updated": "2026-06-01", "path": "b.md"},
+            {"score": 0.5, "keywords": [], "updated": "2026-06-01", "path": "a.md"},
+        ]
+        out1 = [r["path"] for r in sdlc_doc._sort_by_score(list(recs))]
+        out2 = [r["path"] for r in sdlc_doc._sort_by_score(list(reversed(recs)))]
+        # Stabilna kolejność niezależnie od kolejności wejścia.
+        self.assertEqual(out1, out2)
+
+    def test_keyword_overlap_breaks_tie_before_recency(self):
+        recs = [
+            {"score": 0.5, "keywords": ["x"], "updated": "2026-06-10", "path": "p1.md"},
+            {"score": 0.5, "keywords": ["a", "b"], "updated": "2026-06-01", "path": "p2.md"},
+        ]
+        out = sdlc_doc._sort_by_score(recs, query_keywords=["a", "b"])
+        # p2 ma więcej trafionych keywords -> wyżej mimo starszego updated.
+        self.assertEqual(out[0]["path"], "p2.md")
+
+    def test_score_remains_primary_key(self):
+        recs = [
+            {"score": 0.2, "keywords": ["a"], "updated": "2026-06-10", "path": "low.md"},
+            {"score": 0.9, "keywords": [], "updated": "2026-06-01", "path": "high.md"},
+        ]
+        out = sdlc_doc._sort_by_score(recs, query_keywords=["a"])
+        self.assertEqual(out[0]["path"], "high.md")
 
 
 class ReadRetryTests(unittest.TestCase):

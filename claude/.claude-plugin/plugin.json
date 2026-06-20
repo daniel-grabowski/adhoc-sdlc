@@ -1,0 +1,12 @@
+{
+  "name": "adhoc-sdlc",
+  "version": "0.2.0",
+  "description": "Plan plus incremental execution journal for small ad hoc work: a confirmed plan and a resumable journal of touched files, with read-only history, resume and handoff over the project corpus.",
+  "author": {
+    "name": "Daniel Grabowski",
+    "email": "daniel.grabowski@faktoria.io"
+  },
+  "homepage": "https://github.com/daniel-grabowski/faktoria-sdlc",
+  "license": "MIT",
+  "keywords": ["sdlc", "planning", "journal", "ad-hoc", "workflow"]
+}

@@ -6,7 +6,7 @@ argument-hint: "--name \"desc\" --title \"title\" [--append \"entry\" --files a,
 
 # /adhoc-sdlc:exec
 
-Read `~/.claude/skills/adhoc-sdlc/SKILL.md` (Read tool): sections "Native todo list" and "Plan file" (the `## Mode` contract). Read `~/.claude/skills/adhoc-sdlc/reference.md`: section "Execute journal (JSON)".
+Read `${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/SKILL.md` (Read tool): sections "Native todo list" and "Plan file" (the `## Mode` contract). Read `${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/reference.md`: section "Execute journal (JSON)".
 
 Runs a previously saved plan and keeps the execution journal. Maps to the helper's `execute` mode. Match the user's language for all output; keep filenames ASCII.
 
@@ -18,7 +18,7 @@ From `$ARGUMENTS` extract `--name` (the same name as the plan), `--title`, and o
 
 1. Create or open the execution journal with the helper (creates it on the first call, appends with `--append`):
    ```bash
-   python3 ~/.claude/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute \
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute \
      --name "<name>" --title "<title>" [--append "<entry>" --files <a,b> --phase "<label>"] [--status <s>]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE`; the most common case is no plan of that name (create it first with `/adhoc-sdlc:plan`).
@@ -34,3 +34,7 @@ From `$ARGUMENTS` extract `--name` (the same name as the plan), `--title`, and o
 ## Output
 
 A report per the rules (goal, changed, verified, remaining/limitations). The journal path.
+
+## Note
+
+This command WRITES to the project corpus `./adhoc-sdlc` through the helper (it creates and appends the execution journal). It is not read-only: under plan mode, be aware the helper still creates and updates the journal via Bash, even though `Edit`/`Write` are gated.
