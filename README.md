@@ -12,7 +12,7 @@ A lightweight SDLC for small, ad hoc work: too small for a formal issue, but wor
 
 ## Layout
 
-One directory per agent runtime, each packaged in that runtime's native format. The Python helper is shared across variants.
+One directory per agent runtime, each packaged in that runtime's native format: only Claude Code has a plugin system, so the Codex and Antigravity variants are plain skills. The Python helper is shared across variants.
 
 ```
 .claude-plugin/marketplace.json   Claude Code marketplace entry
@@ -50,11 +50,17 @@ claude --plugin-dir ./claude
 cp -r codex/skills/adhoc-sdlc ~/.codex/skills/
 ```
 
+To share the skill across Codex, Copilot CLI, and Gemini CLI, install it into the cross-runtime path instead:
+
+```
+cp -r codex/skills/adhoc-sdlc ~/.agents/skills/
+```
+
 Then reload skills in your agent.
 
 ### Antigravity CLI
 
-Planned. The Antigravity extension format has not been finalized here yet; see [antigravity/README.md](antigravity/README.md) for the current status.
+Planned, most likely as a skill like the Codex variant rather than a plugin. The exact format is not finalized here yet; see [antigravity/README.md](antigravity/README.md) for the current status.
 
 ## License
 

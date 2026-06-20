@@ -12,7 +12,7 @@ Lekki cykl SDLC dla małej, doraźnej pracy: za małej na formalny issue, ale wa
 
 ## Układ
 
-Jeden katalog na środowisko agenta, każdy spakowany w natywnym formacie tego środowiska. Helper w Pythonie jest wspólny dla wszystkich wariantów.
+Jeden katalog na środowisko agenta, każdy spakowany w natywnym formacie tego środowiska: tylko Claude Code ma system pluginów, więc warianty Codex i Antigravity to zwykłe skille. Helper w Pythonie jest wspólny dla wszystkich wariantów.
 
 ```
 .claude-plugin/marketplace.json   wpis marketplace Claude Code
@@ -50,11 +50,17 @@ claude --plugin-dir ./claude
 cp -r codex/skills/adhoc-sdlc ~/.codex/skills/
 ```
 
+Aby udostępnić skill w Codex, Copilot CLI i Gemini CLI, zainstaluj go w ścieżce cross-runtime:
+
+```
+cp -r codex/skills/adhoc-sdlc ~/.agents/skills/
+```
+
 Następnie przeładuj skille w swoim agencie.
 
 ### Antigravity CLI
 
-W planach. Format rozszerzenia Antigravity nie został tu jeszcze ustalony; aktualny status w [antigravity/README.md](antigravity/README.md).
+W planach, najpewniej jako skill (jak wariant Codex), nie plugin. Dokładny format nie został tu jeszcze ustalony; aktualny status w [antigravity/README.md](antigravity/README.md).
 
 ## Licencja
 

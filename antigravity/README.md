@@ -22,9 +22,11 @@ Only the packaging and the path references differ per runtime (Claude Code uses
 
 ## What is open
 
-The extension/skill/plugin mechanism for the Antigravity CLI has not been verified
-in this repository yet, so the packaging is intentionally left undefined here
-rather than guessed. Before building this variant:
+The extension mechanism for the Antigravity CLI has not been verified in this
+repository yet. A sibling CLI runtime, Codex, uses plain skills (no plugin and no
+marketplace), so Antigravity most likely follows the same skill model. That is left
+to confirm rather than guess, and the packaging stays undefined here. Before building
+this variant:
 
 1. Confirm how Antigravity CLI loads skills/commands and how it references bundled
    scripts (path variable or fixed install location). A starting point is the
