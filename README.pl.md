@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
+</p>
+
 # faktoria-sdlc
 
 *[English](README.md) · Polski*
@@ -12,7 +16,7 @@ Lekki cykl SDLC dla małej, doraźnej pracy: za małej na formalny issue, ale wa
 
 ### CoVe
 
-Chain-of-Verification do pracy faktograficznej: przygotuj szkic odpowiedzi, zaplanuj niezależne pytania weryfikacyjne, sprawdź twierdzenia i popraw finalną odpowiedź tak, żeby zostały tylko fakty potwierdzone albo jawnie oznaczone jako niepewne. Plugin Codex dostarcza to jako skill `cove`.
+Chain-of-Verification do pracy faktograficznej: przygotuj szkic odpowiedzi, zaplanuj niezależne pytania weryfikacyjne, sprawdź twierdzenia i popraw finalną odpowiedź tak, żeby zostały tylko fakty potwierdzone albo jawnie oznaczone jako niepewne. Pluginy Claude Code i Codex dostarczają to jako skill `cove`.
 
 ## Układ
 
@@ -21,9 +25,10 @@ Jeden katalog na środowisko agenta, każdy spakowany w natywnym formacie tego �
 ```
 .claude-plugin/marketplace.json   wpis marketplace Claude Code
 .agents/plugins/marketplace.json  wpis marketplace Codex
-claude/                           plugin Claude Code: adhoc-sdlc
+claude/                           plugin Claude Code: adhoc-sdlc + cove
   .claude-plugin/plugin.json
   skills/adhoc-sdlc/
+  skills/cove/
   commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
 plugins/faktoria-sdlc/            plugin Codex: faktoria-sdlc
   .codex-plugin/plugin.json

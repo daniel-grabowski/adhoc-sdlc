@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
+</p>
+
 # faktoria-sdlc
 
 *English · [Polski](README.pl.md)*
@@ -12,7 +16,7 @@ A lightweight SDLC for small, ad hoc work: too small for a formal issue, but wor
 
 ### CoVe
 
-Chain-of-Verification for factual work: draft an answer, plan independent verification questions, verify claims, and revise the final answer with only verified or explicitly caveated facts. The Codex plugin ships this as the `cove` skill.
+Chain-of-Verification for factual work: draft an answer, plan independent verification questions, verify claims, and revise the final answer with only verified or explicitly caveated facts. The Claude Code and Codex plugins ship this as the `cove` skill.
 
 ## Layout
 
@@ -21,9 +25,10 @@ One directory per agent runtime, each packaged in that runtime's native format. 
 ```
 .claude-plugin/marketplace.json   Claude Code marketplace entry
 .agents/plugins/marketplace.json  Codex marketplace entry
-claude/                           Claude Code plugin: adhoc-sdlc
+claude/                           Claude Code plugin: adhoc-sdlc + cove
   .claude-plugin/plugin.json
   skills/adhoc-sdlc/
+  skills/cove/
   commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
 plugins/faktoria-sdlc/            Codex plugin: faktoria-sdlc
   .codex-plugin/plugin.json

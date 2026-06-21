@@ -22,15 +22,18 @@ From `$ARGUMENTS` extract:
 
 ## Phase 0: mode gate
 
-After a brief read of the prompt and before planning, ask one `AskUserQuestion` with three orthogonal toggles, each with a task-tailored recommendation:
+After a brief read of the prompt and before planning, ask one `AskUserQuestion` with four questions, each with a task-tailored recommendation. Three are orthogonal yes/no toggles; the fourth is a single multi-select for the CoVe gates (so all five modes fit within the `AskUserQuestion` four-question limit):
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the Phase 1 anchors as an internal checklist and asking only about critical blockers.
 2. Deep code verification. Yes: dispatch an `Explore` subagent (read-only) to check assumptions against the codebase, then analyze its findings and show them to the user. No: handle it yourself and decide whether to read code at all.
 3. Test the execution. Yes: pick a method per stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. No: skip tests, but `exec` always runs a final self-check and records the trace in the journal.
+4. CoVe gates (multi-select, any combination):
+   - Plan CoVe. Selected: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. Not selected: rely on the normal planning review.
+   - Execution CoVe. Selected: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. Not selected: rely on tests plus the required final self-check.
 
-If the user has already said "don't ask" in this session, do not block: default every toggle to OFF (draft the plan, no subagent, no tests; always a final self-check + journal) and list the assumed modes explicitly.
+If the user has already said "don't ask" in this session, do not block: default every mode to OFF (draft the plan, no subagent, no tests, no CoVe gates; always a final self-check + journal) and list the assumed modes explicitly.
 
-Record the chosen modes; they are written into the plan body in Phase 2 as the contract `exec` reads.
+Record the chosen modes (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `execution-cove`); they are written into the plan body in Phase 2 as the contract `exec` reads.
 
 ## Phase 1: design decisions (anchors + judgment)
 
@@ -40,9 +43,17 @@ Before saving the plan, review the task against the ANCHORS and surface the real
 - **Edge cases** boundary situations (empty, off-screen, error, zero-length list),
 - **Test plan** what verifies the result and how.
 
+Use the `SKILL.md` Engineering checklist as a light filter while making these decisions. Apply KISS, YAGNI, DRY with judgment, local conventions first, separation of concerns, cohesion over cleverness, explicit contracts, testability, security/data safety, and evidence-based performance. Put only task-relevant consequences into `## Key Changes` or `## Assumptions`; do not create a checklist report unless the user asks for one.
+
 Think for the user: propose resolutions with a recommendation, verify assumptions in code and data sources instead of guessing, and call out risks and edge cases proactively. For each anchor with an OPEN decision ask `AskUserQuestion` (concise, recommendation first, labeled "(rec.)"). Skip an anchor that is obvious or has no variant; do not ask about the obvious. When no anchor has an open decision, say so plainly ("no open design decisions") and move on.
 
 Do not assume decisions silently. If the user explicitly says "don't ask / just do it", do NOT block them with questions, but LIST the adopted resolutions as explicit assumptions (open to veto); never hide them only in the file. Adopted decisions go into the plan sections (Assumptions / Key Changes).
+
+If `plan-cove` is ON, run a compact CoVe pass before saving the plan body:
+- draft the plan as provisional, not as truth;
+- ask independent verification questions for factual claims and assumptions, such as which files/API/tests actually exist, which constraints are confirmed, and which plan claims still need caveats;
+- answer those questions from the source of truth for the task (repo inspection, docs, tests, databases, web only when appropriate);
+- revise the plan so unverified claims move to `## Assumptions` or are explicitly caveated.
 
 ## Phase 2: save the plan file
 
@@ -52,7 +63,7 @@ Do not assume decisions silently. If the user explicitly says "don't ask / just 
      --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE` from stderr and fix the call (e.g. unique name, allowed status/keywords/project); do not create the file by hand.
-3. Read the returned `plan=...` path and fill the body sections (`## Summary`, `## Key Changes`, `## Test Plan`, `## Assumptions`) with `Edit`, incorporating the Phase 1 decisions. Then add a `## Mode` section recording the Phase 0 toggles (brainstorming / deep-verify / test, plus any defaults assumed under "don't ask"). Do NOT touch the frontmatter block.
+3. Read the returned `plan=...` path and fill the body sections (`## Summary`, `## Key Changes`, `## Test Plan`, `## Assumptions`) with `Edit`, incorporating the Phase 1 decisions and any `plan-cove` revisions. Then add a `## Mode` section recording the Phase 0 toggles (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `execution-cove`, plus any defaults assumed under "don't ask"). Do NOT touch the frontmatter block.
 
 ## Phase 3: close the loop
 

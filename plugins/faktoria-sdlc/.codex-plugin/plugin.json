@@ -1,6 +1,6 @@
 {
   "name": "faktoria-sdlc",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Faktoria SDLC workflows for Codex: lightweight ad hoc planning with resumable journals plus CoVe fact verification for high-accuracy answers.",
   "author": {
     "name": "Daniel Grabowski",

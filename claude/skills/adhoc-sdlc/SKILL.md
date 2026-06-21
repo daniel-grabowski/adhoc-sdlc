@@ -1,7 +1,6 @@
 ---
 name: adhoc-sdlc
 description: Use when you have small, ad hoc implementation work in the current project that still needs a durable, resumable record (a confirmed plan plus an incremental execution journal with touched files). Triggers include ad hoc fixes, quick features, and refactors you want planned and logged. Plan and execute are separate lifecycle steps.
-author: "Daniel Grabowski <daniel.grabowski@faktoria.io>"
 ---
 
 # Adhoc SDLC
@@ -56,15 +55,33 @@ The native todo list (Claude Code: `TodoWrite`; Codex: `update_plan`) is the liv
 
 Write the confirmed plan into `plan-*` with: title, summary, key changes, test plan, assumptions. Run the plan command as a guided conversation, not a form.
 
+### Engineering checklist
+
+Use this as a light decision filter, not a mandatory report for every item:
+
+- **KISS:** choose the simplest design that satisfies the task.
+- **YAGNI:** do not add options, layers, or configuration without a concrete need.
+- **DRY with judgment:** remove meaningful duplication, but avoid premature abstractions.
+- **Local conventions first:** prefer existing repo patterns, helpers, and style.
+- **Separation of concerns:** keep responsibilities in the right layer or module.
+- **Cohesion over cleverness:** make the code locally understandable before making it clever.
+- **Explicit contracts:** keep inputs, outputs, errors, and side effects clear.
+- **Testability:** make the verification path concrete and realistic.
+- **Security and data safety:** do not weaken validation, authorization, privacy, or secret handling.
+- **Performance with evidence:** optimize when there is a real risk or measurement, not by guesswork.
+
 ### Phase 0: mode gate (before planning)
 
-After a brief read of the prompt and before planning, ask one `AskUserQuestion` with three orthogonal toggles, each with a recommendation tailored to the task:
+After a brief read of the prompt and before planning, ask one `AskUserQuestion` with four questions, each with a recommendation tailored to the task. Three are orthogonal yes/no toggles; the fourth is a single multi-select for the CoVe gates (so all five modes fit within the `AskUserQuestion` four-question limit):
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the anchors below as an internal checklist and asking only about critical blockers.
 2. Deep code verification. Yes: dispatch an `Explore` subagent (read-only) to check assumptions against the codebase, then analyze and show its findings. No: handle it yourself and decide whether to read code at all.
 3. Test the execution. Yes: pick a method per stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. No: skip tests, but always run a final self-check and record the trace in the journal.
+4. CoVe gates (multi-select, any combination):
+   - Plan CoVe. Selected: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. Not selected: rely on the normal planning review.
+   - Execution CoVe. Selected: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. Not selected: rely on tests plus the required final self-check.
 
-Record the chosen modes in a `## Mode` section of the plan file; that section is the contract `exec` reads. If the user has said "don't ask" (or Phase 0 is skipped), default every toggle to OFF (draft the plan, no subagent, no tests; always a final self-check + journal) and list the assumed modes explicitly.
+Record the chosen modes in a `## Mode` section of the plan file; that section is the contract `exec` reads. Include all five: `brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, and `execution-cove` (the last two derived from the CoVe multi-select). If the user has said "don't ask" (or Phase 0 is skipped), default every mode to OFF (draft the plan, no subagent, no tests, no CoVe gates; always a final self-check + journal) and list the assumed modes explicitly.
 
 ### Design decisions
 

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../../../assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
+</p>
+
 # adhoc-sdlc
 
 *English · [Polski](README.pl.md)*
@@ -35,7 +39,7 @@ Skip it when the work already belongs to a formal issue workflow that has its ow
 
 ## How a session flows
 
-1. `plan` runs as a guided conversation. It first asks how to work (the Phase 0 mode gate: brainstorming dialog, deep code verification, test execution), then settles scope, approach, edge cases, and a test plan, and writes the plan file.
+1. `plan` runs as a guided conversation. It first asks how to work (the Phase 0 mode gate: brainstorming dialog, deep code verification, test execution, plan CoVe, execution CoVe), then settles scope, approach, edge cases, and a test plan, and writes the plan file.
 2. `exec` seeds a native todo list from the plan, works through it, and appends a journal entry for each significant step. It always ends with a final self-check recorded in the journal.
 3. `handoff` and `resume` carry state across context windows: one snapshots, the other reloads and picks up from the next steps.
 4. `history` reads the whole corpus through the helper to answer a question about past work.

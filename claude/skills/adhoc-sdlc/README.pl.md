@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../../../assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
+</p>
+
 # adhoc-sdlc
 
 *[English](README.md) · Polski*
@@ -35,7 +39,7 @@ Pomiń go, gdy praca należy już do formalnego przepływu issue z własnym źr�
 
 ## Jak przebiega sesja
 
-1. `plan` działa jak prowadzona rozmowa. Najpierw pyta, jak ma pracować (brama trybów Faza 0: dialog brainstorming, głęboka weryfikacja w kodzie, uruchamianie testów), potem ustala zakres, podejście, przypadki brzegowe i plan testów, i zapisuje plik planu.
+1. `plan` działa jak prowadzona rozmowa. Najpierw pyta, jak ma pracować (brama trybów Faza 0: dialog brainstorming, głęboka weryfikacja w kodzie, uruchamianie testów, plan CoVe, weryfikacja wykonania CoVe), potem ustala zakres, podejście, przypadki brzegowe i plan testów, i zapisuje plik planu.
 2. `exec` zasiewa natywną listę zadań z planu, przechodzi przez nią i dopisuje wpis do dziennika po każdym istotnym kroku. Zawsze kończy końcową autokontrolą zapisaną w dzienniku.
 3. `handoff` i `resume` przenoszą stan między oknami kontekstu: jeden robi snapshot, drugi go wczytuje i rusza od następnych kroków.
 4. `history` czyta cały korpus przez helper, żeby odpowiedzieć na pytanie o wcześniejszą pracę.

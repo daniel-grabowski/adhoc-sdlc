@@ -22,14 +22,20 @@ From `$ARGUMENTS` extract `--name` (the same name as the plan), `--title`, and o
      --name "<name>" --title "<title>" [--append "<entry>" --files <a,b> --phase "<label>"] [--status <s>]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE`; the most common case is no plan of that name (create it first with `/adhoc-sdlc:plan`).
-3. Read the returned `plan=...` and `execute=...`. Read the plan and realize its steps. Read the plan's `## Mode` section to learn the execution modes (the test toggle governs this command; brainstorming and deep-verify belong to planning). If there is no `## Mode` section, treat every mode as OFF.
+3. Read the returned `plan=...` and `execute=...`. Read the plan and realize its steps. Read the plan's `## Mode` section to learn the execution modes (the `test-execution` toggle governs automated tests; `execution-cove` governs final CoVe; brainstorming, deep-code-verification, and plan-cove belong to planning). If there is no `## Mode` section, treat every mode as OFF.
 4. Native todo list, REQUIRED before the first change: seed it from the plan's key changes + a verification step. Claude Code: `TodoWrite`; Codex: `update_plan`. Exactly one `in_progress`; mark `completed` immediately when done. Every `completed` maps to at least one journal entry.
 5. Keep the journal INCREMENTAL and ONLY through the helper (never manual `Edit`/`Write` on the JSON). After each finished task or phase, append an entry with the touched files: `execute --append "<what was done>" --files <files> [--phase "<phase>"]`. Decisions and deviations via `--decision`, verification outcomes via `--verification "<outcome>" [--command "<cmd>"]`.
 6. Testing (per `## Mode`):
-   - test = ON: pick a method for the stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. Record outcomes with `--verification` (and `--command`).
-   - test = OFF: skip automated tests.
-7. Final self-check, ALWAYS (regardless of the test toggle): review what was actually done against the plan, then record it with `--verification` so the trace lives in the journal.
-8. Close the journal: `--final "<result>" --status done`.
+   - `test-execution` = ON: pick a method for the stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. Record outcomes with `--verification` (and `--command`).
+   - `test-execution` = OFF: skip automated tests.
+7. Final self-check, ALWAYS (regardless of the test toggle): review what was actually done against the plan and the `SKILL.md` Engineering checklist, then record it with `--verification` so the trace lives in the journal. If the implementation intentionally violates the checklist (for example extra abstraction, skipped tests, or a security/performance tradeoff), record the reason with `--decision` or `--verification`; do not leave it implicit.
+8. If `execution-cove` is ON, run a compact CoVe pass before the final close:
+   - draft the final report as provisional;
+   - ask independent verification questions against the actual diff/status, journal entries, completed native todos, and command outputs;
+   - mark claims as consistent, inconsistent, or inconclusive;
+   - revise the final report to keep only verified or explicitly caveated claims;
+   - record the outcome with `--verification "<CoVe outcome>"` (and `--command` when a command was used).
+9. Close the journal: `--final "<result>" --status done`.
 
 ## Output
 
