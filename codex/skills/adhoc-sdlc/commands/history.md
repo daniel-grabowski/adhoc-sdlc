@@ -6,7 +6,7 @@ argument-hint: "<the angle / what you are looking for> [--project P]"
 
 # /adhoc-sdlc:history
 
-Read `~/.codex/skills/adhoc-sdlc/reference.md` (Read tool): section "History". Read `~/.codex/skills/adhoc-sdlc/SKILL.md`: section "Read-side authority".
+Read this skill's `reference.md`: section "History". Read this skill's `SKILL.md`: section "Read-side authority". Resolve `<skill-dir>` to the directory containing that `SKILL.md`.
 
 An ANALYTICAL, READ-ONLY command: it creates and modifies nothing. It searches the journal corpus (plans, execution journals, handoffs) for the ANGLE given by the user, focused on recurring problems and things already done. It ends by asking "what next". Match the user's language for the rendered report.
 
@@ -25,7 +25,7 @@ The helper (`pack`) is the only read-side authority: do NOT use `Read`/`Grep`/`G
 1. Extract domain keywords from the angle (this is judgment, e.g. "fpc build problems" -> `build,fpc`).
 2. Build the context pack:
    ```bash
-   python3 ~/.codex/skills/adhoc-sdlc/scripts/adhoc_sdlc.py pack \
+   python3 <skill-dir>/scripts/adhoc_sdlc.py pack \
      --intent history --angle "<angle>" --keywords <a,b,c> --format json [--project <P>] [--days <N>]
    ```
    CHECK the exit code; on non-zero read `ERROR/EXPECTED/EXAMPLE` and fix the flags.

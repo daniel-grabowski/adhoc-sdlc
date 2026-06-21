@@ -38,12 +38,12 @@ Never create two plans with the same semantic name. Before creating a plan, chec
 
 ## Helper
 
-Use the bundled helper instead of rewriting file creation logic. It defaults to the current working directory, so run it from the project root (or pass `--root <dir>`).
+Use the bundled helper instead of rewriting file creation logic. It defaults to the current working directory, so run it from the project root (or pass `--root <dir>`). In the examples below, `<skill-dir>` is the directory containing this `reference.md` and `SKILL.md`.
 
 Create a confirmed plan:
 
 ```bash
-python3 ~/.codex/skills/adhoc-sdlc/scripts/adhoc_sdlc.py plan \
+python3 <skill-dir>/scripts/adhoc_sdlc.py plan \
   --name "operator panel start stop good button" \
   --title "Operator panel fixes: Start/Stop and Good"
 ```
@@ -51,7 +51,7 @@ python3 ~/.codex/skills/adhoc-sdlc/scripts/adhoc_sdlc.py plan \
 Start or append execution:
 
 ```bash
-python3 ~/.codex/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute \
+python3 <skill-dir>/scripts/adhoc_sdlc.py execute \
   --name "operator panel start stop good button" \
   --title "Operator panel fixes: Start/Stop and Good" \
   --append "Implemented the Start/Stop button" \

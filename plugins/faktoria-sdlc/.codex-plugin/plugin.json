@@ -1,0 +1,40 @@
+{
+  "name": "faktoria-sdlc",
+  "version": "0.3.0",
+  "description": "Faktoria SDLC workflows for Codex: lightweight ad hoc planning with resumable journals plus CoVe fact verification for high-accuracy answers.",
+  "author": {
+    "name": "Daniel Grabowski",
+    "email": "daniel.grabowski@faktoria.io",
+    "url": "https://github.com/daniel-grabowski"
+  },
+  "homepage": "https://github.com/daniel-grabowski/faktoria-sdlc",
+  "repository": "https://github.com/daniel-grabowski/faktoria-sdlc",
+  "license": "MIT",
+  "keywords": [
+    "sdlc",
+    "planning",
+    "journal",
+    "ad-hoc",
+    "workflow",
+    "verification",
+    "cove"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Faktoria SDLC",
+    "shortDescription": "Planning, journals, handoffs, and CoVe verification.",
+    "longDescription": "Faktoria SDLC adds lightweight workflows for small implementation tasks and high-accuracy factual answers: confirmed plans, incremental execution journals, handoffs, resume support, read-only history analysis, and CoVe verification.",
+    "developerName": "Daniel Grabowski",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/daniel-grabowski/faktoria-sdlc",
+    "defaultPrompt": [
+      "Plan this ad hoc change with an execution journal.",
+      "Resume my last adhoc-sdlc session.",
+      "Use CoVe to verify the factual claims in this answer."
+    ]
+  }
+}

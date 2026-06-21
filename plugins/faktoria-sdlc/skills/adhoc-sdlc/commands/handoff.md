@@ -1,0 +1,42 @@
+---
+description: "adhoc-sdlc handoff: snapshot the current session state to a file"
+allowed-tools: All
+argument-hint: "--name \"desc\" --title \"title\" [--project P] [--keywords a,b]"
+---
+
+# /adhoc-sdlc:handoff
+
+Read this skill's `reference.md`: section "Handoff". Read this skill's `SKILL.md`: section "Read-side authority". Resolve `<skill-dir>` to the directory containing that `SKILL.md`.
+
+Saves a snapshot of the session state so another agent (or the same session after compaction) can continue. Handoffs are HISTORY: every call creates a new timestamped file, nothing is overwritten. Match the user's language for the body prose; keep filenames ASCII.
+
+## Argument parsing
+
+From `$ARGUMENTS` extract `--name`, `--title`, optionally `--project`, `--keywords`. Keywords and project matter: `/adhoc-sdlc:history` and `/adhoc-sdlc:resume` filter by them.
+
+## Execution
+
+0. (Optional, if earlier work of this name/project exists) Fetch related context so Current Progress and Next Steps do not duplicate what is already done:
+   ```bash
+   python3 <skill-dir>/scripts/adhoc_sdlc.py pack \
+     --intent handoff --name "<name>" --format json [--project <P>] [--keywords <a,b>]
+   ```
+   Use `related` (plan/execute/handoff PATHS) as references, do NOT read those files (`Read`/`Grep`).
+1. Create the handoff file with the helper:
+   ```bash
+   python3 <skill-dir>/scripts/adhoc_sdlc.py handoff \
+     --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>]
+   ```
+2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE` and fix the call.
+3. Read the returned `handoff=...` and fill the body sections (`Edit`, frontmatter untouched):
+   - **Goal** what we are trying to achieve,
+   - **Current Progress** what is done (reference by path/URL from `related`, do not copy plan/journal/commit content),
+   - **What Worked** approaches that paid off,
+   - **What Didn't Work** approaches that failed (so they are not repeated),
+   - **Next Steps** concrete steps to continue,
+   - **Suggested Skills** skills the next agent should invoke.
+4. REDACT secrets: remove API keys, passwords, tokens, PII, IP/host addresses.
+
+## Output
+
+Show the handoff path and one sentence about what it covers. To resume: `/adhoc-sdlc:resume`.

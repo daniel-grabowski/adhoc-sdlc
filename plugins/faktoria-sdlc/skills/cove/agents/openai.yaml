@@ -1,0 +1,7 @@
+interface:
+  display_name: "CoVe"
+  short_description: "Verify factual claims before final answers."
+  default_prompt: "Use $cove to verify factual claims before finalizing the answer."
+
+policy:
+  allow_implicit_invocation: true

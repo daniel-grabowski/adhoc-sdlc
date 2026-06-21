@@ -1,7 +1,6 @@
 ---
 name: adhoc-sdlc
 description: Use when you have small, ad hoc implementation work in the current project that still needs a durable, resumable record (a confirmed plan plus an incremental execution journal with touched files). Triggers include ad hoc fixes, quick features, and refactors you want planned and logged. Plan and execute are separate lifecycle steps.
-author: "Daniel Grabowski <daniel.grabowski@faktoria.io>"
 ---
 
 # Adhoc SDLC
@@ -9,6 +8,8 @@ author: "Daniel Grabowski <daniel.grabowski@faktoria.io>"
 ## Overview
 
 Use this skill for lightweight ad hoc work in the current project: too small for a formal issue workflow, but worth a durable plan and a resumable execution history. It produces two files under `./adhoc-sdlc`: a confirmed plan (`plan-*.md`) and an incremental execution journal (`execute-*.json`). The helper owns both; you do the work.
+
+When command docs show `<skill-dir>`, resolve it to the directory containing this `SKILL.md` and `reference.md`. Do not hard-code `~/.codex/skills/adhoc-sdlc` when the skill came from a Codex plugin install.
 
 The full file contract (frontmatter, files, helper flags, journal operations, handoff/resume/history mechanics) is in `reference.md`; read the section a command points you to.
 
@@ -21,7 +22,7 @@ Instructions in this skill and its commands are English; that is the source of t
 
 ## Commands (router)
 
-The skill exposes sub-commands invoked with a colon. Files live in `~/.codex/skills/adhoc-sdlc/commands/`:
+The skill exposes sub-commands invoked with a colon. Files live in this skill's `commands/` directory.
 
 | Command | Helper mode | Role |
 |---------|-------------|------|

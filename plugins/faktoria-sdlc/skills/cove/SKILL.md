@@ -1,0 +1,119 @@
+---
+name: cove
+description: Verify factual claims with Chain-of-Verification. Use when Codex answers factual questions, lists entities, writes biographies or historical summaries, audits claims, cites sources, or needs high-confidence factual output; especially useful for reducing hallucinations before finalizing user-facing answers.
+---
+
+# CoVe
+
+Use Chain-of-Verification (CoVe) to reduce hallucinations by drafting an answer, planning independent verification questions, answering those questions without copying the draft, and revising the final answer to keep only verified claims.
+
+Primary source: Dhuliawala et al., "Chain-of-Verification Reduces Hallucination in Large Language Models", Findings of ACL 2024. The arXiv version was submitted in 2023.
+
+## Evidence Boundary
+
+Do not overstate the paper's numbers. The often-cited `~17% -> ~70%` result is specific to the paper's Wikidata list-based task: Llama 65B few-shot precision was `0.17`, while individually querying entities with verification-style questions produced about `0.70` precision. Treat this as evidence that short, targeted verification can expose facts missed in long-form generation, not as a universal accuracy guarantee.
+
+The original paper does not explore external tool-use. In Codex, combine CoVe with web search, primary documents, repo inspection, tests, or databases when those are the right source of truth.
+
+## Process
+
+### 1. Draft
+
+Generate a baseline answer and treat it as a draft, not as truth.
+
+```text
+[DRAFT RESPONSE]
+<initial answer>
+```
+
+### 2. Plan Verification Questions
+
+Create direct questions for factual claims.
+
+- Ask open questions, not yes/no prompts.
+- Ask one question per claim or tightly coupled claim group.
+- Make each question independently answerable.
+- Prefer source-of-truth questions: "Where was X born?", "What date did Y occur?", "Which file defines Z?"
+
+```text
+[VERIFICATION PLAN]
+- Where was Hillary Clinton born?
+- Where was Donald Trump born?
+- Where was Michael Bloomberg born?
+```
+
+### 3. Execute Verifications Independently
+
+Answer each verification question without relying on the draft answer.
+
+- Do not phrase the verification around the draft's claimed answer.
+- Use external tools when the fact is current, high-stakes, source-specific, or otherwise unstable.
+- If verification is inconclusive, say so and lower confidence instead of forcing agreement.
+
+```text
+[EXECUTING VERIFICATIONS]
+Q: Where was Hillary Clinton born?
+A: Chicago, Illinois
+
+Q: Where was Donald Trump born?
+A: Queens, New York City
+```
+
+### 4. Cross-check And Revise
+
+Compare the draft with the verification answers. Mark each checked claim as `CONSISTENT`, `INCONSISTENT`, or `INCONCLUSIVE`, then write the final answer using only verified or explicitly caveated claims.
+
+```text
+[CROSS-CHECK]
+- Hillary Clinton born in New York: INCONSISTENT (verified: Chicago, Illinois)
+- Donald Trump born in New York: CONSISTENT (verified: Queens, New York City)
+
+[FINAL VERIFIED RESPONSE]
+<revised answer>
+```
+
+## Task Patterns
+
+### Lists
+
+For "Name some X that Y", draft the list, then verify the property for each entity with direct questions such as "What is the birthplace of X?" or "Which category does X belong to?". Remove or caveat entities that fail verification.
+
+### Biographies
+
+Break the biography into atomic facts: dates, offices, places, affiliations, publications, events, and causal claims. Verify the most consequential facts first.
+
+### Historical Or Technical Claims
+
+Verify timeline, actors, outputs, names, versions, file paths, commands, and exact error text. For repo claims, inspect the actual repo. For current public facts, browse primary sources.
+
+## Rules
+
+- Never skip verification for factual claims when high accuracy matters.
+- Avoid yes/no verification because it can encourage agreement bias and performed worse in the paper's binary-query experiment.
+- Verify independently; do not let the draft answer anchor the verification answer.
+- Prefer fewer verified facts over many uncertain facts.
+- Mark confidence and state when verification was inconclusive.
+- For code generation and bug fixes, use tests and runtime checks; use CoVe only for factual surrounding claims.
+
+## Output Shape
+
+Use this full shape when the user explicitly asks for CoVe or when auditability matters. For normal answers, keep the scratch work internal and provide a concise verified final answer.
+
+```text
+[DRAFT RESPONSE]
+<initial answer>
+
+[VERIFICATION PLAN]
+- <question 1>
+- <question 2>
+
+[EXECUTING VERIFICATIONS]
+Q: <question 1>
+A: <verified answer>
+
+[CROSS-CHECK]
+- <claim>: CONSISTENT/INCONSISTENT/INCONCLUSIVE (<reason>)
+
+[FINAL VERIFIED RESPONSE]
+<revised answer>
+```

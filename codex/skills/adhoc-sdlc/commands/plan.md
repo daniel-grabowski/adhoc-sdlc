@@ -6,7 +6,7 @@ argument-hint: "--name \"desc\" --title \"title\" [--project P] [--keywords a,b]
 
 # /adhoc-sdlc:plan
 
-Read `~/.codex/skills/adhoc-sdlc/SKILL.md` (Read tool): sections "Plan file", "Language", "Commands", "Native todo list". For the file contract see `~/.codex/skills/adhoc-sdlc/reference.md` (Helper, Files).
+Read this skill's `SKILL.md`: sections "Plan file", "Language", "Commands", "Native todo list". For the file contract read this skill's `reference.md` (Helper, Files). Resolve `<skill-dir>` to the directory containing that `SKILL.md`.
 
 Interactive command: it settles the real design decisions with the user, saves the plan file, and finally closes the loop into execution (native task list + optional `exec` run). The file is ONLY a plan; implementation belongs to `exec`, but the plan can launch it right away.
 
@@ -48,7 +48,7 @@ Do not assume decisions silently. If the user explicitly says "don't ask / just 
 
 1. Create the plan file with the helper:
    ```bash
-   python3 ~/.codex/skills/adhoc-sdlc/scripts/adhoc_sdlc.py plan \
+   python3 <skill-dir>/scripts/adhoc_sdlc.py plan \
      --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE` from stderr and fix the call (e.g. unique name, allowed status/keywords/project); do not create the file by hand.
@@ -61,7 +61,7 @@ After saving the plan, ALWAYS close the loop with two points: (1) add/change any
 1. "Add or change anything in the plan?" If yes, apply with `Edit` on the body sections and show the change.
 2. "Run execution now?":
    - **YES** -> move into execution (like `/adhoc-sdlc:exec`):
-     1. create the journal: `python3 ~/.codex/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute --name "<name>" --title "<title>"`,
+     1. create the journal: `python3 <skill-dir>/scripts/adhoc_sdlc.py execute --name "<name>" --title "<title>"`,
      2. FORCE the native task list (Claude Code: `TodoWrite`; Codex: `update_plan`) seeded from `Key Changes` + a verification step. This is MANDATORY before the first code change. Time pressure or a "skip the list / just do it" request does NOT lift it: without the native list, do not start implementation,
      3. execute per the plan; append each significant step incrementally with `execute --append "..." --files <touched files>`; keep exactly one list item `in_progress`, mark it `completed` right after it is done.
    - **NO** -> show the plan path and suggest `/adhoc-sdlc:exec --name <name>` for later.
