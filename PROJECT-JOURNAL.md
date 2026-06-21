@@ -1,5 +1,30 @@
 # Dziennik projektu faktoria-sdlc
 
+## 2026-06-21 - Przepisanie README i dokumentacji: framing harness, nie vibe-coding
+
+Status: przygotowane w tym commicie, push na `main`
+Zakres: dokumentacja human-facing (root README EN/PL, README skilla adhoc-sdlc EN/PL, antigravity/README) plus `.gitignore`; bez zmian w plikach instrukcyjnych skilli i helperze
+
+### Co się zmieniło
+
+- Root README EN i PL dostały sekcję pozycjonującą „Harness, not vibe coding" / „Harness, nie vibe-coding" (po sekcji „Why" / „Dlaczego"), z odniesieniem do artykułu Addy'ego Osmaniego „The New Software Lifecycle" i whitepapera Google. Sekcja mapuje repo na ramy z artykułu: `adhoc-sdlc` jako trwały zapis (harness), `cove` jako weryfikacja (linia między vibe-codingiem a inżynierią), progressive disclosure skilli jako kontekst ładowany na żądanie.
+- README skilla `adhoc-sdlc` EN i PL: w sekcji „Why" / „Dlaczego" wzmocniono jednym zdaniem akcent, że trwały zapis czyni pracę sprawdzalną, bez przebudowy struktury.
+- `antigravity/README.md`: usunięto zduplikowany akapit placeholder (powtarzał sekcję „What"), a detal „stdlib-only Python helper" przeniesiono do „What". Plik pozostaje EN-only (roadmap).
+- Prozę przepuszczono przez skill `humanizer` (PL i EN) w trybie self-audytu. Tam, gdzie tekst był już czysty (m.in. CONTRIBUTING EN/PL i większość README), nie wprowadzano kosmetycznych zmian, żeby nie ryzykować regresji w instrukcjach.
+- `.gitignore`: dodano regułę `/adhoc-sdlc/`, żeby katalog roboczy SDLC (plan i dziennik tej sesji) nie trafiał do repozytorium pluginu.
+
+### Czego nie zmieniono
+
+- Plików instrukcyjnych agenta (`SKILL.md`, `reference.md`, `commands/*.md`) we wszystkich wariantach runtime, helpera Pythona, formatu `plan-*`/`execute-*`, manifestów i wersji pluginów. To zmiana docs-only, bez bumpa wersji (pozostaje 0.3.3).
+
+### Weryfikacja
+
+- `git diff --stat` -> 6 plików: `.gitignore`, `README.md`, `README.pl.md`, `antigravity/README.md`, `claude/skills/adhoc-sdlc/README.md`, `claude/skills/adhoc-sdlc/README.pl.md`.
+- Skan em-dash/en-dash (`grep -P`) w zmienionych plikach docs -> brak trafień.
+- Linki do źródeł potwierdzone z treści artykułu: `addyosmani.com/blog/new-sdlc-vibe-coding/` oraz `kaggle.com/whitepaper-the-new-SDLC-with-vibe-coding`.
+- Zgodność dwujęzyczna: sekcja pozycjonująca EN i PL mają po trzy lustrzane akapity; nagłówki nawigacyjne EN/PL nietknięte.
+- Reguły stylu PL: bez em-dash/en-dash, polskie cudzysłowy „ ", akapit = jedna linia.
+
 ## 2026-06-21 - Opisy What/Why w skillach i manifestach
 
 Status: opublikowane na `main`

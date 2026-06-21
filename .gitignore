@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Katalog roboczy adhoc-sdlc (plany i dzienniki wykonania), nie czesc pluginu
+/adhoc-sdlc/

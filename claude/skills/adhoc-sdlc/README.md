@@ -12,7 +12,7 @@
 
 ## Why
 
-Ad hoc coding work often fails because the context disappears: what was planned, what changed, what was verified, and what remains. This skill keeps that trail on disk so an agent can continue safely after a pause, handoff, or context reset.
+Ad hoc coding work often fails because the context disappears: what was planned, what changed, what was verified, and what remains. This skill keeps that trail on disk so an agent can continue safely after a pause, handoff, or context reset. That on-disk record also makes the work checkable afterward, which is the difference between engineering and hoping the change went fine.
 
 ## What it does
 

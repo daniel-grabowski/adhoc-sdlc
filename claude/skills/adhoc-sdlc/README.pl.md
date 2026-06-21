@@ -12,7 +12,7 @@
 
 ## Dlaczego
 
-Doraźna praca programistyczna często psuje się przez utratę kontekstu: co było zaplanowane, co zmieniono, co zweryfikowano i co jeszcze zostało. Ten skill zapisuje ten ślad na dysku, żeby agent mógł bezpiecznie kontynuować po pauzie, przekazaniu pracy albo resecie kontekstu.
+Doraźna praca programistyczna często psuje się przez utratę kontekstu: co było zaplanowane, co zmieniono, co zweryfikowano i co jeszcze zostało. Ten skill zapisuje ten ślad na dysku, żeby agent mógł bezpiecznie kontynuować po pauzie, przekazaniu pracy albo resecie kontekstu. Ten sam zapis sprawia, że pracę da się potem sprawdzić, a to właśnie różnica między inżynierią a liczeniem na to, że zmiana poszła dobrze.
 
 ## Do czego służy
 

@@ -3,8 +3,9 @@
 ## What
 
 This directory tracks the planned Antigravity CLI variant of the `adhoc-sdlc`
-skill: the same confirmed plan plus incremental execution journal workflow used
-by the Claude Code and Codex variants.
+skill: the same confirmed plan plus incremental execution journal that the
+Claude Code and Codex variants already run, driven by the shared, stdlib-only
+Python helper.
 
 ## Why
 
@@ -13,11 +14,6 @@ Antigravity support is implemented, it must preserve the same SDLC contract
 instead of becoming a separate, drifting workflow.
 
 Status: planned, not yet implemented.
-
-This directory is a placeholder for the Antigravity CLI variant of the `adhoc-sdlc`
-skill. The goal is the same as the other runtimes: a confirmed plan plus an
-incremental, resumable execution journal under `./adhoc-sdlc` in the project,
-driven by the shared, stdlib-only Python helper.
 
 ## What carries over
 
