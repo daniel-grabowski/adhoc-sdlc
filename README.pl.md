@@ -1,22 +1,28 @@
-<p align="center">
-  <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
-</p>
-
 # faktoria-sdlc
 
 *[English](README.md) · Polski*
 
-Skille SDLC dla agentów programujących AI: zaplanuj pracę, prowadź wznawialny dziennik wykonania i przekazuj robotę między sesjami. Dostarczane jako pluginy Claude Code i Codex, z wariantem plain skill Codex zachowanym dla kompatybilności oraz rozszerzeniem Antigravity CLI w planach.
+## Co to jest
+
+`faktoria-sdlc` to mały zestaw SDLC dla agentów programujących AI. Dostarcza dwa skille: `adhoc-sdlc` do lekkiej pracy implementacyjnej z trwałym planem i dziennikiem wykonania oraz `cove` do Chain-of-Verification przed wypuszczeniem twierdzeń faktograficznych do użytkownika.
+
+## Dlaczego
+
+AI koduje szybko, ale szybkość bez zapisu decyzji jest krucha. To repo daje Claude Code i Codex wspólny workflow do planowania, weryfikacji, dziennikowania, wznawiania i przekazywania małych zadań bez zamieniania każdej zmiany w formalne issue.
 
 ## Skille
 
 ### adhoc-sdlc
 
-Lekki cykl SDLC dla małej, doraźnej pracy: za małej na formalny issue, ale wartej trwałego planu i wznawialnej historii wykonania. Tworzy potwierdzony plan i przyrostowy dziennik wykonania pod `./adhoc-sdlc` w projekcie, w którym go uruchamiasz. Szczegóły w [claude/skills/adhoc-sdlc/README.pl.md](claude/skills/adhoc-sdlc/README.pl.md).
+Co to jest: lekki cykl SDLC dla małej, doraźnej pracy implementacyjnej. Dlaczego: nawet szybka poprawka ma mieć potwierdzony plan, checklistę inżynierską, opcjonalne bramy weryfikacyjne i wznawialny dziennik wykonania pod `./adhoc-sdlc`. Szczegóły w [claude/skills/adhoc-sdlc/README.pl.md](claude/skills/adhoc-sdlc/README.pl.md).
+
+<p align="center">
+  <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
+</p>
 
 ### CoVe
 
-Chain-of-Verification do pracy faktograficznej: przygotuj szkic odpowiedzi, zaplanuj niezależne pytania weryfikacyjne, sprawdź twierdzenia i popraw finalną odpowiedź tak, żeby zostały tylko fakty potwierdzone albo jawnie oznaczone jako niepewne. Pluginy Claude Code i Codex dostarczają to jako skill `cove`.
+Co to jest: Chain-of-Verification do pracy faktograficznej. Dlaczego: wymusza przejście od szkicu przez niezależne pytania weryfikacyjne, żeby finalna odpowiedź zawierała tylko fakty potwierdzone albo jawnie oznaczone jako niepewne. Pluginy Claude Code i Codex dostarczają to jako skill `cove`.
 
 ## Układ
 

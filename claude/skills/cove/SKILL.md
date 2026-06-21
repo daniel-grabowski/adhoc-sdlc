@@ -1,9 +1,17 @@
 ---
 name: cove
-description: Verify factual claims with Chain-of-Verification. Use when answering factual questions, listing entities, writing biographies or historical summaries, auditing claims, citing sources, or needing high-confidence factual output; especially useful for reducing hallucinations before finalizing user-facing answers.
+description: "What: Chain-of-Verification for factual claims. Why: use it when answers, lists, summaries, audits, citations, or user-facing text need independent verification to reduce hallucinations before finalizing."
 ---
 
 # CoVe
+
+## What
+
+CoVe is Chain-of-Verification for factual claims: draft, ask independent verification questions, check the answers, and revise.
+
+## Why
+
+Use it when correctness matters more than speed. It reduces hallucinated or overconfident claims by forcing the final answer to keep only verified facts or explicit caveats.
 
 Use Chain-of-Verification (CoVe) to reduce hallucinations by drafting an answer, planning independent verification questions, answering those questions without copying the draft, and revising the final answer to keep only verified claims.
 

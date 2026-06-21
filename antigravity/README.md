@@ -1,5 +1,17 @@
 # adhoc-sdlc for Antigravity CLI (roadmap)
 
+## What
+
+This directory tracks the planned Antigravity CLI variant of the `adhoc-sdlc`
+skill: the same confirmed plan plus incremental execution journal workflow used
+by the Claude Code and Codex variants.
+
+## Why
+
+The runtime is not shipped yet, but the intent should stay explicit. When
+Antigravity support is implemented, it must preserve the same SDLC contract
+instead of becoming a separate, drifting workflow.
+
 Status: planned, not yet implemented.
 
 This directory is a placeholder for the Antigravity CLI variant of the `adhoc-sdlc`

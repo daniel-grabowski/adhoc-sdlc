@@ -6,7 +6,13 @@
 
 *English · [Polski](README.pl.md)*
 
-A lightweight SDLC for small, ad hoc work in the current project: too small for a formal issue, but worth a durable plan and a resumable execution history.
+## What
+
+`adhoc-sdlc` is a lightweight SDLC for small implementation work in the current project: too small for a formal issue, but important enough to deserve a real plan and a resumable execution history.
+
+## Why
+
+Ad hoc coding work often fails because the context disappears: what was planned, what changed, what was verified, and what remains. This skill keeps that trail on disk so an agent can continue safely after a pause, handoff, or context reset.
 
 ## What it does
 

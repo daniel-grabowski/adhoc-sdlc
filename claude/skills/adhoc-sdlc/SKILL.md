@@ -1,9 +1,17 @@
 ---
 name: adhoc-sdlc
-description: Use when you have small, ad hoc implementation work in the current project that still needs a durable, resumable record (a confirmed plan plus an incremental execution journal with touched files). Triggers include ad hoc fixes, quick features, and refactors you want planned and logged. Plan and execute are separate lifecycle steps.
+description: "What: lightweight SDLC for small implementation work with a confirmed plan and resumable execution journal. Why: use it when ad hoc fixes, quick features, or refactors need durable context, touched-file history, verification, and safe handoff without a formal issue."
 ---
 
 # Adhoc SDLC
+
+## What
+
+`adhoc-sdlc` turns small implementation work into a guided plan plus an incremental execution journal in the current project.
+
+## Why
+
+Use it when a task is too small for a formal issue but still needs durable decisions, touched-file history, verification evidence, resume support, and handoff safety.
 
 ## Overview
 

@@ -5,14 +5,14 @@
     "email": "daniel.grabowski@faktoria.io"
   },
   "metadata": {
-    "description": "Faktoria SDLC tooling for AI coding agents.",
-    "version": "0.3.2"
+    "description": "What: Faktoria SDLC tooling for AI coding agents. Why: keep ad hoc coding work planned, verified, resumable, and safe to hand off.",
+    "version": "0.3.3"
   },
   "plugins": [
     {
       "name": "adhoc-sdlc",
       "source": "./claude",
-      "description": "Plan plus incremental execution journal for small ad hoc work, with read-only history, resume and handoff over the project corpus, plus CoVe fact verification."
+      "description": "What: adhoc-sdlc planning journals plus CoVe fact verification. Why: preserve decisions, touched files, verification evidence, resume context, and handoff safety for small AI coding tasks."
     }
   ]
 }

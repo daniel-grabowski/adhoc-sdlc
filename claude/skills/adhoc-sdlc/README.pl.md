@@ -6,7 +6,13 @@
 
 *[English](README.md) · Polski*
 
-Lekki cykl SDLC dla małej, doraźnej pracy w bieżącym projekcie: za małej na formalny issue, ale wartej trwałego planu i wznawialnej historii wykonania.
+## Co to jest
+
+`adhoc-sdlc` to lekki cykl SDLC dla małej pracy implementacyjnej w bieżącym projekcie: za małej na formalny issue, ale na tyle ważnej, żeby miała prawdziwy plan i wznawialną historię wykonania.
+
+## Dlaczego
+
+Doraźna praca programistyczna często psuje się przez utratę kontekstu: co było zaplanowane, co zmieniono, co zweryfikowano i co jeszcze zostało. Ten skill zapisuje ten ślad na dysku, żeby agent mógł bezpiecznie kontynuować po pauzie, przekazaniu pracy albo resecie kontekstu.
 
 ## Do czego służy
 

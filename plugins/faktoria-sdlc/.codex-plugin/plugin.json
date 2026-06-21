@@ -1,7 +1,7 @@
 {
   "name": "faktoria-sdlc",
-  "version": "0.3.2",
-  "description": "Faktoria SDLC workflows for Codex: lightweight ad hoc planning with resumable journals plus CoVe fact verification for high-accuracy answers.",
+  "version": "0.3.3",
+  "description": "What: Faktoria SDLC workflows for Codex: adhoc-sdlc planning journals plus CoVe fact verification. Why: keep small AI coding tasks planned, verified, resumable, and safe to hand off.",
   "author": {
     "name": "Daniel Grabowski",
     "email": "daniel.grabowski@faktoria.io",
@@ -22,8 +22,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Faktoria SDLC",
-    "shortDescription": "Planning, journals, handoffs, and CoVe verification.",
-    "longDescription": "Faktoria SDLC adds lightweight workflows for small implementation tasks and high-accuracy factual answers: confirmed plans, incremental execution journals, handoffs, resume support, read-only history analysis, and CoVe verification.",
+    "shortDescription": "What: planning journals plus CoVe. Why: safer ad hoc AI coding.",
+    "longDescription": "What: Faktoria SDLC adds lightweight workflows for small implementation tasks and high-accuracy factual answers: confirmed plans, incremental execution journals, handoffs, resume support, read-only history analysis, and CoVe verification. Why: AI coding moves fast, so the agent needs durable context, explicit verification, and a reliable handoff trail before work leaves the session.",
     "developerName": "Daniel Grabowski",
     "category": "Productivity",
     "capabilities": [

@@ -1,7 +1,7 @@
 {
   "name": "adhoc-sdlc",
-  "version": "0.3.2",
-  "description": "Plan plus incremental execution journal for small ad hoc work: a confirmed plan and a resumable journal of touched files, with read-only history, resume and handoff over the project corpus, plus CoVe fact verification.",
+  "version": "0.3.3",
+  "description": "What: adhoc-sdlc planning journals plus CoVe fact verification for Claude Code. Why: keep small ad hoc work planned, verified, resumable, and safe to hand off without a formal issue.",
   "author": {
     "name": "Daniel Grabowski",
     "email": "daniel.grabowski@faktoria.io"

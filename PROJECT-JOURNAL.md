@@ -1,5 +1,37 @@
 # Dziennik projektu faktoria-sdlc
 
+## 2026-06-21 - Opisy What/Why w skillach i manifestach
+
+Status: opublikowane na `main`
+Zakres: opisy repozytorium, skill frontmatter/body, manifesty Claude/Codex, roadmap Antigravity, instrukcje contributorskie
+
+### Co się zmieniło
+
+- Główne README EN/PL zaczyna się od sekcji `What` / `Why` (`Co to jest` / `Dlaczego`) i opisuje dwa skille: `adhoc-sdlc` oraz `cove`.
+- README skilla `adhoc-sdlc` EN/PL zaczyna się od tego samego kontekstu: co to jest i po co istnieje.
+- Wszystkie `SKILL.md` dla dostarczanych wariantów (`claude`, `codex`, `plugins/faktoria-sdlc`) mają frontmatter `description` zaczynający się od `What:` i `Why:`.
+- Skill `cove` w wariantach Claude i Codex ma na początku treści sekcje `## What` i `## Why`, żeby sens Chain-of-Verification był widoczny przed instrukcjami proceduralnymi.
+- Manifesty pluginów Claude i Codex oraz marketplace Claude mają opisy zaczynające się od `What:` i `Why:`.
+- Podbito wersje publicznych manifestów pluginów z `0.3.2` do `0.3.3`.
+- `antigravity/README.md` dostał sekcje `What` i `Why`, mimo że runtime pozostaje roadmapą.
+- `CONTRIBUTING` EN/PL urealniono do obecnego układu: Claude plugin, Codex plain skill, Codex plugin i roadmap Antigravity.
+- `tools/sync-helper.sh` synchronizuje helper z kopii kanonicznej Claude do obu wariantów Codex (`codex/skills/...` i `plugins/faktoria-sdlc/skills/...`), zgodnie z opisem contributorskim.
+- Skorygowano statusy wcześniejszych wpisów dziennika, które po commicie `b7aac5e` nadal mówiły `lokalnie przygotowane, niecommitowane`.
+
+### Weryfikacja
+
+- `quick_validate.py` dla `plugins/faktoria-sdlc/skills/adhoc-sdlc` -> skill valid
+- `quick_validate.py` dla `plugins/faktoria-sdlc/skills/cove` -> skill valid
+- `quick_validate.py` dla `codex/skills/adhoc-sdlc` -> skill valid
+- `quick_validate.py` dla `claude/skills/adhoc-sdlc` -> skill valid
+- `quick_validate.py` dla `claude/skills/cove` -> skill valid
+- `validate_plugin.py plugins/faktoria-sdlc` -> plugin valid
+- `python3 -m json.tool` dla trzech manifestów plugin/marketplace -> poprawny JSON
+- `claude plugin validate ./claude` -> validation passed
+- `claude plugin validate .` -> validation passed
+- `./tools/sync-helper.sh` -> zsynchronizowano 6 plików Python do 2 destynacji
+- `python3 -m pytest -q` -> `87 passed`
+
 ## 2026-06-21 - Publikacja pluginu Codex faktoria-sdlc z CoVe
 
 Status: opublikowane na `main`
@@ -44,7 +76,7 @@ Po instalacji należy uruchomić nowy wątek Codex, żeby plugin i jego skille z
 
 ## 2026-06-21 - Planowane CoVe gates w adhoc-sdlc dla Codex
 
-Status: lokalnie przygotowane, niecommitowane
+Status: opublikowane na `main` w `b7aac5e`
 Zakres: tylko warianty Codex `adhoc-sdlc`
 
 ### Co się zmieniło
@@ -72,7 +104,7 @@ Zakres: tylko warianty Codex `adhoc-sdlc`
 
 ## 2026-06-21 - Engineering checklist w adhoc-sdlc dla Codex
 
-Status: lokalnie przygotowane, niecommitowane
+Status: opublikowane na `main` w `b7aac5e`
 Zakres: tylko warianty Codex `adhoc-sdlc`
 
 ### Co się zmieniło
@@ -100,7 +132,7 @@ Zakres: tylko warianty Codex `adhoc-sdlc`
 
 ## 2026-06-21 - Parytet wariantu Claude Code z Codex (checklist + CoVe + skill cove)
 
-Status: lokalnie przygotowane, niecommitowane
+Status: opublikowane na `main` w `b7aac5e`
 Zakres: tylko wariant Claude Code (`claude/`, `.claude-plugin/marketplace.json`, root README EN/PL)
 
 ### Co się zmieniło

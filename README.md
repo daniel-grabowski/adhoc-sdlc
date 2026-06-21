@@ -2,13 +2,19 @@
 
 *English · [Polski](README.pl.md)*
 
-SDLC skills for AI coding agents: plan, keep a resumable execution journal, and hand off work between sessions. Packaged as Claude Code and Codex plugins, with a plain Codex skill kept for compatibility and an Antigravity CLI extension on the roadmap.
+## What
+
+`faktoria-sdlc` is a small SDLC toolkit for AI coding agents. It packages two reusable skills: `adhoc-sdlc` for lightweight implementation work with a durable plan and execution journal, and `cove` for Chain-of-Verification before factual claims reach a user.
+
+## Why
+
+AI coding is fast, but speed without a record is fragile. This repo gives Claude Code and Codex a shared workflow for planning, verifying, journaling, resuming, and handing off small tasks without turning every change into a formal issue.
 
 ## Skills
 
 ### adhoc-sdlc
 
-A lightweight SDLC for small, ad hoc work: too small for a formal issue, but worth a durable plan and a resumable execution history. It produces a confirmed plan and an incremental execution journal under `./adhoc-sdlc` in the project you run it in. See [claude/skills/adhoc-sdlc/README.md](claude/skills/adhoc-sdlc/README.md) for details.
+What: a lightweight SDLC for small, ad hoc implementation work. Why: it keeps even quick fixes grounded in a confirmed plan, engineering checklist, optional verification gates, and a resumable execution journal under `./adhoc-sdlc`. See [claude/skills/adhoc-sdlc/README.md](claude/skills/adhoc-sdlc/README.md) for details.
 
 <p align="center">
   <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
@@ -16,7 +22,7 @@ A lightweight SDLC for small, ad hoc work: too small for a formal issue, but wor
 
 ### CoVe
 
-Chain-of-Verification for factual work: draft an answer, plan independent verification questions, verify claims, and revise the final answer with only verified or explicitly caveated facts. The Claude Code and Codex plugins ship this as the `cove` skill.
+What: Chain-of-Verification for factual work. Why: it forces drafts through independent verification questions so final answers keep only verified or explicitly caveated facts. The Claude Code and Codex plugins ship this as the `cove` skill.
 
 ## Layout
 
