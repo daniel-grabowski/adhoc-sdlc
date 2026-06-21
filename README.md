@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
-</p>
-
 # faktoria-sdlc
 
 *English · [Polski](README.pl.md)*
@@ -13,6 +9,10 @@ SDLC skills for AI coding agents: plan, keep a resumable execution journal, and 
 ### adhoc-sdlc
 
 A lightweight SDLC for small, ad hoc work: too small for a formal issue, but worth a durable plan and a resumable execution history. It produces a confirmed plan and an incremental execution journal under `./adhoc-sdlc` in the project you run it in. See [claude/skills/adhoc-sdlc/README.md](claude/skills/adhoc-sdlc/README.md) for details.
+
+<p align="center">
+  <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
+</p>
 
 ### CoVe
 
