@@ -22,7 +22,11 @@ Nic z tego nie czeka na lepszy model. To konfiguracja, którą możesz dopiąć 
 
 ### adhoc-sdlc
 
-Co to jest: lekki cykl SDLC dla małej, doraźnej pracy implementacyjnej. Dlaczego: nawet szybka poprawka ma mieć potwierdzony plan, checklistę inżynierską, opcjonalne bramy weryfikacyjne i wznawialny dziennik wykonania pod `./adhoc-sdlc`. Szczegóły w [claude/skills/adhoc-sdlc/README.pl.md](claude/skills/adhoc-sdlc/README.pl.md).
+Co to jest: lekki cykl SDLC dla małej, doraźnej pracy implementacyjnej. 
+
+#### Dlaczego
+
+Nawet szybka poprawka ma mieć potwierdzony plan, checklistę inżynierską, opcjonalne bramy weryfikacyjne i wznawialny dziennik wykonania pod `./adhoc-sdlc`. Szczegóły w [claude/skills/adhoc-sdlc/README.pl.md](claude/skills/adhoc-sdlc/README.pl.md).
 
 <p align="center">
   <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
@@ -30,7 +34,14 @@ Co to jest: lekki cykl SDLC dla małej, doraźnej pracy implementacyjnej. Dlacze
 
 ### CoVe
 
-Co to jest: Chain-of-Verification do pracy faktograficznej. Dlaczego: wymusza przejście od szkicu przez niezależne pytania weryfikacyjne, żeby finalna odpowiedź zawierała tylko fakty potwierdzone albo jawnie oznaczone jako niepewne. Pluginy Claude Code i Codex dostarczają to jako skill `cove`.
+#### Po co? 
+
+Chain-of-Verification do pracy faktograficznej. 
+
+#### Dlaczego 
+
+Wymusza przejście od szkicu przez niezależne pytania weryfikacyjne, żeby finalna odpowiedź zawierała tylko fakty potwierdzone albo jawnie oznaczone jako niepewne. 
+Pluginy Claude Code i Codex dostarczają to jako skill `cove`.
 
 ## Układ
 
