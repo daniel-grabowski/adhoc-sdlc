@@ -22,13 +22,14 @@ From `$ARGUMENTS` extract:
 
 ## Phase 0: mode gate
 
-After a brief read of the prompt and before planning, ask one structured mode-selection question with five orthogonal toggles, each with a task-tailored recommendation. Use a native choice UI when the Codex surface provides one; otherwise ask in plain text with numbered options. Do not imply that this plugin provides its own custom form UI.
+After a brief read of the prompt and before planning, ask one structured mode-selection question with six orthogonal toggles, each with a task-tailored recommendation. Use a native choice UI when the Codex surface provides one; otherwise ask in plain text with numbered options. Do not imply that this plugin provides its own custom form UI.
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the Phase 1 anchors as an internal checklist and asking only about critical blockers.
 2. Deep code verification. Yes: dispatch an `Explore` subagent (read-only) to check assumptions against the codebase, then analyze its findings and show them to the user. No: handle it yourself and decide whether to read code at all.
 3. Test the execution. Yes: pick a method per stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. No: skip tests, but `exec` always runs a final self-check and records the trace in the journal.
 4. Plan CoVe. Yes: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. No: rely on the normal planning review.
-5. Execution CoVe. Yes: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. No: rely on tests plus the required final self-check.
+5. Strategy Temper. Yes: run a focused strategy hardening pass after Plan CoVe and before saving the plan. Use it when the task has meaningful architecture, integration, data-safety, reversibility, retry/idempotency, migration, or workflow risk. No: rely on normal planning review and the required final self-check.
+6. Execution CoVe. Yes: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. No: rely on tests plus the required final self-check.
 
 If the user has already said "don't ask" in this session, do not block: default every toggle to OFF (draft the plan, no subagent, no tests, no CoVe gates; always a final self-check + journal) and list the assumed modes explicitly.
 
@@ -54,6 +55,15 @@ If `plan-cove` is ON, run a compact CoVe pass before saving the plan body:
 - answer those questions from the source of truth for the task (repo inspection, docs, tests, databases, web only when appropriate);
 - revise the plan so unverified claims move to `## Assumptions` or are explicitly caveated.
 
+If `strategy-temper` is ON, run a compact Temper pass before saving the plan body:
+- Treat the draft plan as a strategy under test, not as final truth.
+- Use verified facts from Plan CoVe when available; treat unverified factual claims as assumptions, not facts.
+- Enumerate concrete failure modes as `condition -> what breaks -> consequence -> resolution`.
+- Cover only relevant categories: edge cases, partial failure, retries/idempotency, migration/existing state, integration boundaries, verification gaps, reversibility, security/data safety, and architecture responsibility leaks.
+- For each failure mode either update the plan, move an unverified factual dependency to `## Assumptions`, adjust the test plan, record an accepted risk with a reason, or reject it as speculative noise.
+- When risks are worth recording, add `## Tempered Risks` and `## Accepted Risks` sections to the plan body (`condition -> fix` / `condition -> why acceptable`); the fixes must already be incorporated into the plan, not left as a detached TODO.
+- Do not expand the feature unless a failure mode proves the original scope is too small to be safe. No fallback sprawl, abstraction creep, or speculative defensive layers.
+
 ## Phase 2: save the plan file
 
 1. Create the plan file with the helper:
@@ -62,7 +72,7 @@ If `plan-cove` is ON, run a compact CoVe pass before saving the plan body:
      --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE` from stderr and fix the call (e.g. unique name, allowed status/keywords/project); do not create the file by hand.
-3. Read the returned `plan=...` path and fill the body sections (`## Summary`, `## Key Changes`, `## Test Plan`, `## Assumptions`) with `Edit`, incorporating the Phase 1 decisions and any `plan-cove` revisions. Then add a `## Mode` section recording the Phase 0 toggles (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `execution-cove`, plus any defaults assumed under "don't ask"). Do NOT touch the frontmatter block.
+3. Read the returned `plan=...` path and fill the body sections (`## Summary`, `## Key Changes`, `## Test Plan`, `## Assumptions`) with `Edit`, incorporating the Phase 1 decisions and any `plan-cove` revisions. Then add a `## Mode` section recording the Phase 0 toggles (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, `execution-cove`, plus any defaults assumed under "don't ask"). When `strategy-temper` is ON and there are risks worth recording, also add the optional `## Tempered Risks` and `## Accepted Risks` sections. Do NOT touch the frontmatter block.
 
 ## Phase 3: close the loop
 

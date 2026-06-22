@@ -1,0 +1,33 @@
+# Sample `temper` output
+
+## Subject
+
+Adhoc plan for adding retry support to a mutating API command.
+
+## Evidence boundary
+
+- Verified: the command mutates database state and has a planned retry wrapper.
+- Assumptions: the API caller may retry after timeout.
+- Not inspected: production telemetry and historical duplicate-command incidents.
+
+## Closed risks
+
+- Timeout after successful mutation -> require idempotency key for retryable mutating commands.
+- Retry wrapper catches all exceptions -> restrict retry policy to transient DB/network failures only.
+- Only happy-path test planned -> add duplicate-submit test and transient-failure retry test.
+
+## Accepted risks
+
+- Historical commands without idempotency keys -> acceptable for this change because migration/backfill is out of scope and old commands are not replayed.
+
+## Rejected/speculative risks
+
+- Multi-region write conflict -> rejected because current deployment is single-writer and no multi-region write path exists in scope.
+
+## Iterations
+
+Converged after 2 passes.
+
+## Final tempered plan
+
+Implement retry support only for commands explicitly marked retryable. Retryable mutating commands must require an idempotency key. Retry policy is limited to transient DB/network failures. Add verification for duplicate submit and transient failure. Do not migrate historical commands in this change.

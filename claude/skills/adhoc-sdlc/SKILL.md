@@ -80,16 +80,17 @@ Use this as a light decision filter, not a mandatory report for every item:
 
 ### Phase 0: mode gate (before planning)
 
-After a brief read of the prompt and before planning, ask one `AskUserQuestion` with four questions, each with a recommendation tailored to the task. Three are orthogonal yes/no toggles; the fourth is a single multi-select for the CoVe gates (so all five modes fit within the `AskUserQuestion` four-question limit):
+After a brief read of the prompt and before planning, ask one `AskUserQuestion` with four questions, each with a recommendation tailored to the task. Three are orthogonal yes/no toggles; the fourth is a single multi-select for the quality gates (so all six modes fit within the `AskUserQuestion` four-question limit):
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the anchors below as an internal checklist and asking only about critical blockers.
 2. Deep code verification. Yes: dispatch an `Explore` subagent (read-only) to check assumptions against the codebase, then analyze and show its findings. No: handle it yourself and decide whether to read code at all.
 3. Test the execution. Yes: pick a method per stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. No: skip tests, but always run a final self-check and record the trace in the journal.
-4. CoVe gates (multi-select, any combination):
+4. Quality gates (multi-select, any combination):
    - Plan CoVe. Selected: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. Not selected: rely on the normal planning review.
+   - Strategy Temper. Selected: after Plan CoVe and before saving the plan, run a focused failure-mode pass on the strategy (edge cases, partial failure, retries/idempotency, migration/existing state, integration boundaries, verification gaps, reversibility, security/data safety, architecture responsibility leaks). Not selected: rely on the normal planning review and the required final self-check.
    - Execution CoVe. Selected: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. Not selected: rely on tests plus the required final self-check.
 
-Record the chosen modes in a `## Mode` section of the plan file; that section is the contract `exec` reads. Include all five: `brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, and `execution-cove` (the last two derived from the CoVe multi-select). If the user has said "don't ask" (or Phase 0 is skipped), default every mode to OFF (draft the plan, no subagent, no tests, no CoVe gates; always a final self-check + journal) and list the assumed modes explicitly.
+Record the chosen modes in a `## Mode` section of the plan file; that section is the contract `exec` reads. Include all six: `brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, and `execution-cove` (the last three derived from the quality-gates multi-select). If the user has said "don't ask" (or Phase 0 is skipped), default every mode to OFF (draft the plan, no subagent, no tests, no CoVe gates; always a final self-check + journal) and list the assumed modes explicitly.
 
 ### Design decisions
 

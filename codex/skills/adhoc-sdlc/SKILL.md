@@ -82,15 +82,16 @@ Use this as a light decision filter, not a mandatory report for every item:
 
 ### Phase 0: mode gate (before planning)
 
-After a brief read of the prompt and before planning, ask one structured mode-selection question with five orthogonal toggles, each with a recommendation tailored to the task. Use a native choice UI when the Codex surface provides one; otherwise ask in plain text with numbered options. Do not imply that the plugin provides its own custom form UI.
+After a brief read of the prompt and before planning, ask one structured mode-selection question with six orthogonal toggles, each with a recommendation tailored to the task. Use a native choice UI when the Codex surface provides one; otherwise ask in plain text with numbered options. Do not imply that the plugin provides its own custom form UI.
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the anchors below as an internal checklist and asking only about critical blockers.
 2. Deep code verification. Yes: dispatch an `Explore` subagent (read-only) to check assumptions against the codebase, then analyze and show its findings. No: handle it yourself and decide whether to read code at all.
 3. Test the execution. Yes: pick a method per stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. No: skip tests, but always run a final self-check and record the trace in the journal.
 4. Plan CoVe. Yes: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. No: rely on the normal planning review.
-5. Execution CoVe. Yes: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. No: rely on tests plus the required final self-check.
+5. Strategy Temper. Yes: run a focused strategy hardening pass after Plan CoVe and before saving the plan. Use it when the task has meaningful architecture, integration, data-safety, reversibility, retry/idempotency, migration, or workflow risk. No: rely on normal planning review and the required final self-check.
+6. Execution CoVe. Yes: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. No: rely on tests plus the required final self-check.
 
-Record the chosen modes in a `## Mode` section of the plan file; that section is the contract `exec` reads. Include: `brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, and `execution-cove`. If the user has said "don't ask" (or Phase 0 is skipped), default every toggle to OFF (draft the plan, no subagent, no tests, no CoVe gates; always a final self-check + journal) and list the assumed modes explicitly.
+Record the chosen modes in a `## Mode` section of the plan file; that section is the contract `exec` reads. Include: `brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, and `execution-cove`. If the user has said "don't ask" (or Phase 0 is skipped), default every toggle to OFF (draft the plan, no subagent, no tests, no CoVe gates; always a final self-check + journal) and list the assumed modes explicitly.
 
 ### Design decisions
 
