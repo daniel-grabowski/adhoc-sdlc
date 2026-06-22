@@ -25,7 +25,7 @@ From `$ARGUMENTS` extract:
 After a brief read of the prompt and before planning, ask one structured mode-selection question with six orthogonal toggles, each with a task-tailored recommendation. Use a native choice UI when the Codex surface provides one; otherwise ask in plain text with numbered options. Do not imply that this plugin provides its own custom form UI.
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the Phase 1 anchors as an internal checklist and asking only about critical blockers.
-2. Deep code verification. Yes: dispatch an `Explore` subagent (read-only) to check assumptions against the codebase, then analyze its findings and show them to the user. No: handle it yourself and decide whether to read code at all.
+2. Deep code verification. Yes: dispatch a read-only subagent to check assumptions against the codebase, then analyze its findings and show them to the user. No: handle it yourself and decide whether to read code at all.
 3. Test the execution. Yes: pick a method per stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. No: skip tests, but `exec` always runs a final self-check and records the trace in the journal.
 4. Plan CoVe. Yes: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. No: rely on the normal planning review.
 5. Strategy Temper. Yes: run a focused strategy hardening pass after Plan CoVe and before saving the plan. Use it when the task has meaningful architecture, integration, data-safety, reversibility, retry/idempotency, migration, or workflow risk. No: rely on normal planning review and the required final self-check.
@@ -45,7 +45,7 @@ Before saving the plan, review the task against the ANCHORS and surface the real
 
 Use the `SKILL.md` Engineering checklist as a light filter while making these decisions. Apply KISS, YAGNI, DRY with judgment, local conventions first, separation of concerns, cohesion over cleverness, explicit contracts, testability, security/data safety, and evidence-based performance. Put only task-relevant consequences into `## Key Changes` or `## Assumptions`; do not create a checklist report unless the user asks for one.
 
-Think for the user: propose resolutions with a recommendation, verify assumptions in code and data sources instead of guessing, and call out risks and edge cases proactively. For each anchor with an OPEN decision ask `AskUserQuestion` (concise, recommendation first, labeled "(rec.)"). Skip an anchor that is obvious or has no variant; do not ask about the obvious. When no anchor has an open decision, say so plainly ("no open design decisions") and move on.
+Think for the user: propose resolutions with a recommendation, verify assumptions in code and data sources instead of guessing, and call out risks and edge cases proactively. For each anchor with an OPEN decision ask the user a structured question (concise, recommendation first, labeled "(rec.)"). Skip an anchor that is obvious or has no variant; do not ask about the obvious. When no anchor has an open decision, say so plainly ("no open design decisions") and move on.
 
 Do not assume decisions silently. If the user explicitly says "don't ask / just do it", do NOT block them with questions, but LIST the adopted resolutions as explicit assumptions (open to veto); never hide them only in the file. Adopted decisions go into the plan sections (Assumptions / Key Changes).
 
@@ -76,13 +76,13 @@ If `strategy-temper` is ON, run a compact Temper pass before saving the plan bod
 
 ## Phase 3: close the loop
 
-After saving the plan, ALWAYS close the loop with two points: (1) add/change anything in the plan, (2) run execution. Ask them via `AskUserQuestion` by default (max 2 questions). If the user explicitly asked "don't ask" in this session, ask the same two points concisely as text instead of `AskUserQuestion`; closing the loop is mandatory, only the form adapts.
+After saving the plan, ALWAYS close the loop with two points: (1) add/change anything in the plan, (2) run execution. Ask them via a structured question prompt by default (max 2 questions). If the user explicitly asked "don't ask" in this session, ask the same two points concisely as text instead of a structured question; closing the loop is mandatory, only the form adapts.
 
 1. "Add or change anything in the plan?" If yes, apply with `Edit` on the body sections and show the change.
 2. "Run execution now?":
    - **YES** -> move into execution (like `/adhoc-sdlc:exec`):
      1. create the journal: `python3 <skill-dir>/scripts/adhoc_sdlc.py execute --name "<name>" --title "<title>"`,
-     2. FORCE the native task list (Claude Code: `TodoWrite`; Codex: `update_plan`) seeded from `Key Changes` + a verification step. This is MANDATORY before the first code change. Time pressure or a "skip the list / just do it" request does NOT lift it: without the native list, do not start implementation,
+     2. FORCE the native task list (your runtime's native task-tracking tool) seeded from `Key Changes` + a verification step. This is MANDATORY before the first code change. Time pressure or a "skip the list / just do it" request does NOT lift it: without the native list, do not start implementation,
      3. execute per the plan; append each significant step incrementally with `execute --append "..." --files <touched files>`; keep exactly one list item `in_progress`, mark it `completed` right after it is done.
    - **NO** -> show the plan path and suggest `/adhoc-sdlc:exec --name <name>` for later.
 

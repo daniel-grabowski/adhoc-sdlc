@@ -91,7 +91,7 @@ A snapshot of session state for a new context window. Created by the helper (`ha
 
 Resume from one of up to 4 most recent sessions, in two steps:
 
-1. `pack --intent resume --limit 4 --format json` returns candidates in `related` (metadata). The agent builds an `AskUserQuestion` (label = `updated` + `title`, description = project + keywords) plus an optional "include related history" choice.
+1. `pack --intent resume --limit 4 --format json` returns candidates in `related` (metadata). The agent builds a structured question prompt (label = `updated` + `title`, description = project + keywords) plus an optional "include related history" choice.
 2. After the choice: `pack --intent resume --name <chosen> [--include-history --history-angle "..."]` returns `primary` with `extracts` (Goal, Next Steps, What Worked/Didn't). The agent continues from Next Steps using only the pack, without `Read`-ing the file.
 
 No candidates (`stats.matched=0` / `warnings:["no_candidates"]`) -> "no session to resume". Read-side authority applies (see `SKILL.md`).

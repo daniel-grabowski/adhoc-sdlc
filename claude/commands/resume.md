@@ -21,7 +21,7 @@ The helper (`pack`) is the only read-side authority: do NOT read `adhoc-sdlc/` f
    ```
    Pass `--project` only if the user narrowed `$ARGUMENTS`.
 2. When `stats.matched == 0` or `warnings` contains `no_candidates` -> "no session to resume" and stop.
-3. Build an `AskUserQuestion` with items = pack `related` (max 4). Option label: `updated` + `title`; description with project and `keywords`. Add a separate question (checkbox): "include related history?" and, if yes, a short history angle.
+3. Build a structured question prompt with items = pack `related` (max 4). Option label: `updated` + `title`; description with project and `keywords`. Add a separate question (checkbox): "include related history?" and, if yes, a short history angle.
 4. Fetch the full state of the chosen session (step 2, detail):
    ```bash
    python3 ${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py pack \
@@ -34,7 +34,7 @@ The helper (`pack`) is the only read-side authority: do NOT read `adhoc-sdlc/` f
 
 The detail pack render is mechanical; delegate it to keep the main loop (Opus) free of the ~10 KB detail pack.
 
-- Step 1 (list candidates) and step 3 (`AskUserQuestion` which session) stay in the MAIN loop: the candidate list is small and the choice is user interaction.
+- Step 1 (list candidates) and step 3 (structured question which session) stay in the MAIN loop: the candidate list is small and the choice is user interaction.
 - Steps 4-5 (fetch the detail pack for the chosen session and render the continuation context from `primary.extracts`) go to a SUBAGENT: dispatch one read-only agent with `model: sonnet` (Agent tool, `subagent_type: general-purpose`). Its prompt must carry: the chosen `--name` (and `--include-history --history-angle` if selected), the read-side authority rule (only the helper `pack`; never read the corpus `./adhoc-sdlc`), the instruction to summarize Goal / progress / Next Steps from the pack only, and the editorial rules (Polish with full diacritics, no em-dash, no emoji). It returns ONLY the continuation summary (Goal, Next Steps, What Worked/Didn't) as a string and writes nothing.
 - After the subagent returns, the MAIN loop continues the actual work from "Next Steps" (that work is NOT delegated - it needs live session context).
 

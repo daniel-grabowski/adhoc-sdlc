@@ -12,7 +12,7 @@ An ANALYTICAL, READ-ONLY command: it creates and modifies nothing. It searches t
 
 ## Analysis angle (required)
 
-Take the angle from `$ARGUMENTS` (e.g. "recurring build problems", "what was already done on RF-001"). When `$ARGUMENTS` is empty -> `AskUserQuestion` with common angles:
+Take the angle from `$ARGUMENTS` (e.g. "recurring build problems", "what was already done on RF-001"). When `$ARGUMENTS` is empty -> ask the user a structured question with common angles:
 - (a) recurring problems / blockers,
 - (b) what was already done / duplicates of earlier approaches,
 - (c) decisions and deviations from the plan,
@@ -35,7 +35,7 @@ The helper (`pack`) is the only read-side authority: do NOT use `Read`/`Grep`/`G
    - per item: date, name, type, status, intent/decision/outcome from `extracts`, reference `items[].path` (+ `extracts[].heading`),
    - Conclusions section: RECURRENCE (the same themes over time), "ALREADY DONE" (decisions and their outcome), SSoT candidates.
 4. Write NOTHING. State incompleteness (`omitted`, `truncated`) as fact: do not read files; if needed narrow `--keywords`/`--days` and re-run `pack`.
-5. End with an `AskUserQuestion` "what next" (max 1-2 questions): create a plan (`/adhoc-sdlc:plan`) / resume a session (`/adhoc-sdlc:resume`) / deepen the analysis (another angle) / nothing.
+5. End with a structured question "what next" (max 1-2 questions): create a plan (`/adhoc-sdlc:plan`) / resume a session (`/adhoc-sdlc:resume`) / deepen the analysis (another angle) / nothing.
 
 ## Note
 

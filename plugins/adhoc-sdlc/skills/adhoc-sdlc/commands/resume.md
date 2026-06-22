@@ -21,7 +21,7 @@ The helper (`pack`) is the only read-side authority: do NOT read `adhoc-sdlc/` f
    ```
    Pass `--project` only if the user narrowed `$ARGUMENTS`.
 2. When `stats.matched == 0` or `warnings` contains `no_candidates` -> "no session to resume" and stop.
-3. Build an `AskUserQuestion` with items = pack `related` (max 4). Option label: `updated` + `title`; description with project and `keywords`. Add a separate question (checkbox): "include related history?" and, if yes, a short history angle.
+3. Build a structured question prompt with items = pack `related` (max 4). Option label: `updated` + `title`; description with project and `keywords`. Add a separate question (checkbox): "include related history?" and, if yes, a short history angle.
 4. Fetch the full state of the chosen session (step 2, detail):
    ```bash
    python3 <skill-dir>/scripts/adhoc_sdlc.py pack \

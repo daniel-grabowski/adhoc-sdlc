@@ -12,7 +12,7 @@ An ANALYTICAL, READ-ONLY command: it creates and modifies nothing. It searches t
 
 ## Analysis angle (required)
 
-Take the angle from `$ARGUMENTS` (e.g. "recurring build problems", "what was already done on RF-001"). When `$ARGUMENTS` is empty -> `AskUserQuestion` with common angles:
+Take the angle from `$ARGUMENTS` (e.g. "recurring build problems", "what was already done on RF-001"). When `$ARGUMENTS` is empty -> ask the user a structured question with common angles:
 - (a) recurring problems / blockers,
 - (b) what was already done / duplicates of earlier approaches,
 - (c) decisions and deviations from the plan,
@@ -36,7 +36,7 @@ The helper (`pack`) is the only read-side authority: do NOT use `Read`/`Grep`/`G
    - weak matches: with keywords the `items` are already gated (zero-overlap noise sits in `below_threshold`, not here), so confident hits dominate; still note a relatively low `items[].score` among them as a thinner, less certain overlap. When the angle had NO keywords (recency-only ranking, gate off), apply stronger judgment and flag incidental matches explicitly,
    - Conclusions section: RECURRENCE (the same themes over time), "ALREADY DONE" (decisions and their outcome), SSoT candidates.
 4. Write NOTHING. State incompleteness (`omitted`, `truncated`) as fact: do not read files; if needed narrow `--keywords`/`--days` and re-run `pack`.
-5. End with an `AskUserQuestion` "what next" (max 1-2 questions): create a plan (`/adhoc-sdlc:plan`) / resume a session (`/adhoc-sdlc:resume`) / deepen the analysis (another angle) / nothing.
+5. End with a structured question "what next" (max 1-2 questions): create a plan (`/adhoc-sdlc:plan`) / resume a session (`/adhoc-sdlc:resume`) / deepen the analysis (another angle) / nothing.
 
 ## Model routing (Claude Code)
 
@@ -44,7 +44,7 @@ Pack-building and rendering are mechanical read-side work; delegate them to a ch
 
 - Step 1 (extract keywords from the angle) stays in the MAIN loop: it is judgment about the angle.
 - Steps 2-4 (run `pack`, render the report from the `presentation` contract, state incompleteness) go to a SUBAGENT: dispatch one read-only agent with `model: sonnet` (Agent tool, `subagent_type: general-purpose`). Its prompt must carry: the angle, the keywords (and `--project`/`--days` if any), the read-side authority rule (only the helper `pack`; never `Read`/`Grep`/`Glob` the corpus `./adhoc-sdlc`), the rendering contract from "Execution" step 3, and the editorial rules (Polish with full diacritics, no em-dash, no emoji). It returns ONLY the finished report as a string and writes nothing.
-- Step 5 (the "what next" `AskUserQuestion`) stays in the MAIN loop: user interaction is never delegated.
+- Step 5 (the "what next" structured question) stays in the MAIN loop: user interaction is never delegated.
 
 Boundary (do NOT delegate): planning design, execution with its decisions/verification, and handoff bodies stay on the main model - they need live session context. Only the read/recon render is routed to Sonnet.
 
