@@ -1,11 +1,11 @@
 {
-  "name": "faktoria-sdlc",
+  "name": "adhoc-sdlc",
   "owner": {
     "name": "Daniel Grabowski",
     "email": "daniel.grabowski@faktoria.io"
   },
   "metadata": {
-    "description": "What: Faktoria SDLC tooling for AI coding agents. Why: keep ad hoc coding work planned, verified, resumable, and safe to hand off.",
+    "description": "What: Ad Hoc SDLC tooling for AI coding agents. Why: keep ad hoc coding work planned, verified, resumable, and safe to hand off.",
     "version": "0.3.3"
   },
   "plugins": [

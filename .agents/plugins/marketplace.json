@@ -1,14 +1,14 @@
 {
-  "name": "faktoria-sdlc",
+  "name": "adhoc-sdlc",
   "interface": {
-    "displayName": "Faktoria SDLC"
+    "displayName": "Ad Hoc SDLC"
   },
   "plugins": [
     {
-      "name": "faktoria-sdlc",
+      "name": "adhoc-sdlc",
       "source": {
         "source": "local",
-        "path": "./plugins/faktoria-sdlc"
+        "path": "./plugins/adhoc-sdlc"
       },
       "policy": {
         "installation": "AVAILABLE",

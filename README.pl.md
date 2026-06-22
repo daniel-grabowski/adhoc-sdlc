@@ -1,10 +1,10 @@
-# faktoria-sdlc
+# adhoc-sdlc
 
 *[English](README.md) · Polski*
 
 ## Co to jest
 
-`faktoria-sdlc` to mały zestaw SDLC dla agentów programujących AI. Dostarcza dwa skille: `adhoc-sdlc` do lekkiej pracy implementacyjnej z trwałym planem i dziennikiem wykonania oraz `cove` do Chain-of-Verification przed wypuszczeniem twierdzeń faktograficznych do użytkownika.
+`adhoc-sdlc` to mały zestaw SDLC dla agentów programujących AI. Dostarcza dwa skille: `adhoc-sdlc` do lekkiej pracy implementacyjnej z trwałym planem i dziennikiem wykonania oraz `cove` do Chain-of-Verification przed wypuszczeniem twierdzeń faktograficznych do użytkownika.
 
 ## Dlaczego
 
@@ -55,7 +55,7 @@ claude/                           plugin Claude Code: adhoc-sdlc + cove
   skills/adhoc-sdlc/
   skills/cove/
   commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
-plugins/faktoria-sdlc/            plugin Codex: faktoria-sdlc
+plugins/adhoc-sdlc/            plugin Codex: adhoc-sdlc
   .codex-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/cove/
@@ -73,8 +73,8 @@ W Claude Code komendy leżą w osobnym drzewie `commands/` (z namespace pluginu 
 Z marketplace:
 
 ```
-/plugin marketplace add daniel-grabowski/faktoria-sdlc
-/plugin install adhoc-sdlc@faktoria-sdlc
+/plugin marketplace add daniel-grabowski/adhoc-sdlc
+/plugin install adhoc-sdlc@adhoc-sdlc
 ```
 
 Do lokalnej pracy na checkoucie załaduj katalog pluginu wprost:
@@ -88,42 +88,42 @@ claude --plugin-dir ./claude
 Zalecana publiczna instalacja z GitHuba:
 
 ```
-codex plugin marketplace add daniel-grabowski/faktoria-sdlc --ref main
-codex plugin add faktoria-sdlc@faktoria-sdlc
+codex plugin marketplace add daniel-grabowski/adhoc-sdlc --ref main
+codex plugin add adhoc-sdlc@adhoc-sdlc
 ```
 
-To nie używa lokalnego checkoutu. Codex pobiera marketplace `faktoria-sdlc` z GitHuba, a potem rozwiązuje plugin przez `.agents/plugins/marketplace.json` z pobranego repo. Wpis marketplace celowo używa relatywnej ścieżki lokalnej:
+To nie używa lokalnego checkoutu. Codex pobiera marketplace `adhoc-sdlc` z GitHuba, a potem rozwiązuje plugin przez `.agents/plugins/marketplace.json` z pobranego repo. Wpis marketplace celowo używa relatywnej ścieżki lokalnej:
 
 ```json
 "source": {
   "source": "local",
-  "path": "./plugins/faktoria-sdlc"
+  "path": "./plugins/adhoc-sdlc"
 }
 ```
 
-Ta ścieżka jest lokalna względem pobranej migawki marketplace, nie względem `/home/.../faktoria-sdlc` na Twojej maszynie.
+Ta ścieżka jest lokalna względem pobranej migawki marketplace, nie względem `/home/.../adhoc-sdlc` na Twojej maszynie.
 
 Jeśli wcześniej dodałeś marketplace z lokalnego checkoutu, przełącz go na GitHub:
 
 ```
-codex plugin remove faktoria-sdlc@faktoria-sdlc
-codex plugin marketplace remove faktoria-sdlc
-codex plugin marketplace add daniel-grabowski/faktoria-sdlc --ref main
-codex plugin add faktoria-sdlc@faktoria-sdlc
+codex plugin remove adhoc-sdlc@adhoc-sdlc
+codex plugin marketplace remove adhoc-sdlc
+codex plugin marketplace add daniel-grabowski/adhoc-sdlc --ref main
+codex plugin add adhoc-sdlc@adhoc-sdlc
 ```
 
 Sprawdzenie źródła:
 
 ```
 codex plugin marketplace list --json
-codex plugin list --marketplace faktoria-sdlc --available --json
+codex plugin list --marketplace adhoc-sdlc --available --json
 ```
 
 Do lokalnej pracy na checkoucie:
 
 ```
 codex plugin marketplace add .
-codex plugin add faktoria-sdlc@faktoria-sdlc
+codex plugin add adhoc-sdlc@adhoc-sdlc
 ```
 
 ### Codex (kompatybilny plain skill)

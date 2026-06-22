@@ -1,0 +1,40 @@
+{
+  "name": "adhoc-sdlc",
+  "version": "0.3.3",
+  "description": "What: Ad Hoc SDLC workflows for Codex: adhoc-sdlc planning journals plus CoVe fact verification. Why: keep small AI coding tasks planned, verified, resumable, and safe to hand off.",
+  "author": {
+    "name": "Daniel Grabowski",
+    "email": "daniel.grabowski@faktoria.io",
+    "url": "https://github.com/daniel-grabowski"
+  },
+  "homepage": "https://github.com/daniel-grabowski/adhoc-sdlc",
+  "repository": "https://github.com/daniel-grabowski/adhoc-sdlc",
+  "license": "MIT",
+  "keywords": [
+    "sdlc",
+    "planning",
+    "journal",
+    "ad-hoc",
+    "workflow",
+    "verification",
+    "cove"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ad Hoc SDLC",
+    "shortDescription": "What: planning journals plus CoVe. Why: safer ad hoc AI coding.",
+    "longDescription": "What: Ad Hoc SDLC adds lightweight workflows for small implementation tasks and high-accuracy factual answers: confirmed plans, incremental execution journals, handoffs, resume support, read-only history analysis, and CoVe verification. Why: AI coding moves fast, so the agent needs durable context, explicit verification, and a reliable handoff trail before work leaves the session.",
+    "developerName": "Daniel Grabowski",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/daniel-grabowski/adhoc-sdlc",
+    "defaultPrompt": [
+      "Plan this ad hoc change with an execution journal.",
+      "Resume my last adhoc-sdlc session.",
+      "Use CoVe to verify the factual claims in this answer."
+    ]
+  }
+}

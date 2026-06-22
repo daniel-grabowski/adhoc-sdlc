@@ -1,4 +1,38 @@
-# Dziennik projektu faktoria-sdlc
+# Dziennik projektu adhoc-sdlc
+
+## 2026-06-22 - Rename: faktoria-sdlc -> adhoc-sdlc (repo, plugin, marketplace, branding)
+
+Status: przygotowane lokalnie w tym commicie; push po przemianowaniu zdalnego repo (Część C)
+Zakres: nazwa repo, pluginu, marketplace i branding zmienione z `faktoria-sdlc` na `adhoc-sdlc` we wszystkich wariantach (Claude, Codex, marketplace); bez zmian funkcjonalnych i bez bumpa wersji
+
+### Co się zmieniło
+
+- `git mv plugins/faktoria-sdlc plugins/adhoc-sdlc` (wariant pluginu Codex), historia zachowana.
+- Manifesty: `.claude-plugin/marketplace.json` (name + opis), `.agents/plugins/marketplace.json` (name, displayName, path), `claude/.claude-plugin/plugin.json` (homepage URL), `plugins/adhoc-sdlc/.codex-plugin/plugin.json` (name, opis, homepage/repository/websiteURL, displayName, longDescription). Nazwa wyświetlana `Faktoria SDLC` -> `Ad Hoc SDLC`.
+- Dokumentacja: `README.md`/`README.pl.md`, `CONTRIBUTING.md`/`CONTRIBUTING.pl.md` (w tym dev-symlink i ostrzeżenie o podwójnej instalacji), `docs/analiza-forge-init.md` (ścieżka symlinka), `tools/sync-helper.sh` (ścieżka wariantu Codex).
+- Dev-symlink: docelowo `~/.claude/skills/adhoc-sdlc -> <repo>/claude` (decyzja: pełna spójność nazwy; CONTRIBUTING zaktualizowane). Namespace komend `/adhoc-sdlc:*` bierze się z `name` w `plugin.json`, nie z nazwy repo ani symlinka.
+- Tytuł tego dziennika zaktualizowany do `adhoc-sdlc`.
+
+### Czego nie zmieniono
+
+- Email autora `daniel.grabowski@faktoria.io` (tożsamość, nie nazwa produktu) - bez zmian we wszystkich manifestach i stopkach README.
+- Wersja pluginu (0.3.3) - rename nie jest zmianą funkcjonalną.
+- Struktura skilli i komend (już zgodna z celem: jeden plugin, dwa skille `adhoc-sdlc` + `cove`, komendy plan/exec/handoff/resume/history) oraz helper Pythona (cwd-relative, bez zaszytych ścieżek).
+- Wpisy historyczne tego dziennika (dawny remote URL, dawna nazwa pluginu, cytowany commit `5d64d2b`) - zostają jako zapis stanu z tamtego momentu.
+
+### Operacje poza repo (Część B i C, poza tym commitem)
+
+- Część B (użytkownik): rename zdalnego repo GitHub `faktoria-sdlc` -> `adhoc-sdlc`; `mv /home/dgrabowski/faktoria-sdlc /home/dgrabowski/adhoc-sdlc` (zalecane między sesjami, bo `mv` aktywnego katalogu zaburza CWD i klucz katalogu projektu).
+- Część C (po rename): `git remote set-url origin https://github.com/daniel-grabowski/adhoc-sdlc.git`; `rm ~/.claude/skills/faktoria-sdlc && ln -s /home/dgrabowski/adhoc-sdlc/claude ~/.claude/skills/adhoc-sdlc`; `git push`; w Claude Code `/reload-plugins` i test `/adhoc-sdlc:plan`.
+
+### Weryfikacja (Część A, przed rename)
+
+- `bash tools/sync-helper.sh` -> 6 plików do 2 miejsc docelowych (12 kopii).
+- `python3 -m py_compile` helpera (kanon Claude) -> OK.
+- `pytest` w trzech wariantach (claude, codex, plugins/adhoc-sdlc) -> 87 passed każdy.
+- `claude plugin validate ./claude` -> passed; `claude plugin validate .` -> passed.
+- `validate_plugin.py plugins/adhoc-sdlc` -> plugin valid. Uwaga: `quick_validate.py` (per skill) nie istnieje już w toolchainie plugin-creator - walidację skilli pokrywa `validate_plugin.py`.
+- grep kontrolny: `faktoria-sdlc` i `Faktoria SDLC` tylko w historycznych wpisach tego dziennika; `@faktoria.io` zachowany w 4 plikach.
 
 ## 2026-06-21 - Przepisanie README i dokumentacji: framing harness, nie vibe-coding
 

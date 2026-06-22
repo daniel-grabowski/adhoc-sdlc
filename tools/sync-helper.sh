@@ -10,7 +10,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="$REPO_ROOT/claude/skills/adhoc-sdlc/scripts"
 DSTS=(
   "$REPO_ROOT/codex/skills/adhoc-sdlc/scripts"
-  "$REPO_ROOT/plugins/faktoria-sdlc/skills/adhoc-sdlc/scripts"
+  "$REPO_ROOT/plugins/adhoc-sdlc/skills/adhoc-sdlc/scripts"
 )
 
 if [ ! -d "$SRC" ]; then
