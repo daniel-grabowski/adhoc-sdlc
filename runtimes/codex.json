@@ -1,0 +1,20 @@
+{
+  "runtime": "codex",
+  "active": false,
+  "_note": "SZKIELET do dojrzewania w kolejnej iteracji. Wartosci oparte na inwentaryzacji obecnych plikow codex/ (update_plan, <skill-dir>, native choice UI). SUBAGENT_TOOL nie ma jawnej nazwy w plikach Codeksa - do potwierdzenia przed ustawieniem active=true. Render pomija ten runtime dopoki active=false.",
+  "placeholders": {
+    "ASK": "a structured question (native choice UI when the surface provides one, otherwise plain numbered text)",
+    "TODO": "`update_plan`",
+    "SUBAGENT_TOOL": "TODO-confirm-codex-subagent-dispatch",
+    "PLUGIN_ROOT": "<skill-dir>"
+  },
+  "files": [
+    ["commands/plan.md", "codex/skills/adhoc-sdlc/commands/plan.md"],
+    ["commands/exec.md", "codex/skills/adhoc-sdlc/commands/exec.md"],
+    ["commands/resume.md", "codex/skills/adhoc-sdlc/commands/resume.md"],
+    ["commands/history.md", "codex/skills/adhoc-sdlc/commands/history.md"],
+    ["commands/handoff.md", "codex/skills/adhoc-sdlc/commands/handoff.md"],
+    ["skills/adhoc-sdlc/SKILL.md", "codex/skills/adhoc-sdlc/SKILL.md"],
+    ["skills/adhoc-sdlc/reference.md", "codex/skills/adhoc-sdlc/reference.md"]
+  ]
+}

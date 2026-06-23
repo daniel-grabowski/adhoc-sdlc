@@ -1,0 +1,55 @@
+---
+description: "adhoc-sdlc history: analyze the journal corpus for a given angle (read-only)"
+allowed-tools: All
+argument-hint: "<the angle / what you are looking for> [--project P]"
+---
+
+# /adhoc-sdlc:history
+
+Read `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/reference.md` (Read tool): section "History". Read `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/SKILL.md`: section "Read-side authority".
+
+An ANALYTICAL, READ-ONLY command: it creates and modifies nothing. It searches the journal corpus (plans, execution journals, handoffs) for the ANGLE given by the user, focused on recurring problems and things already done. It ends by asking "what next". Match the user's language for the rendered report.
+
+## Analysis angle (required)
+
+Take the angle from `$ARGUMENTS` (e.g. "recurring build problems", "what was already done on RF-001"). When `$ARGUMENTS` is empty -> ask the user an {{ASK}} prompt with common angles:
+- (a) recurring problems / blockers,
+- (b) what was already done / duplicates of earlier approaches,
+- (c) decisions and deviations from the plan,
+- (d) verifications and outcomes (what passed / did not).
+
+## Execution
+
+The helper (`pack`) is the only read-side authority: do NOT use `Read`/`Grep`/`Glob` on `adhoc-sdlc/`.
+
+1. Extract domain keywords from the angle (this is judgment, e.g. "fpc build problems" -> `build,fpc`).
+2. Build the context pack:
+   ```bash
+   python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py pack \
+     --intent history --angle "<angle>" --keywords <a,b,c> --format json [--project <P>] [--days <N>]
+   ```
+   CHECK the exit code; on non-zero read `ERROR/EXPECTED/EXAMPLE` and fix the flags.
+3. When `stats.matched == 0` / `warnings:["no_candidates"]` -> say plainly "no corpus for this angle", do not invent. When `warnings` contains `no_relevant` (entries exist in scope but none overlaps the keywords; `stats.relevant == 0`) -> say plainly nothing in the corpus matches this theme and suggest different `--keywords`; do not pad the report with `below_threshold` noise. Otherwise render a human report using ONLY the pack, per `presentation` (compact_report, `group_by: theme_then_date`):
+   - header: angle + date range (from `items[].updated`) + stats. Stats contract: `matched` = records in time/project scope (NOT topical hits), `relevant` = records with a non-zero keyword overlap (the real hits), `included` = shown after budget, `omitted` = relevant minus included, `below_threshold` = in scope but zero overlap (noise the gate filtered out). Report `relevant`/`included`, never bare `matched`, so the count does not mislead,
+   - thematic groups: cluster `items` by shared keywords (signal `signals.keyword_index`), sort within a group by date descending, name each group (judgment),
+   - per item: date, name, type, status, intent/decision/outcome from `extracts`, reference `items[].path` (+ `extracts[].heading`),
+   - weak matches: with keywords the `items` are already gated (zero-overlap noise sits in `below_threshold`, not here), so confident hits dominate; still note a relatively low `items[].score` among them as a thinner, less certain overlap. When the angle had NO keywords (recency-only ranking, gate off), apply stronger judgment and flag incidental matches explicitly,
+   - Conclusions section: RECURRENCE (the same themes over time), "ALREADY DONE" (decisions and their outcome), SSoT candidates.
+4. Write NOTHING. State incompleteness (`omitted`, `truncated`) as fact: do not read files; if needed narrow `--keywords`/`--days` and re-run `pack`.
+5. End with an {{ASK}} prompt "what next" (max 1-2 questions): create a plan (`/adhoc-sdlc:plan`) / resume a session (`/adhoc-sdlc:resume`) / deepen the analysis (another angle) / nothing.
+
+## Model routing (Claude Code)
+
+Pack-building and rendering are mechanical read-side work; delegate them to a cheaper model so the main loop (Opus) is not loaded with the full pack (~12 KB) and spends judgment only where it matters.
+
+- Step 1 (extract keywords from the angle) stays in the MAIN loop: it is judgment about the angle.
+- Steps 2-4 (run `pack`, render the report from the `presentation` contract, state incompleteness) go to a SUBAGENT: dispatch one read-only agent with `model: sonnet` (via the {{SUBAGENT_TOOL}}). Its prompt must carry: the angle, the keywords (and `--project`/`--days` if any), the read-side authority rule (only the helper `pack`; never `Read`/`Grep`/`Glob` the corpus `./adhoc-sdlc`), the rendering contract from "Execution" step 3, and the editorial rules (Polish with full diacritics, no em-dash, no emoji). It returns ONLY the finished report as a string and writes nothing.
+- Step 5 (the "what next" {{ASK}} prompt) stays in the MAIN loop: user interaction is never delegated.
+
+Boundary (do NOT delegate): planning design, execution with its decisions/verification, and handoff bodies stay on the main model - they need live session context. Only the read/recon render is routed to Sonnet.
+
+Fallback: if the Agent tool is unavailable (e.g. Codex) or the user asked to keep it inline, run steps 2-4 yourself in the main loop. The routing is an optimization, not a contract change.
+
+## Note
+
+Read-only by definition. This is a reconnaissance tool over your own work history, not an implementation step. Read-only also means safe under plan mode: it creates and changes nothing (the helper only builds a pack and prints it).

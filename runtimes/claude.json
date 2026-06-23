@@ -1,0 +1,20 @@
+{
+  "runtime": "claude",
+  "active": true,
+  "description": "Claude Code tool bindings for adhoc-sdlc prompt templates.",
+  "placeholders": {
+    "ASK": "`AskUserQuestion`",
+    "TODO": "`TaskCreate`/`TaskUpdate`",
+    "SUBAGENT_TOOL": "`Agent` tool, `subagent_type: general-purpose`",
+    "PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}"
+  },
+  "files": [
+    ["commands/plan.md", "claude/commands/plan.md"],
+    ["commands/exec.md", "claude/commands/exec.md"],
+    ["commands/resume.md", "claude/commands/resume.md"],
+    ["commands/history.md", "claude/commands/history.md"],
+    ["commands/handoff.md", "claude/commands/handoff.md"],
+    ["skills/adhoc-sdlc/SKILL.md", "claude/skills/adhoc-sdlc/SKILL.md"],
+    ["skills/adhoc-sdlc/reference.md", "claude/skills/adhoc-sdlc/reference.md"]
+  ]
+}

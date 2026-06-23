@@ -1,0 +1,12 @@
+{
+  "runtime": "antigravity",
+  "active": false,
+  "_note": "SZKIELET. Antigravity nie ma jeszcze zadnych jawnych nazw narzedzi w repo (roadmap, patrz antigravity/README.md). Placeholdery sa NIEUSTALONE i nie wolno ich zgadywac - uzupelnic dopiero po potwierdzeniu narzedzi Antigravity. Antigravity dzieli uklad katalogow z wariantem plugins/ (install.sh rejestruje plugins/adhoc-sdlc/skills), wiec mapowanie files wymaga osobnej decyzji. Render pomija ten runtime dopoki active=false.",
+  "placeholders": {
+    "ASK": "TODO-confirm-antigravity-question-tool",
+    "TODO": "TODO-confirm-antigravity-task-tool",
+    "SUBAGENT_TOOL": "TODO-confirm-antigravity-subagent-tool",
+    "PLUGIN_ROOT": "TODO-confirm-antigravity-skill-path"
+  },
+  "files": []
+}

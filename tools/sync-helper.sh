@@ -4,6 +4,10 @@
 # their own install tree, so the helper is physically duplicated. This script
 # keeps the shipped copies identical. Run it before committing any helper change,
 # then run pytest in each scripts directory.
+#
+# NOTE: this syncs only the .py helper. The prompt variants (.md) are generated from
+# templates/ + runtimes/<rt>.json by tools/render.py - run that after editing any
+# template or tool mapping ('tools/render.py --check' is the drift gate).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -41,3 +45,4 @@ done
 
 echo "Synced $files Python files to ${#DSTS[@]} destinations ($copies copies)."
 echo "Next: run 'python3 -m pytest -q' in each scripts dir."
+echo "Reminder: prompt .md variants come from tools/render.py (templates/ + runtimes/), not this script."

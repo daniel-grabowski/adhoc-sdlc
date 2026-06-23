@@ -1,0 +1,46 @@
+---
+description: "adhoc-sdlc exec: run a saved plan + execution journal"
+allowed-tools: All
+argument-hint: "--name \"desc\" --title \"title\" [--append \"entry\" --files a,b] [--status done]"
+---
+
+# /adhoc-sdlc:exec
+
+Read `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/SKILL.md` (Read tool): sections "Native todo list" and "Plan file" (the `## Mode` contract). Read `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/reference.md`: section "Execute journal (JSON)".
+
+Runs a previously saved plan and keeps the execution journal. Maps to the helper's `execute` mode. Match the user's language for all output; keep filenames ASCII.
+
+## Argument parsing
+
+From `$ARGUMENTS` extract `--name` (the same name as the plan), `--title`, and optionally: `--append "entry"` (alias `--note`) with `--phase "label"` and `--files a.pas,b.css` (`--change edit|add|delete|rename`, default edit); `--decision`, `--verification` (+ `--command`), `--final`, `--status {in-progress|done|abandoned}`. The journal is native JSON (`execute-*.json`).
+
+## Execution
+
+1. Create or open the execution journal with the helper (creates it on the first call, appends with `--append`):
+   ```bash
+   python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute \
+     --name "<name>" --title "<title>" [--append "<entry>" --files <a,b> --phase "<label>"] [--status <s>]
+   ```
+2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE`; the most common case is no plan of that name (create it first with `/adhoc-sdlc:plan`).
+3. Read the returned `plan=...` and `execute=...`. Read the plan and realize its steps. Read the plan's `## Mode` section to learn the execution modes (the `test-execution` toggle governs automated tests; `execution-cove` governs the final CoVe; brainstorming, deep-code-verification, plan-cove, and strategy-temper belong to planning). If there is no `## Mode` section, treat every mode as OFF.
+4. Native todo list, REQUIRED before the first change: seed it from the plan's key changes + a verification step, using {{TODO}}. Exactly one `in_progress`; mark `completed` immediately when done. Every `completed` maps to at least one journal entry.
+5. Keep the journal INCREMENTAL and ONLY through the helper (never manual `Edit`/`Write` on the JSON). After each finished task or phase, append an entry with the touched files: `execute --append "<what was done>" --files <files> [--phase "<phase>"]`. Decisions and deviations via `--decision`, verification outcomes via `--verification "<outcome>" [--command "<cmd>"]`. If execution discovers a material strategy change, record it as a decision/deviation through the helper; when the change affects architecture, contracts, migration, retry/idempotency, data safety, or reversibility, recommend a compact Temper pass before continuing, but do not run it automatically unless the user requested auto-selected gates.
+6. Testing (per `## Mode`):
+   - `test-execution` = ON: pick a method for the stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. Record outcomes with `--verification` (and `--command`).
+   - `test-execution` = OFF: skip automated tests.
+7. Final self-check, ALWAYS (regardless of the test toggle): review what was actually done against the plan and the `SKILL.md` Engineering checklist, then record it with `--verification` so the trace lives in the journal. If the implementation intentionally violates the checklist (for example extra abstraction, skipped tests, or a security/performance tradeoff), record the reason with `--decision` or `--verification`; do not leave it implicit.
+8. If `execution-cove` is ON, run a compact CoVe pass before the final close:
+   - draft the final report as provisional;
+   - ask independent verification questions against the actual diff/status, journal entries, completed native todos, and command outputs;
+   - mark claims as consistent, inconsistent, or inconclusive;
+   - revise the final report to keep only verified or explicitly caveated claims;
+   - record the outcome with `--verification "<CoVe outcome>"` (and `--command` when a command was used).
+9. Close the journal: `--final "<result>" --status done`.
+
+## Output
+
+A report per the rules (goal, changed, verified, remaining/limitations). The journal path.
+
+## Note
+
+This command WRITES to the project corpus `./adhoc-sdlc` through the helper (it creates and appends the execution journal). It is not read-only: under plan mode, be aware the helper still creates and updates the journal via Bash, even though `Edit`/`Write` are gated.

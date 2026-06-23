@@ -31,6 +31,14 @@ VALID_FORMATS = ("json", "tsv")
 VALID_INTENTS = ("history", "resume", "handoff")
 KIND_PREFIXES = ("plan", "execute", "handoff")
 
+# Tryby pracy zapisywane w sekcji ## Mode planu; config dostarcza ich domyślne wartości
+# (prefill mode gate). Klucze muszą zgadzać się z kontraktem ## Mode w plan/exec.
+MODE_KEYS = (
+    "brainstorming", "deep-code-verification", "test-execution",
+    "plan-cove", "strategy-temper", "execution-cove",
+)
+CONFIG_FILENAME = "config.json"
+
 # Token projektu: pojedyncze słowo (nazwa repo/obszaru).
 PROJECT_RE = re.compile(r"^[a-z0-9._-]+$")
 # Wzorzec nazwy pliku dziennika: <kind>-<data[-czas]>-<name>.md
@@ -739,6 +747,81 @@ def cmd_pack(args: argparse.Namespace) -> int:
     return 0
 
 
+def default_modes() -> dict:
+    """Wbudowane wartości: wszystkie tryby OFF (zachowanie sprzed configu)."""
+    return {key: False for key in MODE_KEYS}
+
+
+def _config_paths(root: Path) -> tuple[Path, Path]:
+    """(global, project) - kolejność nakładania; projekt ma pierwszeństwo (nakładany ostatni)."""
+    global_path = Path.home() / ".adhoc-sdlc" / CONFIG_FILENAME
+    project_path = target_dir(root) / CONFIG_FILENAME
+    return global_path, project_path
+
+
+def _merge_modes(modes: dict, raw: dict, source: Path) -> None:
+    """Nałóż sekcję 'modes' z configu na wynik. Tylko znane klucze i wartości bool;
+    nieznane klucze oraz wartości innego typu są ignorowane (bezpieczna walidacja)."""
+    section = raw.get("modes")
+    if section is None:
+        return
+    if not isinstance(section, dict):
+        raise ContractError(
+            f'pole "modes" w configu nie jest obiektem: {source}',
+            'modes musi być obiektem {nazwa-trybu: true/false}',
+            '{"modes": {"brainstorming": true}}',
+        )
+    for key, value in section.items():
+        if key in modes and isinstance(value, bool):
+            modes[key] = value
+
+
+def load_config(root: Path) -> dict:
+    """Efektywne domyślne tryby: wbudowane OFF, nadpisane przez config globalny, potem
+    projektowy (projekt > global > OFF). Brak pliku = wszystkie OFF. Uszkodzony plik = fail loud."""
+    modes = default_modes()
+    for source in _config_paths(root):  # global, potem projekt (projekt wygrywa)
+        if not source.is_file():
+            continue
+        try:
+            raw = json.loads(source.read_text(encoding="utf-8"))
+        except ValueError:
+            raise ContractError(
+                f"uszkodzony JSON w configu: {source}",
+                "poprawny plik JSON z obiektem na najwyższym poziomie",
+                '{"modes": {"plan-cove": true}}',
+            )
+        if not isinstance(raw, dict):
+            raise ContractError(
+                f"config nie jest obiektem JSON: {source}",
+                "obiekt JSON na najwyższym poziomie",
+                '{"modes": {"plan-cove": true}}',
+            )
+        _merge_modes(modes, raw, source)
+    return modes
+
+
+def cmd_config(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    if args.init:
+        global_path, project_path = _config_paths(root)
+        dest = global_path if args.scope == "global" else project_path
+        if dest.exists():
+            raise ContractError(
+                f"config już istnieje: {dest}",
+                "edytuj go ręcznie zamiast --init (helper nie nadpisuje configu)",
+                "config --get-modes",
+            )
+        ensure_dir(dest.parent)
+        template = {"modes": default_modes()}
+        write_exclusive(dest, json.dumps(template, ensure_ascii=False, indent=2) + "\n")
+        print(f"config={dest}")
+        return 0
+    # Domyślnie (także przy --get-modes): wypisz efektywne tryby jako prefill mode gate.
+    print(json.dumps({"modes": load_config(root)}, ensure_ascii=False, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -804,6 +887,13 @@ def build_parser() -> argparse.ArgumentParser:
     pack.add_argument("--limit", type=int)
     pack.add_argument("--format", default="json")
     pack.set_defaults(func=cmd_pack)
+
+    config = sub.add_parser("config", help="read or initialize default-mode config (json)")
+    config.add_argument("--root", default=str(DEFAULT_ROOT))
+    config.add_argument("--get-modes", action="store_true", help="print effective default modes as JSON (project > global > off)")
+    config.add_argument("--init", action="store_true", help="write a config template (refuses to overwrite)")
+    config.add_argument("--scope", default="project", choices=("project", "global"), help="where --init writes (default: project)")
+    config.set_defaults(func=cmd_config)
 
     return parser
 

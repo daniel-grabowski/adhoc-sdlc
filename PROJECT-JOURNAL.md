@@ -1,5 +1,35 @@
 # Dziennik projektu adhoc-sdlc
 
+## 2026-06-22 - Generator build-time: deterministyczne wiązanie akcji z narzędziami
+
+Status: przygotowane lokalnie w tym commicie
+Zakres: przywrócenie determinizmu wyboru narzędzi w promptach przez generator (templates/ + runtimes/<rt>.json -> render), plus config domyślnych trybów; w tej iteracji renderowany wariant Claude
+
+### Przyczyna
+
+Commit `70d56b1` zamienił jawne nazwy narzędzi na opisy akcji (`AskUserQuestion` -> „structured-question prompt", `Agent`/`Explore` -> „read-only subagent", `TodoWrite`/`update_plan` -> „native task-tracking tool"). Nazwa narzędzia w prompcie to jedyny twardy wyzwalacz; opis akcji jest sygnałem miękkim, który model realizuje tekstem albo wcale, więc zniknął mode gate i domknięcie pętli pytaniem o egzekucję. Teza commita („mapowanie zostaje przy superpowers") jest fałszywa: `using-superpowers/references/claude-code-tools.md` nie mapuje pytania do użytkownika na `AskUserQuestion`.
+
+### Co się zmieniło
+
+- `templates/` - neutralne źródło prozy z czterema placeholderami (`{{ASK}}`, `{{TODO}}`, `{{SUBAGENT_TOOL}}`, `{{PLUGIN_ROOT}}`), parametryzującymi tylko frazy różnicujące runtime; reszta treści 1:1 z `claude/`.
+- `runtimes/claude.json` (active) plus `codex.json`/`antigravity.json` (szkielety, `active: false`). Mapowanie akcja->narzędzie per runtime. Claude: ASK=`AskUserQuestion`, TODO=`TaskCreate`/`TaskUpdate`, SUBAGENT_TOOL=`Agent` tool + `subagent_type: general-purpose`, PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`.
+- `tools/render.py` - renderer build-time (templates + runtimes -> warianty), nagłówek GENERATED, tryb `--check` (bramka driftu). Render Claude przywraca jawne nazwy narzędzi.
+- `adhoc_sdlc.py` - subkomenda `config` + `load_config` (warstwa B): domyślne tryby z `config.json` (projekt > global > OFF), prefill mode gate; wpięte w źródle `plan` Phase 0.
+- Testy: `tools/test_render.py`, `scripts/test_config.py`; `pytest.ini` rozszerzony o `tools/`. `tools/sync-helper.sh` wskazuje render jako osobny krok build.
+
+### Czego nie zmieniono
+
+- Render wariantów `codex/`/`plugins/` (`.md`) - zostają ręczne do czasu wypełnienia ich tabel mapowania; nadal niedeterministyczne na tych runtime. Helper `.py` nadal synchronizowany przez `sync-helper.sh`.
+- Format `plan-*`/`execute-*`, manifesty, wersja pluginu (0.3.3).
+
+### Weryfikacja
+
+- `python3 tools/render.py --check` -> claude up to date po renderze; przed renderem DRIFT 7 plików, exit 1.
+- Render idempotentny (hash H1=H2); `git diff claude/` = tylko przywrócenie nazw narzędzi + nagłówek GENERATED, treść 1:1.
+- `python3 -m pytest -q` -> 102 passed.
+- `bash tools/sync-helper.sh` -> 7 plików do 2 miejsc (14 kopii); `config --get-modes` działa w wariancie codex po sync.
+- `grep AskUserQuestion claude/commands/plan.md` -> jawne wystąpienia w Phase 0 (mode gate) i Phase 3 (close the loop).
+
 ## 2026-06-22 - Rename: faktoria-sdlc -> adhoc-sdlc (repo, plugin, marketplace, branding)
 
 Status: przygotowane lokalnie w tym commicie; push po przemianowaniu zdalnego repo (Część C)

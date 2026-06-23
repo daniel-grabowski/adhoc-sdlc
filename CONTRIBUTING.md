@@ -19,6 +19,8 @@ Two roles, useful at the same time:
 
 The dev symlink itself is `~/.claude/skills/adhoc-sdlc`. Do not stack a second copy beside it (a marketplace install of the plugin, or a separate hand-installed `~/.claude/commands/adhoc-sdlc`), or two copies will both claim `/adhoc-sdlc:*`.
 
+The checkout is relocatable: keep it anywhere (for example under a shared `projects/harness/` tree with other agent tooling). Nothing in the repo hard-codes its path - the helper is cwd-relative, commands resolve `${CLAUDE_PLUGIN_ROOT}`, the build tools under `tools/` resolve paths relative to themselves, and the symlink uses `$PWD`. After moving the checkout, re-point the dev symlink from the new location: `rm ~/.claude/skills/adhoc-sdlc && ln -s "$PWD/claude" ~/.claude/skills/adhoc-sdlc`, then `/reload-plugins`. Git and its remote are unaffected (the `.git` directory travels with the checkout).
+
 ## Dev loop
 
 1. Edit under `claude/skills/adhoc-sdlc` or `claude/commands`.

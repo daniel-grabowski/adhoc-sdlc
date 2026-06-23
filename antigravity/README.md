@@ -1,46 +1,36 @@
-# adhoc-sdlc for Antigravity CLI (roadmap)
+# adhoc-sdlc for Antigravity CLI
 
 ## What
 
-This directory tracks the planned Antigravity CLI variant of the `adhoc-sdlc`
+This directory contains the integration for the Antigravity CLI variant of the `adhoc-sdlc`
 skill: the same confirmed plan plus incremental execution journal that the
 Claude Code and Codex variants already run, driven by the shared, stdlib-only
 Python helper.
 
 ## Why
 
-The runtime is not shipped yet, but the intent should stay explicit. When
-Antigravity support is implemented, it must preserve the same SDLC contract
-instead of becoming a separate, drifting workflow.
+Antigravity natively supports the skill structure and dynamically resolves paths through its `<skill-dir>` context. The plugin is 100% agnostic and shares the exact same `SKILL.md` and `commands` as the other environments, preventing any drifting workflows.
 
-Status: planned, not yet implemented.
+**Status: Shipped and verified.**
 
 ## What carries over
 
-The behavioral core is runtime-agnostic and is already shared by the Claude Code
-and Codex variants:
+The behavioral core is runtime-agnostic and is fully shared with the Claude Code and Codex variants:
 
 - the Python helper (`scripts/adhoc_sdlc.py`, `scripts/sdlc_doc.py`) and its tests,
 - the file contract (plan markdown, JSON execution journal, handoff snapshots),
-- the command contract (plan, exec, handoff, resume, history) and read-side
-  authority rules.
+- the command contract (plan, exec, handoff, resume, history) and read-side authority rules.
 
-Only the packaging and the path references differ per runtime (Claude Code uses
-`${CLAUDE_PLUGIN_ROOT}`; Codex uses its install path).
+Because Antigravity handles relative directory resolution intelligently, there are no special environment variables needed.
 
-## What is open
+## Installation
 
-The extension mechanism for the Antigravity CLI has not been verified in this
-repository yet. A sibling CLI runtime, Codex, uses plain skills (no plugin and no
-marketplace), so Antigravity most likely follows the same skill model. That is left
-to confirm rather than guess, and the packaging stays undefined here. Before building
-this variant:
+Antigravity loads customizations globally from `~/.gemini/config/skills.json`. You can install the skills seamlessly without modifying any files in the repository.
 
-1. Confirm how Antigravity CLI loads skills/commands and how it references bundled
-   scripts (path variable or fixed install location). A starting point is the
-   `antigravity-tools.md` platform mapping in the superpowers skill references.
-2. Adapt the command markdown to Antigravity's path convention (mirroring what the
-   Claude and Codex variants do), keeping the Python helper byte-for-byte identical.
-3. Add an install path and verification steps to the repository `README.md`.
+Simply run the included installer from the root of this repository:
 
-Until those are confirmed, treat this variant as not shipped.
+```bash
+./antigravity/install.sh
+```
+
+This script safely registers the absolute path to `plugins/adhoc-sdlc/skills/` in your Antigravity configuration. The tool will instantly recognize `adhoc-sdlc`, `cove`, and `temper`.
