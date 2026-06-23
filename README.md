@@ -38,17 +38,29 @@ What: strategy hardening for plans, architecture, and implementation direction. 
 
 ## How it fits together
 
-The three skills are one workflow: plan the change, verify the facts it rests on, harden the strategy, then execute with a journal you can resume or hand off.
+The three skills are one workflow: plan the change, verify the facts it rests on, harden the strategy, then execute with a journal you can resume or hand off. `cove` and `temper` are optional gates, chosen per task in the plan's mode list.
 
 ```mermaid
 flowchart LR
-    plan["adhoc-sdlc: plan"] --> cove["cove: verify facts"]
-    cove --> temper["temper: harden strategy"]
-    temper --> exec["adhoc-sdlc: exec"]
-    exec --> ho["handoff / resume / history"]
+    cove{{"cove: verify facts"}} -.->|optional| plan
+    temper{{"temper: harden strategy"}} -.->|optional| plan
+    plan(["/adhoc-sdlc:plan"]) --> exec(["/adhoc-sdlc:exec"])
+    exec --> ecove{{"execution cove"}}
+    exec -->|context reset| handoff(["/adhoc-sdlc:handoff"])
+    handoff -.->|"/adhoc-sdlc:resume"| exec
+    plan ==> disk[("plan + journal<br/>on disk")]
+    exec ==> disk
+    disk -.->|read-only| history(["/adhoc-sdlc:history"])
+
+    classDef cmd fill:#e3f2fd,stroke:#1565c0,color:#0d2b45
+    classDef gate fill:#fff3cd,stroke:#b8860b,color:#3d2f00
+    classDef store fill:#eceff1,stroke:#37474f,color:#1c2833
+    class plan,exec,handoff,history cmd
+    class cove,temper,ecove gate
+    class disk store
 ```
 
-`cove` and `temper` are optional gates: use them when correctness or the cost of being wrong is high, and skip them for trivial changes.
+Shapes carry the meaning: rounded is a command, a hexagon is an optional gate (`cove` and `temper` before the plan is saved, execution `cove` before execution closes), and the cylinder is the on-disk record. Solid edges are the main flow, dotted edges are optional or read-only, and thick edges write to the plan and journal that outlive a context reset, which is what `handoff` and `resume` bridge.
 
 ## Layout
 

@@ -55,17 +55,29 @@ Uruchamia skoncentrowany przebieg trybów awarii po weryfikacji faktów, a przed
 
 ## Jak to działa razem
 
-Trzy skille to jeden przepływ: zaplanuj zmianę, zweryfikuj fakty, na których się opiera, zahartuj strategię, a potem wykonaj z dziennikiem, który da się wznowić albo przekazać.
+Trzy skille to jeden przepływ: zaplanuj zmianę, zweryfikuj fakty, na których się opiera, zahartuj strategię, a potem wykonaj z dziennikiem, który da się wznowić albo przekazać. `cove` i `temper` to bramki opcjonalne, wybierane per zadanie na liście trybów planu.
 
 ```mermaid
 flowchart LR
-    plan["adhoc-sdlc: plan"] --> cove["cove: weryfikacja faktów"]
-    cove --> temper["temper: hartowanie strategii"]
-    temper --> exec["adhoc-sdlc: exec"]
-    exec --> ho["handoff / resume / history"]
+    cove{{"cove: weryfikacja faktów"}} -.->|opcjonalnie| plan
+    temper{{"temper: hartowanie strategii"}} -.->|opcjonalnie| plan
+    plan(["/adhoc-sdlc:plan"]) --> exec(["/adhoc-sdlc:exec"])
+    exec --> ecove{{"weryfikacja wykonania"}}
+    exec -->|reset kontekstu| handoff(["/adhoc-sdlc:handoff"])
+    handoff -.->|"/adhoc-sdlc:resume"| exec
+    plan ==> disk[("plan + dziennik<br/>na dysku")]
+    exec ==> disk
+    disk -.->|tylko odczyt| history(["/adhoc-sdlc:history"])
+
+    classDef cmd fill:#e3f2fd,stroke:#1565c0,color:#0d2b45
+    classDef gate fill:#fff3cd,stroke:#b8860b,color:#3d2f00
+    classDef store fill:#eceff1,stroke:#37474f,color:#1c2833
+    class plan,exec,handoff,history cmd
+    class cove,temper,ecove gate
+    class disk store
 ```
 
-`cove` i `temper` to bramki opcjonalne: używaj ich, gdy poprawność albo koszt pomyłki są wysokie, i pomijaj przy zmianach trywialnych.
+Znaczenie niosą kształty: zaokrąglony to komenda, sześciokąt to opcjonalna bramka (`cove` i `temper` przed zapisem planu, `cove` wykonania przed zamknięciem wykonania), a walec to zapis na dysku. Krawędzie ciągłe to główny przepływ, kropkowane to opcjonalne albo tylko do odczytu, a grube zapisują plan i dziennik, które przeżywają reset kontekstu. Ten most budują `handoff` i `resume`.
 
 ## Układ
 

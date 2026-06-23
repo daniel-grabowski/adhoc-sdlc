@@ -1,6 +1,34 @@
 # Dziennik projektu adhoc-sdlc
 
-## 2026-06-23 - Pełna dokumentacja po konsolidacji 0.4.0: README skilli do generatora, mermaid, walidacja humanizer
+## 2026-06-23 - Redesign diagramów mermaid: overview i session-flow odwzorowują faktyczną mechanikę
+
+Status: przygotowane lokalnie w tym commicie
+Zakres: przeprojektowanie dwóch diagramów mermaid (główny overview „How it fits together" w README.md/.pl.md oraz „How a session flows" w szablonie skilla adhoc-sdlc), żeby oddawały, jak system naprawdę działa, i wyglądały lepiej. Prowadzone przez dziennik adhoc-sdlc (`diagram-redesign`).
+
+### Przyczyna
+
+Główny diagram był płaskim łańcuchem `plan -> cove -> temper -> exec -> handoff/resume/history` i fałszował mechanikę: pokazywał `cove`/`temper` jako obowiązkowe kroki w ciągu (naprawdę to opcjonalne bramki z Phase 0), zlepiał handoff/resume/history w jeden węzeł, nie pokazywał pętli ani trwałości. Diagram session-flow miał już pętlę, ale nie pokazywał dziennika na dysku ani granicy okna kontekstu, którą handoff/resume przekraczają.
+
+### Co się zmieniło
+
+- Wspólny język wizualny dla obu diagramów: stadion `(["..."])` = komenda, sześciokąt `{{"..."}}` = opcjonalna bramka, walec `[("...")]` = trwały zapis na dysku. Styl krawędzi: ciągła = główny przepływ, kropkowana = opcjonalne / tylko odczyt, gruba `==>` = zapis/append do planu i dziennika. Lekki kolor (`classDef`: komendy jasnoniebieskie, bramki bursztynowe, dysk szary).
+- Główny overview (README.md/.pl.md, ręczne): kręgosłup `plan -> exec`, bramki `cove`/`temper` (przed zapisem planu) i `execution cove` (przed zamknięciem exec) dopięte jako opcjonalne, dziennik na dysku jako walec, pętla przez reset kontekstu (`handoff` -> `resume`), `history` czyta korpus (read-only). Dodano legendę tekstową.
+- Session-flow (templates/skills/adhoc-sdlc/README.md/.pl.md, źródło generatora): zachowana pętla `resume -> exec`, dodany dziennik na dysku, granica okna kontekstu na krawędzi `handoff`, `history` read-only. Po renderze propagacja do `claude/` i `plugins/`.
+- Etykiety krawędzi w formie `|label|` (odporne na znaki specjalne jak `/` i `:`).
+
+### Czego nie zmieniono
+
+- Diagramy `cove/README`, `temper/README`, `docs/struktura-repozytorium.md` (bez zmian). Generator, helper, manifesty, wersja (pozostaje 0.4.0) - nietknięte. Zmiana docs-only.
+
+### Weryfikacja
+
+- Mermaid MCP: 4/4 nowe diagramy `valid:true` (overview EN+PL, session-flow EN+PL), walidacja PRZED edycją plików.
+- `python3 tools/render.py` -> `--check` zielone (zero drift); session-flow propagowany do 4 generowanych README (claude + plugins, EN+PL).
+- 0x `{{` w generowanych; stary płaski łańcuch overview usunięty; nowe `classDef` obecne w README.md i README.pl.md.
+- Walidacja humanizer (EN+PL) nowej prozy legend: EN bez zmian, PL jedna poprawka (sklejka przecinkiem + inwersja „stanowią" w legendzie overview).
+- Execution CoVe: `git diff --stat` = dokładnie 8 plików (2 overview repo-level + 2 szablony + 4 generowane), bez plików-niespodzianek.
+
+
 
 Status: przygotowane lokalnie w tym commicie
 Zakres: doprowadzenie całej dokumentacji do stanu zgodnego z rzeczywistością po konsolidacji generatora (0.4.0, trzy skille); README skilli przeniesione do generatora (jedno źródło, oba warianty); diagramy mermaid dla przepływów; walidacja stylu skillem `humanizer` dla PL i EN. Prowadzone przez dziennik adhoc-sdlc (`plan`/`execute-2026-06-23-docs-full-consolidation`).

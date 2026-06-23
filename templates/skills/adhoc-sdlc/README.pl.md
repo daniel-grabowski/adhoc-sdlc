@@ -47,12 +47,21 @@ Pomiń go, gdy praca należy już do formalnego przepływu issue z własnym źr�
 
 ```mermaid
 flowchart LR
-    plan["/adhoc-sdlc:plan"] --> exec["/adhoc-sdlc:exec"]
-    exec --> handoff["/adhoc-sdlc:handoff"]
-    handoff --> resume["/adhoc-sdlc:resume"]
+    plan(["/adhoc-sdlc:plan"]) --> exec(["/adhoc-sdlc:exec"])
+    exec -->|pauza / reset kontekstu| handoff(["/adhoc-sdlc:handoff"])
+    handoff --> resume(["/adhoc-sdlc:resume"])
     resume --> exec
-    exec --> history["/adhoc-sdlc:history"]
+    plan ==> disk[("plan + dziennik<br/>na dysku")]
+    exec ==> disk
+    disk -.->|tylko odczyt| history(["/adhoc-sdlc:history"])
+
+    classDef cmd fill:#e3f2fd,stroke:#1565c0,color:#0d2b45
+    classDef store fill:#eceff1,stroke:#37474f,color:#1c2833
+    class plan,exec,handoff,resume,history cmd
+    class disk store
 ```
+
+Zaokrąglone węzły to komendy, a walec to zapis na dysku; grube krawędzie do niego piszą, kropkowana tylko czyta, a `handoff` i `resume` przerzucają most przez granicę okna kontekstu.
 
 1. `plan` działa jak prowadzona rozmowa. Najpierw pyta, jak ma pracować (brama trybów Faza 0: dialog brainstorming, głęboka weryfikacja w kodzie, uruchamianie testów, plan CoVe, hartowanie strategii, weryfikacja wykonania CoVe), potem ustala zakres, podejście, przypadki brzegowe i plan testów, i zapisuje plik planu.
 2. `exec` zasiewa natywną listę zadań z planu, przechodzi przez nią i dopisuje wpis do dziennika po każdym istotnym kroku. Zawsze kończy końcową autokontrolą zapisaną w dzienniku.

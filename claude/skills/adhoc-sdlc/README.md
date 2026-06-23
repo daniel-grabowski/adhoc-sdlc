@@ -48,12 +48,21 @@ Skip it when the work already belongs to a formal issue workflow that has its ow
 
 ```mermaid
 flowchart LR
-    plan["/adhoc-sdlc:plan"] --> exec["/adhoc-sdlc:exec"]
-    exec --> handoff["/adhoc-sdlc:handoff"]
-    handoff --> resume["/adhoc-sdlc:resume"]
+    plan(["/adhoc-sdlc:plan"]) --> exec(["/adhoc-sdlc:exec"])
+    exec -->|pause / context reset| handoff(["/adhoc-sdlc:handoff"])
+    handoff --> resume(["/adhoc-sdlc:resume"])
     resume --> exec
-    exec --> history["/adhoc-sdlc:history"]
+    plan ==> disk[("plan + journal<br/>on disk")]
+    exec ==> disk
+    disk -.->|read-only| history(["/adhoc-sdlc:history"])
+
+    classDef cmd fill:#e3f2fd,stroke:#1565c0,color:#0d2b45
+    classDef store fill:#eceff1,stroke:#37474f,color:#1c2833
+    class plan,exec,handoff,resume,history cmd
+    class disk store
 ```
+
+Rounded nodes are commands and the cylinder is the on-disk record; thick edges write to it, the dotted edge only reads it, and `handoff` and `resume` bridge the context-window boundary.
 
 1. `plan` runs as a guided conversation. It first asks how to work (the Phase 0 mode gate: brainstorming dialog, deep code verification, test execution, plan CoVe, strategy temper, and execution CoVe), then settles scope, approach, edge cases, and a test plan, and writes the plan file.
 2. `exec` seeds a native todo list from the plan, works through it, and appends a journal entry for each significant step. It always ends with a final self-check recorded in the journal.
