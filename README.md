@@ -4,7 +4,7 @@
 
 ## What
 
-`adhoc-sdlc` is a small SDLC toolkit for AI coding agents. It packages two reusable skills: `adhoc-sdlc` for lightweight implementation work with a durable plan and execution journal, and `cove` for Chain-of-Verification before factual claims reach a user.
+`adhoc-sdlc` is a small SDLC toolkit for AI coding agents. It packages three reusable skills: `adhoc-sdlc` for lightweight implementation work with a durable plan and execution journal, `cove` for Chain-of-Verification before factual claims reach a user, and `temper` for hardening a plan's strategy against failure modes before execution.
 
 ## Why
 
@@ -14,7 +14,7 @@ AI coding is fast, but speed without a record is fragile. This repo gives Claude
 
 Addy Osmani's [The New Software Lifecycle](https://addyosmani.com/blog/new-sdlc-vibe-coding/), and the [Google whitepaper](https://www.kaggle.com/whitepaper-the-new-SDLC-with-vibe-coding) behind it, frame an agent as a model plus a harness. The model is one input; the harness is the instructions, tools, context rules, and verification wrapped around it. The paper's rough split is 10% model, 90% harness. It also puts the line between vibe coding and engineering in one place: verification. Code that merely seems to work is vibe coding; code whose outputs get checked is engineering.
 
-This repo is the harness, not the model. `adhoc-sdlc` is the record: a confirmed plan and a journal that outlive a pause or a context reset, so the work stays checkable instead of living only in a chat log. `cove` is the verification: it runs a draft through independent questions before any claim reaches you. The skills load the way the paper recommends too, a little metadata up front and the full instructions only once a task matches (progressive disclosure), so the context you pay for on every turn stays small.
+This repo is the harness, not the model. `adhoc-sdlc` is the record: a confirmed plan and a journal that outlive a pause or a context reset, so the work stays checkable instead of living only in a chat log. `cove` is the verification: it runs a draft through independent questions before any claim reaches you. `temper` is the pressure test: it hunts a plan's failure modes before they become code. The skills load the way the paper recommends too, a little metadata up front and the full instructions only once a task matches (progressive disclosure), so the context you pay for on every turn stays small.
 
 None of that waits on a better model. It is configuration you can get right today, reviewed and versioned like the rest of the code.
 
@@ -30,7 +30,25 @@ What: a lightweight SDLC for small, ad hoc implementation work. Why: it keeps ev
 
 ### CoVe
 
-What: Chain-of-Verification for factual work. Why: it forces drafts through independent verification questions so final answers keep only verified or explicitly caveated facts. The Claude Code and Codex plugins ship this as the `cove` skill.
+What: Chain-of-Verification for factual work. Why: it forces drafts through independent verification questions so final answers keep only verified or explicitly caveated facts. The Claude Code and Codex plugins ship this as the `cove` skill. See [claude/skills/cove/README.md](claude/skills/cove/README.md) for details.
+
+### Temper
+
+What: strategy hardening for plans, architecture, and implementation direction. Why: it runs a focused failure-mode pass after factual verification and before execution, so loopholes are fixed or explicitly accepted before they become code. It ships as the `temper` skill and as the `strategy-temper` gate inside `/adhoc-sdlc:plan`. See [claude/skills/temper/README.md](claude/skills/temper/README.md) for details.
+
+## How it fits together
+
+The three skills are one workflow: plan the change, verify the facts it rests on, harden the strategy, then execute with a journal you can resume or hand off.
+
+```mermaid
+flowchart LR
+    plan["adhoc-sdlc: plan"] --> cove["cove: verify facts"]
+    cove --> temper["temper: harden strategy"]
+    temper --> exec["adhoc-sdlc: exec"]
+    exec --> ho["handoff / resume / history"]
+```
+
+`cove` and `temper` are optional gates: use them when correctness or the cost of being wrong is high, and skip them for trivial changes.
 
 ## Layout
 
@@ -39,15 +57,17 @@ One directory per agent runtime, each packaged in that runtime's native format. 
 ```
 .claude-plugin/marketplace.json   Claude Code marketplace entry
 .agents/plugins/marketplace.json  Codex marketplace entry
-claude/                           Claude Code plugin: adhoc-sdlc + cove
+claude/                           Claude Code plugin: adhoc-sdlc + cove + temper
   .claude-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/cove/
+  skills/temper/
   commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
-plugins/adhoc-sdlc/            Codex plugin: adhoc-sdlc
+plugins/adhoc-sdlc/            Codex plugin: adhoc-sdlc + cove + temper
   .codex-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/cove/
+  skills/temper/
 antigravity/                      roadmap: extension format to be confirmed
 ```
 

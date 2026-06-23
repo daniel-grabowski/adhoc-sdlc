@@ -2,11 +2,11 @@
 
 *[English](CONTRIBUTING.md) · Polski*
 
-Repozytorium jest jedynym źródłem prawdy dla pluginu `adhoc-sdlc` oraz skilli `adhoc-sdlc` i `cove`. Edytuj tutaj, testuj, potem publikuj. Nie edytuj zainstalowanych kopii w `~/.claude` ani `~/.codex` i nie kopiuj ich z powrotem; to rozdziela źródło i pozwala wariantom się rozjechać.
+Repozytorium jest jedynym źródłem prawdy dla pluginu `adhoc-sdlc` oraz skilli `adhoc-sdlc`, `cove` i `temper`. Edytuj tutaj, testuj, potem publikuj. Nie edytuj zainstalowanych kopii w `~/.claude` ani `~/.codex` i nie kopiuj ich z powrotem; to rozdziela źródło i pozwala wariantom się rozjechać.
 
 ## Środowiska
 
-Claude Code jest pakowany pod `claude/`; Codex jest pakowany jako publikowany plugin pod `plugins/adhoc-sdlc/`. Oba warianty są generowane z jednego źródła (`templates/` + `runtimes/<rt>.json`) przez `tools/render.py`. Planowany wariant `antigravity/` nadal jest placeholderem roadmapy. Helper w Pythonie pod `scripts/` jest wspólny, więc zmiana helpera musi trafić do każdego dostarczanego wariantu runtime.
+Claude Code jest pakowany pod `claude/`; Codex jest pakowany jako publikowany plugin pod `plugins/adhoc-sdlc/`. Oba warianty są generowane z jednego źródła (`templates/` + `runtimes/<rt>.json`) przez `tools/render.py`. Ten generowany zestaw obejmuje teraz przegląd `README.md`/`README.pl.md` każdego skilla, więc edytuj je pod `templates/skills/<skill>/` i przerenderuj; nigdy nie edytuj ich ręcznie pod `claude/` ani `plugins/`. Planowany wariant `antigravity/` nadal jest placeholderem roadmapy. Helper w Pythonie pod `scripts/` jest wspólny, więc zmiana helpera musi trafić do każdego dostarczanego wariantu runtime.
 
 ## Konfiguracja lokalna (owner)
 

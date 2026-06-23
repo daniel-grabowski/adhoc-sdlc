@@ -1,7 +1,7 @@
 {
   "runtime": "antigravity",
   "active": false,
-  "_note": "SZKIELET. Antigravity nie ma jeszcze zadnych jawnych nazw narzedzi w repo (roadmap, patrz antigravity/README.md). Wartosci placeholderow sa NIEUSTALONE i nie wolno ich zgadywac - uzupelnic dopiero po potwierdzeniu narzedzi Antigravity. Klucze placeholderow odpowiadaja aktualnemu zestawowi tokenow w templates/ (ASK, ASK_NOTE, TODO, SUBAGENT_VIA, SKILL_HOME, SKILL_HOME_NOTE, COMMANDS_HOME). Antigravity dzieli uklad katalogow z wariantem plugins/ (install.sh rejestruje plugins/adhoc-sdlc/skills), wiec mapowanie files wymaga osobnej decyzji. Render pomija ten runtime dopoki active=false.",
+  "_note": "SZKIELET. Antigravity nie ma jeszcze zadnych jawnych nazw narzedzi w repo (roadmap, patrz antigravity/README.md). Wartosci placeholderow sa NIEUSTALONE i nie wolno ich zgadywac - uzupelnic dopiero po potwierdzeniu narzedzi Antigravity. Klucze placeholderow odpowiadaja aktualnemu zestawowi tokenow w templates/ (ASK, ASK_NOTE, TODO, SUBAGENT_VIA, SKILL_HOME, SKILL_HOME_NOTE, COMMANDS_HOME, ASSETS). Antigravity dzieli uklad katalogow z wariantem plugins/ (install.sh rejestruje plugins/adhoc-sdlc/skills), wiec mapowanie files wymaga osobnej decyzji. Render pomija ten runtime dopoki active=false.",
   "placeholders": {
     "ASK": "TODO-confirm-antigravity-question-tool",
     "ASK_NOTE": "TODO-confirm-antigravity-question-note",
@@ -9,7 +9,8 @@
     "SUBAGENT_VIA": "TODO-confirm-antigravity-subagent-via",
     "SKILL_HOME": "TODO-confirm-antigravity-skill-home",
     "SKILL_HOME_NOTE": "TODO-confirm-antigravity-skill-home-note",
-    "COMMANDS_HOME": "TODO-confirm-antigravity-commands-home"
+    "COMMANDS_HOME": "TODO-confirm-antigravity-commands-home",
+    "ASSETS": "TODO-confirm-antigravity-assets-path"
   },
   "files": []
 }

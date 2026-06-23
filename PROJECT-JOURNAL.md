@@ -1,6 +1,37 @@
 # Dziennik projektu adhoc-sdlc
 
-## 2026-06-23 - Maszyna: pełne generowanie wariantu Codex + cove/temper z jednego źródła
+## 2026-06-23 - Pełna dokumentacja po konsolidacji 0.4.0: README skilli do generatora, mermaid, walidacja humanizer
+
+Status: przygotowane lokalnie w tym commicie
+Zakres: doprowadzenie całej dokumentacji do stanu zgodnego z rzeczywistością po konsolidacji generatora (0.4.0, trzy skille); README skilli przeniesione do generatora (jedno źródło, oba warianty); diagramy mermaid dla przepływów; walidacja stylu skillem `humanizer` dla PL i EN. Prowadzone przez dziennik adhoc-sdlc (`plan`/`execute-2026-06-23-docs-full-consolidation`).
+
+### Przyczyna
+
+Po konsolidacji 0.4.0 (trzy skille: `adhoc-sdlc`, `cove`, `temper`) dokumentacja była częściowo nieaktualna, częściowo niespójna, miejscami sprzeczna sama ze sobą: README mówiły o „dwóch skillach" (brak temper), `cove` nie miał README user-facing, README skilli były utrzymywane niejednolicie (adhoc-sdlc ręczny tylko w `claude/`, temper generowany i PL-only, cove brak), `antigravity/README.md` deklarował „Shipped and verified" sprzecznie z `active=false`, a README temper opisywał nieistniejącą komendę `/temper`.
+
+### Co się zmieniło
+
+- Generator: nowy placeholder `{{ASSETS}}` (prefiks ścieżki do `assets/`, różny per runtime, bo README skilli leżą na różnej głębokości): `claude.json` -> `../../../assets`, `codex.json` -> `../../../../assets`, `antigravity.json` -> `TODO-confirm` (`active=false`, render pomija). `render.py` bez zmian (obsługuje nowy placeholder i nowe pary `files` generycznie).
+- README skilli wciągnięte do `templates/skills/` i generowane do OBU wariantów (EN+PL, nagłówek GENERATED): `adhoc-sdlc/README.md` + `README.pl.md` (lista trybów Phase 0 uzupełniona do pełnych 6, w tym strategy temper; obraz przez `{{ASSETS}}`; sekcja „Related skills"), `cove/README.md` + `README.pl.md` (NOWE, pierwsze README user-facing dla cove), `temper/README.md` (PL -> EN kanon) + `README.pl.md` (NOWY). Usunięto opis nieistniejącej komendy `/temper` (inwokacja jako skill albo bramka `strategy-temper`).
+- Diagramy mermaid (8 sztuk w 5 miejscach): główny README (przepływ adhoc-sdlc EN+PL), `struktura-repozytorium.md` (pipeline generatora), `cove/README` (proces CoVe EN+PL), `temper/README` (kolejność w Harness EN+PL), `adhoc-sdlc/README` (przepływ sesji).
+- Dokumenty repo-level: `README.md`/`README.pl.md` („dwa/two" -> trzy skille, sekcja `### Temper`, blok Layout z `skills/temper/`), `CONTRIBUTING.md`/`.pl.md` (lista trzech skilli; nota, że README skilli są generowane), `docs/struktura-repozytorium.md` (drzewa `templates/` i wariantów z README skilli, wiersz `{{ASSETS}}` w tabeli placeholderów, sekcja 9 długu), `antigravity/README.md` („Shipped and verified" -> „experimental (roadmap)", zgodnie z `active=false`).
+- Walidacja humanizer (12 dokumentów, każdy w swoim języku, tryb `--auto`): 9x bez zmian (proza już zwięzła), 3 chirurgiczne poprawki stylu (nie faktów): temper PL anglicyzm „Inwokujesz" -> „Wywołujesz", struktura PL pleonazm „Cel docelowy" -> „Cel" i aforyzm „serce repo" -> „główny mechanizm repo", antigravity EN promocyjny slop (100% agnostic, seamlessly, simply, safely, instantly, intelligently) -> rzeczowa proza.
+
+### Czego nie zmieniono
+
+- Helper Python (`adhoc_sdlc.py`, `sdlc_doc.py`) i jego testy, format `plan-*`/`execute-*`, manifesty i wersja pluginu (zmiana docs + generator, bez bumpa: pozostaje 0.4.0).
+- `antigravity.json` nadal `active=false` (narzędzia `TODO-confirm`, zakaz zgadywania); `docs/struktura-repozytorium.md` pozostaje PL (rozstrzygnięty konflikt: polityka językowa „architektura wewnętrzna = PL" ma pierwszeństwo nad wzmianką o wersji EN).
+
+### Weryfikacja
+
+- `python3 tools/render.py` -> „rendered 35 files for: claude, codex"; `--check` -> „check OK: claude, codex up to date" (zero drift).
+- 0 placeholderów `{{` w `claude/` i `plugins/`; 0 „two skills"/„dwa skille" w README; `temper` obecny w sekcji Skills i w Layout obu README; JSON 3/3 parsowalne.
+- Ścieżki obrazu per wariant: `claude/.../README.md` -> `../../../assets/adhoc-sdlc.png`, `plugins/.../README.md` -> `../../../../assets/adhoc-sdlc.png` (oba wskazują `assets/` w roocie).
+- Mermaid: 8/8 diagramów `valid:true` (Mermaid MCP).
+- `pytest`: helper Claude 95 passed, helper plugin Codex 95 passed, generator `tools` 9 passed.
+- Spójność statusu antigravity: główny README („roadmap"/„Planned") i `antigravity/README.md` („experimental (roadmap)") zgodne; brak deklaracji „shipped" dla integracji Antigravity.
+
+
 
 Status: przygotowane lokalnie w tym commicie, push na main
 Zakres: konsolidacja generatora tak, by oba realne warianty (Claude Code i plugin Codex) wraz ze skillami `cove` i `temper` powstawały z jednego źródła (`templates/` + `runtimes/`); usunięcie legacy wariantu `codex/`; bump 0.3.4 -> 0.4.0

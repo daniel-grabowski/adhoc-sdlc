@@ -9,7 +9,8 @@
     "SUBAGENT_VIA": " (via the `Agent` tool, `subagent_type: general-purpose`)",
     "SKILL_HOME": "${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc",
     "SKILL_HOME_NOTE": "",
-    "COMMANDS_HOME": "${CLAUDE_PLUGIN_ROOT}/commands"
+    "COMMANDS_HOME": "${CLAUDE_PLUGIN_ROOT}/commands",
+    "ASSETS": "../../../assets"
   },
   "files": [
     ["commands/plan.md", "claude/commands/plan.md"],
@@ -19,9 +20,14 @@
     ["commands/handoff.md", "claude/commands/handoff.md"],
     ["skills/adhoc-sdlc/SKILL.md", "claude/skills/adhoc-sdlc/SKILL.md"],
     ["skills/adhoc-sdlc/reference.md", "claude/skills/adhoc-sdlc/reference.md"],
+    ["skills/adhoc-sdlc/README.md", "claude/skills/adhoc-sdlc/README.md"],
+    ["skills/adhoc-sdlc/README.pl.md", "claude/skills/adhoc-sdlc/README.pl.md"],
     ["skills/cove/SKILL.md", "claude/skills/cove/SKILL.md"],
+    ["skills/cove/README.md", "claude/skills/cove/README.md"],
+    ["skills/cove/README.pl.md", "claude/skills/cove/README.pl.md"],
     ["skills/temper/SKILL.md", "claude/skills/temper/SKILL.md"],
     ["skills/temper/README.md", "claude/skills/temper/README.md"],
+    ["skills/temper/README.pl.md", "claude/skills/temper/README.pl.md"],
     ["skills/temper/examples/sample-output.md", "claude/skills/temper/examples/sample-output.md"],
     ["skills/temper/integration/adhoc-sdlc-integration.md", "claude/skills/temper/integration/adhoc-sdlc-integration.md"]
   ]

@@ -2,11 +2,11 @@
 
 *English · [Polski](CONTRIBUTING.pl.md)*
 
-The repository is the single source of truth for the `adhoc-sdlc` plugin and its `adhoc-sdlc` and `cove` skills. Edit it here, test, then publish. Do not edit the installed copies under `~/.claude` or `~/.codex` and copy them back; that splits the source and lets the variants drift.
+The repository is the single source of truth for the `adhoc-sdlc` plugin and its `adhoc-sdlc`, `cove`, and `temper` skills. Edit it here, test, then publish. Do not edit the installed copies under `~/.claude` or `~/.codex` and copy them back; that splits the source and lets the variants drift.
 
 ## Runtimes
 
-Claude Code is packaged under `claude/`; Codex is packaged as the published plugin under `plugins/adhoc-sdlc/`. Both variants are generated from one source (`templates/` + `runtimes/<rt>.json`) by `tools/render.py`. The planned `antigravity/` variant is still a roadmap placeholder. The Python helper under `scripts/` is shared, so a helper change has to land in every shipped runtime variant.
+Claude Code is packaged under `claude/`; Codex is packaged as the published plugin under `plugins/adhoc-sdlc/`. Both variants are generated from one source (`templates/` + `runtimes/<rt>.json`) by `tools/render.py`. That generated set now includes each skill's `README.md`/`README.pl.md` overview, so edit those under `templates/skills/<skill>/` and re-render; never hand-edit them under `claude/` or `plugins/`. The planned `antigravity/` variant is still a roadmap placeholder. The Python helper under `scripts/` is shared, so a helper change has to land in every shipped runtime variant.
 
 ## Local setup (owner)
 

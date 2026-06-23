@@ -4,7 +4,7 @@
 
 ## Co to jest
 
-`adhoc-sdlc` to mały zestaw SDLC dla agentów programujących AI. Dostarcza dwa skille: `adhoc-sdlc` do lekkiej pracy implementacyjnej z trwałym planem i dziennikiem wykonania oraz `cove` do Chain-of-Verification przed wypuszczeniem twierdzeń faktograficznych do użytkownika.
+`adhoc-sdlc` to mały zestaw SDLC dla agentów programujących AI. Dostarcza trzy skille: `adhoc-sdlc` do lekkiej pracy implementacyjnej z trwałym planem i dziennikiem wykonania, `cove` do Chain-of-Verification przed wypuszczeniem twierdzeń faktograficznych do użytkownika oraz `temper` do hartowania strategii planu pod kątem trybów awarii przed wykonaniem.
 
 ## Dlaczego
 
@@ -14,7 +14,7 @@ AI koduje szybko, ale szybkość bez zapisu decyzji jest krucha. To repo daje Cl
 
 Artykuł Addy'ego Osmaniego [The New Software Lifecycle](https://addyosmani.com/blog/new-sdlc-vibe-coding/) i stojący za nim [whitepaper Google](https://www.kaggle.com/whitepaper-the-new-SDLC-with-vibe-coding) ujmują agenta jako model plus harness. Model to jedno wejście; harness to instrukcje, narzędzia, reguły kontekstu i weryfikacja owinięte wokół niego. Zgrubny podział z artykułu to 10% model, 90% harness. Ten sam tekst stawia linię między vibe-codingiem a inżynierią w jednym miejscu: przy weryfikacji. Kod, który tylko wygląda na działający, to vibe-coding; kod, którego wyniki są sprawdzane, to inżynieria.
 
-To repo jest harnessem, nie modelem. `adhoc-sdlc` to zapis: potwierdzony plan i dziennik, które przeżywają pauzę albo reset kontekstu, więc praca zostaje sprawdzalna, zamiast istnieć tylko w logu czatu. `cove` to weryfikacja: przepuszcza szkic przez niezależne pytania, zanim jakiekolwiek twierdzenie trafi do Ciebie. Skille ładują się też tak, jak zaleca artykuł: trochę metadanych z góry, a pełne instrukcje dopiero, gdy zadanie pasuje (progressive disclosure), więc kontekst, za który płacisz w każdej turze, zostaje mały.
+To repo jest harnessem, nie modelem. `adhoc-sdlc` to zapis: potwierdzony plan i dziennik, które przeżywają pauzę albo reset kontekstu, więc praca zostaje sprawdzalna, zamiast istnieć tylko w logu czatu. `cove` to weryfikacja: przepuszcza szkic przez niezależne pytania, zanim jakiekolwiek twierdzenie trafi do Ciebie. `temper` to próba wytrzymałości: poluje na tryby awarii planu, zanim staną się kodem. Skille ładują się też tak, jak zaleca artykuł: trochę metadanych z góry, a pełne instrukcje dopiero, gdy zadanie pasuje (progressive disclosure), więc kontekst, za który płacisz w każdej turze, zostaje mały.
 
 Nic z tego nie czeka na lepszy model. To konfiguracja, którą możesz dopiąć już dziś, recenzowana i wersjonowana jak reszta kodu.
 
@@ -41,7 +41,31 @@ Chain-of-Verification do pracy faktograficznej.
 #### Dlaczego 
 
 Wymusza przejście od szkicu przez niezależne pytania weryfikacyjne, żeby finalna odpowiedź zawierała tylko fakty potwierdzone albo jawnie oznaczone jako niepewne. 
-Pluginy Claude Code i Codex dostarczają to jako skill `cove`.
+Pluginy Claude Code i Codex dostarczają to jako skill `cove`. Szczegóły w [claude/skills/cove/README.pl.md](claude/skills/cove/README.pl.md).
+
+### Temper
+
+#### Po co?
+
+Hartowanie strategii planu, architektury i kierunku implementacji.
+
+#### Dlaczego
+
+Uruchamia skoncentrowany przebieg trybów awarii po weryfikacji faktów, a przed wykonaniem, żeby luki zostały zamknięte albo świadomie zaakceptowane, zanim staną się kodem. Dostarczany jako skill `temper` oraz jako bramka `strategy-temper` w `/adhoc-sdlc:plan`. Szczegóły w [claude/skills/temper/README.pl.md](claude/skills/temper/README.pl.md).
+
+## Jak to działa razem
+
+Trzy skille to jeden przepływ: zaplanuj zmianę, zweryfikuj fakty, na których się opiera, zahartuj strategię, a potem wykonaj z dziennikiem, który da się wznowić albo przekazać.
+
+```mermaid
+flowchart LR
+    plan["adhoc-sdlc: plan"] --> cove["cove: weryfikacja faktów"]
+    cove --> temper["temper: hartowanie strategii"]
+    temper --> exec["adhoc-sdlc: exec"]
+    exec --> ho["handoff / resume / history"]
+```
+
+`cove` i `temper` to bramki opcjonalne: używaj ich, gdy poprawność albo koszt pomyłki są wysokie, i pomijaj przy zmianach trywialnych.
 
 ## Układ
 
@@ -50,15 +74,17 @@ Jeden katalog na środowisko agenta, każdy spakowany w natywnym formacie tego �
 ```
 .claude-plugin/marketplace.json   wpis marketplace Claude Code
 .agents/plugins/marketplace.json  wpis marketplace Codex
-claude/                           plugin Claude Code: adhoc-sdlc + cove
+claude/                           plugin Claude Code: adhoc-sdlc + cove + temper
   .claude-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/cove/
+  skills/temper/
   commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
-plugins/adhoc-sdlc/            plugin Codex: adhoc-sdlc
+plugins/adhoc-sdlc/            plugin Codex: adhoc-sdlc + cove + temper
   .codex-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/cove/
+  skills/temper/
 antigravity/                      plany: format rozszerzenia do ustalenia
 ```
 

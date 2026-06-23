@@ -17,7 +17,7 @@ kilku wariantach różniących się nazwami narzędzi i gramatyką. Zamiast utrz
 te warianty ręcznie, repo generuje je z jednego źródła.
 
 Zasada przewodnia: jeden neutralny szablon, wiele wariantów per runtime,
-generowanych deterministycznie. Cel docelowy: zero ręcznie utrzymywanych plików
+generowanych deterministycznie. Cel: zero ręcznie utrzymywanych plików
 dystrybucyjnych.
 
 ## 2. Mapa katalogów (najwyższy poziom)
@@ -51,7 +51,15 @@ korpus roboczy (dane), gitignorowany. Nie myl ich.
 
 ## 3. Generator: jak szablon staje się wariantem
 
-To jest serce repo. Trzy elementy współpracują:
+To główny mechanizm repo. Trzy elementy współpracują:
+
+```mermaid
+flowchart LR
+    T["templates/ (proza z placeholderami)"] --> R["tools/render.py"]
+    RT["runtimes/*.json (mapy narzędzi)"] --> R
+    R --> C["claude/ (Claude Code)"]
+    R --> P["plugins/adhoc-sdlc/ (Codex)"]
+```
 
 ### 3.1. `templates/` - źródło prawdy
 
@@ -62,9 +70,9 @@ narzędzia albo gramatyka różni się między runtime'ami. Zawartość:
 templates/
 ├── commands/                exec.md, handoff.md, history.md, plan.md, resume.md
 └── skills/
-    ├── adhoc-sdlc/          SKILL.md, reference.md
-    ├── cove/                SKILL.md, agents/openai.yaml (metadane Codex)
-    └── temper/              SKILL.md, README.md, examples/, integration/
+    ├── adhoc-sdlc/          SKILL.md, reference.md, README.md, README.pl.md
+    ├── cove/                SKILL.md, README.md, README.pl.md, agents/openai.yaml (metadane Codex)
+    └── temper/              SKILL.md, README.md, README.pl.md, examples/, integration/
 ```
 
 Używane placeholdery (i ile razy występują w szablonach):
@@ -78,12 +86,15 @@ Używane placeholdery (i ile razy występują w szablonach):
 | `{{SKILL_HOME}}`     | katalog z SKILL.md/reference.md/scripts             | 22        |
 | `{{SKILL_HOME_NOTE}}`| objaśnienie ścieżki skilla (puste dla Claude)       | 1         |
 | `{{COMMANDS_HOME}}`  | katalog komend                                      | 1         |
+| `{{ASSETS}}`         | prefiks ścieżki do katalogu assets (per runtime)    | 2         |
 
 Placeholdery rozdzielono celowo: `SKILL_HOME` (katalog skilla) i `COMMANDS_HOME`
 (katalog komend) to dwie różne kotwice layoutu, bo Claude trzyma komendy w roocie
 pluginu, a Codex zagnieżdża je w skillu. `SUBAGENT_VIA`, `ASK_NOTE` i
 `SKILL_HOME_NOTE` są puste dla Claude, a niosą treść dla Codex (Codex w prozie
-mówi akcjami, nie nazwami narzędzi).
+mówi akcjami, nie nazwami narzędzi). `ASSETS` to prefiks ścieżki do katalogu
+`assets/`, różny per runtime (Claude trzy poziomy w górę, Codex cztery), bo README
+skilli leżą na różnej głębokości względem korzenia repo.
 
 Szablony edytujesz ręcznie. To jedyne miejsce, gdzie zmieniasz treść promptów.
 
@@ -158,14 +169,15 @@ claude/
 ├── .claude-plugin/plugin.json     manifest pluginu Claude Code
 ├── commands/                      plan.md, exec.md, resume.md, history.md, handoff.md (generowane)
 └── skills/
-    ├── adhoc-sdlc/                SKILL.md, reference.md (generowane); README*.md; scripts/
-    ├── cove/                      SKILL.md (generowany)
-    └── temper/                    SKILL.md, README.md, examples/, integration/ (generowane)
+    ├── adhoc-sdlc/                SKILL.md, reference.md, README.md, README.pl.md (generowane); scripts/
+    ├── cove/                      SKILL.md, README.md, README.pl.md (generowane)
+    └── temper/                    SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
 ```
 
 Komendy leżą w roocie pluginu (`commands/`), bo Claude Code tak je odkrywa.
 Katalog `scripts/` zawiera kanoniczną kopię helpera Python (patrz sekcja 5);
-`README*.md` skilla są ręczne (poza generatorem).
+`README*.md` skilla są teraz generowane z `templates/` (placeholder `{{ASSETS}}`
+daje poprawną ścieżkę do `assets/`).
 
 ### 4.2. `plugins/adhoc-sdlc/` - plugin Codex / marketplace (generowany)
 
@@ -173,9 +185,9 @@ Katalog `scripts/` zawiera kanoniczną kopię helpera Python (patrz sekcja 5);
 plugins/adhoc-sdlc/
 ├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.4.0)
 └── skills/
-    ├── adhoc-sdlc/             SKILL.md, reference.md, commands/, scripts/ (generowane + helper)
-    ├── cove/                   SKILL.md, agents/openai.yaml (generowane)
-    └── temper/                 SKILL.md, README.md, examples/, integration/ (generowane)
+    ├── adhoc-sdlc/             SKILL.md, reference.md, README.md, README.pl.md, commands/, scripts/ (generowane + helper)
+    ├── cove/                   SKILL.md, README.md, README.pl.md, agents/openai.yaml (generowane)
+    └── temper/                 SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
 ```
 
 Komendy są zagnieżdżone w skillu (`skills/adhoc-sdlc/commands/`), inaczej niż w
@@ -250,11 +262,12 @@ trafiają plany i dzienniki konkretnych zadań prowadzonych przez skill.
 ## 9. Stan obecny i dług
 
 - Generator produkuje oba realne warianty: `claude/` i `plugins/adhoc-sdlc/`
-  (oba `active=true`), wraz ze skillami `cove` i `temper` oraz metadanymi Codex
-  `cove/agents/openai.yaml`. Brak już ręcznie utrzymywanej prozy dystrybucyjnej i
-  brak legacy wariantu `codex/`.
+  (oba `active=true`), wraz ze skillami `cove` i `temper`, ich README (EN+PL) oraz
+  metadanymi Codex `cove/agents/openai.yaml`. Brak już ręcznie utrzymywanej prozy
+  dystrybucyjnej i brak legacy wariantu `codex/`.
 - `antigravity.json` to wciąż szkielet (`active=false`) z placeholderami do
   potwierdzenia; Antigravity reużywa `plugins/`, ale własnego renderu nie ma do
   czasu potwierdzenia jego narzędzi.
 - Ręcznie utrzymywane pozostają tylko: kanoniczna kopia helpera `.py` (synchro
-  przez `sync-helper.sh`), `README*.md` skilla Claude, manifesty i meta repo.
+  przez `sync-helper.sh`), dokumentacja repo-level (główne `README*.md`,
+  `CONTRIBUTING*.md`, ten plik, `antigravity/README.md`), manifesty i meta repo.
