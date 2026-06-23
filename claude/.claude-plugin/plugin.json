@@ -1,6 +1,6 @@
 {
   "name": "adhoc-sdlc",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "What: adhoc-sdlc planning journals plus CoVe fact verification for Claude Code. Why: keep small ad hoc work planned, verified, resumable, and safe to hand off without a formal issue.",
   "author": {
     "name": "Daniel Grabowski",
