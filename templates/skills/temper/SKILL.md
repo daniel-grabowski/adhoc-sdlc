@@ -1,0 +1,359 @@
+---
+name: temper
+description: "What: Harness strategy hardening gate for plans, architecture, and implementation direction. Why: run a focused failure-mode pass after factual verification and before execution so loopholes are fixed or explicitly accepted before they become code. Trigger phrases: temper, zahartuj, hartuj, pressure-test, strategy hardening, failure modes, dziury w planie, próba planu."
+---
+
+# Temper
+
+## What
+
+`temper` is a Harness strategy hardening gate. It pressure-tests a plan, architecture, implementation direction, or current change strategy by looking for concrete failure modes before execution or commit.
+
+It does not verify facts, review code line by line, or expand the feature by default. It checks whether the proposed strategy survives realistic edge cases, integration boundaries, partial failures, retries, reversibility constraints, and verification gaps.
+
+## Why
+
+Use `temper` when a plan looks plausible but the cost of being wrong is high. The goal is not to make the plan bigger. The goal is to make the plan survivable.
+
+A good `temper` pass ends with one of three outcomes for every meaningful risk:
+
+- the plan is changed to close the risk;
+- the risk is explicitly accepted with a reason;
+- the concern is rejected as speculative noise or sent back to CoVe because it depends on an unverified fact.
+
+## Relationship to Harness, CoVe, adhoc-sdlc, review, and tests
+
+`temper` sits between factual verification and execution.
+
+Recommended Harness order:
+
+```text
+Plan draft
+  -> CoVe: verify facts, source-specific claims, files, APIs, versions, constraints
+  -> Temper: pressure-test the strategy against failure modes
+  -> Save/execute plan through adhoc-sdlc
+  -> Review/tests: verify implementation behavior
+  -> Execution CoVe: verify the final report against diff, journal, todos, and command output
+```
+
+Use the tools for different jobs:
+
+- **CoVe** answers: "Is this claim true?"
+- **Temper** answers: "Will this strategy survive realistic failure modes?"
+- **Review** answers: "Is the implemented code correct and maintainable?"
+- **Tests/runtime checks** answer: "Does it actually behave as required?"
+- **adhoc-sdlc** gives the work a durable plan, execution journal, resume path, and history.
+
+## When to use
+
+Use `temper` when the user asks to:
+
+- temper / harden / pressure-test a plan;
+- poke holes in a strategy;
+- find failure modes or loopholes;
+- check architecture before implementation;
+- validate the implementation strategy behind current git changes;
+- extend an `adhoc-sdlc` plan before execution;
+- decide whether remaining risk is acceptable.
+
+Use it especially for:
+
+- API or contract changes;
+- persistence, migration, idempotency, retry, or outbox changes;
+- memory, retrieval, agent-skill, runner, workflow, or governance changes;
+- changes with concurrency, partial failure, rollback, security, or data-safety implications;
+- architecture boundaries and module responsibility changes;
+- work that will be resumed by another agent or recorded in `adhoc-sdlc`.
+
+Do not use it as a default reflex for every small edit. Do not use it as a line-by-line code review. Use `review` for that.
+
+## Inputs
+
+The subject of tempering is one of:
+
+1. **Plan / strategy / conclusion** - the default subject when the user says `temper`, `harden`, `pressure-test`, or similar.
+2. **adhoc-sdlc plan** - when the user is planning ad hoc work. Run after Plan CoVe and before saving or executing the plan.
+3. **Architecture** - when the user asks to temper architecture. Evaluate boundaries, responsibilities, coupling, cohesion, naming, and directory shape.
+4. **Current git changes** - only when the user explicitly asks to temper current changes. Inspect diff/status to infer the implementation strategy, then temper the strategy, not every line.
+
+When both a plan and local changes are available, keep the plan as the primary subject and use the diff only as supporting evidence, unless the user explicitly says to temper the changes.
+
+If no subject is available, ask the user for a one-paragraph subject before starting.
+
+## Evidence boundary
+
+Separate verified facts from assumptions.
+
+A `temper` pass may use facts verified by CoVe, repo inspection, docs, tests, database checks, or user-provided constraints. It must not pretend that unverified factual claims are verified.
+
+If a risk depends on a factual claim that has not been verified, either:
+
+- mark the risk as assumption-based;
+- send the claim back to CoVe/source inspection;
+- keep the final plan caveated.
+
+`temper` evaluates strategy. It does not replace CoVe.
+
+## Core data model
+
+Use this internal shape for every meaningful failure mode:
+
+```text
+condition -> what breaks -> consequence -> resolution
+```
+
+With metadata:
+
+```text
+evidence: confirmed | inferred | speculative
+severity: blocker | important | minor
+impact: api | db | event | memory | skill | runner | workflow | ui | test | docs | security | data | architecture | none
+resolution: fix | accept | reject | verify-with-cove
+```
+
+Definitions:
+
+- **confirmed** - supported by code, plan text, diff, test output, docs, ticket, or user-provided fact.
+- **inferred** - reasonable inference from available context, but not directly proven.
+- **speculative** - possible, but not enough evidence to change the plan unless the blast radius is high.
+- **blocker** - should stop implementation until fixed or explicitly accepted by the user.
+- **important** - should normally be fixed or recorded as accepted risk.
+- **minor** - should not expand scope unless cheap and local.
+
+## Process
+
+### 1. Identify the subject
+
+State what is being tempered:
+
+```text
+Subject: <plan / architecture / current change strategy / adhoc-sdlc plan>
+```
+
+If the subject came from an `adhoc-sdlc` plan, keep the plan as the source of truth and treat `temper` as a planning gate.
+
+### 2. Establish the evidence boundary
+
+Briefly list:
+
+- verified facts being relied on;
+- assumptions;
+- areas not inspected;
+- whether CoVe has already run.
+
+Keep this compact. Do not turn it into a separate audit unless the user asks.
+
+### 3. Enumerate concrete failure modes
+
+Look for concrete weaknesses. Each item must say what breaks and under what condition.
+
+Cover the relevant categories. Do not force irrelevant categories.
+
+Minimum categories to consider:
+
+- **Edge cases** - empty input, max size, invalid input, zero-length list, missing relation, off-screen UI, null/unknown value.
+- **Concurrency** - simultaneous commands, stale reads, races, duplicate requests, lock timing, interleaving.
+- **Retries and idempotency** - timeout after success, duplicate command, replay, partial retry, idempotency key missing.
+- **Partial failure** - one step succeeds, next fails, external system unavailable, journal/write mismatch, transaction boundary leak.
+- **Migration/existing state** - old data, missing defaults, incompatible historical records, mixed versions, rollback.
+- **Integration boundaries** - bypassed conventions, duplicated behavior, wrong module ownership, second source of truth.
+- **Verification gaps** - tests/checks that would not catch the regression, mocked path only, no negative test, no command output.
+- **Reversibility** - hard-to-undo schema/data/API/workflow changes, irreversible deletes, permanent user-visible effects.
+- **Security/data safety** - weakened authorization, secret exposure, privacy leak, unsafe logging, destructive action.
+- **Architecture** - boundary violations, responsibility overlap, unnecessary coupling, unclear naming, directory confusion, abstraction creep.
+- **Harness-specific** - memory drift, skill contract drift, runner/tool mismatch, unrecorded decision, missing journal trace, workflow fork.
+
+Reject vague worries. A vague worry is not a failure mode.
+
+Bad:
+
+```text
+There may be concurrency issues.
+```
+
+Good:
+
+```text
+Two agents append execution results concurrently -> journal order becomes misleading -> later resume sees a false sequence -> serialize journal writes through the helper and record command output per step.
+```
+
+### 4. Resolve each failure mode
+
+For every failure mode, choose exactly one resolution:
+
+- **fix** - update the plan/strategy with a specific change;
+- **accept** - record as accepted risk with a reason;
+- **reject** - mark as speculative/noise and explain why it should not change the plan;
+- **verify-with-cove** - send factual uncertainty back to CoVe or source inspection.
+
+Do not close a failure mode with hand-waving.
+
+### 5. Re-check the revised strategy
+
+Check whether the fixes introduced new failure modes.
+
+Typical runs converge in 1-3 passes. If still finding substantial blocker risks after 4 passes, state that the underlying strategy is probably wrong and recommend redesign rather than more patches.
+
+### 6. Update artifacts when applicable
+
+For standalone use, provide the final tempered plan in the response.
+
+For `adhoc-sdlc` planning, the result should be written into the plan body before execution, preferably as:
+
+```markdown
+## Tempered Risks
+
+- condition -> fix
+
+## Accepted Risks
+
+- condition -> why acceptable
+```
+
+When a `temper` pass changes the plan during execution, record it as an execution journal decision/deviation through the `adhoc-sdlc` helper, not as an untracked conversation-only change.
+
+## Output shapes
+
+### Default compact output
+
+Use this shape unless the user asks for full audit detail:
+
+```text
+## Subject
+<what was tempered>
+
+## Evidence boundary
+- Verified: <short list>
+- Assumptions: <short list>
+- Not inspected: <short list>
+
+## Closed risks
+- <condition> -> <fix>
+
+## Accepted risks
+- <condition> -> <why acceptable>
+
+## Rejected/speculative risks
+- <condition> -> <why not changing the plan>
+
+## Iterations
+Converged after <N> pass(es).
+
+## Final tempered plan
+<self-contained revised plan, ready for execution>
+```
+
+Keep `Final tempered plan` last.
+
+### adhoc-sdlc plan output
+
+When integrated into `/adhoc-sdlc:plan`, keep the response shorter and produce sections that can be inserted into the plan file:
+
+```markdown
+## Tempered Risks
+
+- <condition> -> <fix>
+
+## Accepted Risks
+
+- <condition> -> <why acceptable>
+```
+
+Then ensure the final plan already includes the fixes. Do not leave the user with a separate patch list that still needs interpretation.
+
+### Current git changes output
+
+When the subject is current git changes, replace `Final tempered plan` with:
+
+```text
+## Implementation adjustments
+- <file or area>: <specific adjustment needed>
+```
+
+Do not perform line-by-line review unless the user asks for `review`.
+
+### Architecture output
+
+When the subject is architecture, include:
+
+```text
+## Architecture assessment
+<simplicity, decoupling, clarity of responsibility>
+
+## Architecture tree
+<annotated tree with [Add], [Modify], [Delete] markers where relevant>
+```
+
+Tree format:
+
+```text
+src/
+  engine/
+    provider/    # [Add] provider boundary, decoupled from agent loop
+    tools/       # [Modify] registry extracted from runner
+    old_exec/    # [Delete] merged into provider/
+```
+
+List unchanged directories only when needed for context.
+
+## Stop conditions
+
+Stop when:
+
+- no new blocker failure modes are found;
+- all important failure modes are fixed, accepted, rejected, or sent to CoVe;
+- speculative risks are separated from confirmed/inferred findings;
+- the final plan is self-contained and executable.
+
+Do not end with vague confidence claims. The stopping condition is closed or named risk, not confidence.
+
+## Anti-patterns
+
+Avoid these:
+
+- **Fallback sprawl** - adding normalizers, retries, and wrappers for scenarios that cannot happen.
+- **Abstraction creep** - introducing layers or interfaces just in case.
+- **Scope drift** - silently expanding the feature instead of naming that the original scope is too small.
+- **Fact verification by strategy review** - using `temper` to pretend facts were verified.
+- **Speculative hardening** - changing the plan for low-evidence risks with low blast radius.
+- **Second source of truth** - adding a workaround that bypasses the existing contract.
+- **Journal bypass** - changing an `adhoc-sdlc` plan or execution direction without recording the decision.
+- **Vague closure** - saying "now robust" without listing what was fixed or accepted.
+
+## Minimal examples
+
+### Example: retry/idempotency
+
+```text
+condition: timeout after successful mutation
+evidence: inferred
+severity: blocker
+impact: api,db
+breaks: client retries the same command and duplicates the mutation
+consequence: state divergence and hard-to-debug duplicate data
+resolution: fix, require idempotency key for mutating commands or mark the command non-idempotent and non-retryable
+```
+
+### Example: verification gap
+
+```text
+condition: only happy-path test is planned
+evidence: confirmed
+severity: important
+impact: test
+breaks: regression in partial failure handling would not be caught
+consequence: execution can be reported done while rollback/journal mismatch remains broken
+resolution: fix, add one negative test or manual verification command for failed second step
+```
+
+### Example: accepted risk
+
+```text
+condition: old archived records miss the new optional field
+evidence: confirmed
+severity: minor
+impact: migration,data
+breaks: historical analytics field is empty for archived rows
+consequence: old reports show unknown instead of derived value
+resolution: accept, because the field is optional, not used for decisions, and backfill cost is out of scope
+```

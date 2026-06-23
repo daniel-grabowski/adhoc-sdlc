@@ -1,0 +1,55 @@
+# temper
+
+`temper` to skill do kontrolowanego hartowania planu przed wykonaniem.
+
+Nie zastępuje CoVe, review ani testów. Ma inne zadanie:
+
+- CoVe sprawdza, czy fakty są prawdziwe.
+- Temper sprawdza, czy strategia wytrzyma realistyczne tryby awarii.
+- Review/testy sprawdzają implementację.
+- adhoc-sdlc utrwala plan, journal, resume i historię pracy.
+
+## Instalacja
+
+Skopiuj katalog `temper/` do katalogu skilli używanego przez Twoje środowisko, np. Claude Code albo Codex.
+
+Minimalna struktura:
+
+```text
+temper/
+  SKILL.md
+  README.md
+  integration/
+    adhoc-sdlc-integration.md
+  examples/
+    sample-output.md
+```
+
+## Najprostsze użycie
+
+```text
+/temper plan
+```
+
+albo naturalnie:
+
+```text
+Zahartuj ten plan przed wykonaniem.
+```
+
+## Miejsce w Harness
+
+Rekomendowana kolejność:
+
+```text
+Plan draft
+  -> CoVe
+  -> Temper
+  -> adhoc-sdlc plan/exec
+  -> review/tests
+  -> execution CoVe
+```
+
+## Integracja z adhoc-sdlc
+
+Zobacz `integration/adhoc-sdlc-integration.md`.

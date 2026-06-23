@@ -33,6 +33,10 @@ GENERATED_NOTE = (
 
 def _header(template_rel: str, runtime: str) -> str:
     note = GENERATED_NOTE.format(template=template_rel, runtime=runtime)
+    # Styl komentarza zależy od rozszerzenia wyjścia: YAML nie ma komentarza HTML,
+    # więc '<!-- ... -->' zepsułby plik - dla .yaml/.yml użyj komentarza '#'.
+    if Path(template_rel).suffix.lower() in (".yaml", ".yml"):
+        return "# " + note + "\n"
     return "<!-- " + note + " -->\n"
 
 

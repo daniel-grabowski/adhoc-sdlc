@@ -6,7 +6,7 @@ argument-hint: "--name \"desc\" --title \"title\" [--project P] [--keywords a,b]
 
 # /adhoc-sdlc:handoff
 
-Read `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/reference.md` (Read tool): section "Handoff". Read `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/SKILL.md`: section "Read-side authority".
+Read `{{SKILL_HOME}}/reference.md` (Read tool): section "Handoff". Read `{{SKILL_HOME}}/SKILL.md`: section "Read-side authority".
 
 Saves a snapshot of the session state so another agent (or the same session after compaction) can continue. Handoffs are HISTORY: every call creates a new timestamped file, nothing is overwritten. Match the user's language for the body prose; keep filenames ASCII.
 
@@ -18,13 +18,13 @@ From `$ARGUMENTS` extract `--name`, `--title`, optionally `--project`, `--keywor
 
 0. (Optional, if earlier work of this name/project exists) Fetch related context so Current Progress and Next Steps do not duplicate what is already done:
    ```bash
-   python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py pack \
+   python3 {{SKILL_HOME}}/scripts/adhoc_sdlc.py pack \
      --intent handoff --name "<name>" --format json [--project <P>] [--keywords <a,b>]
    ```
    Use `related` (plan/execute/handoff PATHS) as references, do NOT read those files (`Read`/`Grep`).
 1. Create the handoff file with the helper:
    ```bash
-   python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py handoff \
+   python3 {{SKILL_HOME}}/scripts/adhoc_sdlc.py handoff \
      --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE` and fix the call.

@@ -8,15 +8,17 @@ edytować prompty skilla albo dodawać nowy runtime.
 ## 1. Po co to repo
 
 Repozytorium dystrybuuje skill `adhoc-sdlc` (lekki cykl SDLC: plan + wznawialny
-dziennik wykonania) do kilku środowisk agentów AI: Claude Code, Codex,
+dziennik wykonania) oraz skille pomocnicze `cove` (weryfikacja faktów) i `temper`
+(hartowanie strategii) do kilku środowisk agentów AI: Claude Code, Codex,
 Antigravity (Gemini). Każde środowisko nazywa swoje narzędzia inaczej (np.
-pytanie do użytkownika to `AskUserQuestion` w Claude Code, a w Codex natywne UI
-wyboru), więc ten sam prompt musi istnieć w kilku wariantach różniących się tylko
-nazwami narzędzi. Zamiast utrzymywać te warianty ręcznie, repo generuje je z
-jednego źródła.
+pytanie do użytkownika to `AskUserQuestion` w Claude Code, a w Codex opisowo
+"a structured question" z natywnym UI wyboru), więc ten sam prompt musi istnieć w
+kilku wariantach różniących się nazwami narzędzi i gramatyką. Zamiast utrzymywać
+te warianty ręcznie, repo generuje je z jednego źródła.
 
 Zasada przewodnia: jeden neutralny szablon, wiele wariantów per runtime,
-generowanych deterministycznie.
+generowanych deterministycznie. Cel docelowy: zero ręcznie utrzymywanych plików
+dystrybucyjnych.
 
 ## 2. Mapa katalogów (najwyższy poziom)
 
@@ -27,12 +29,11 @@ adhoc-sdlc/
 ├── tools/              Generator i skrypty build-time (render.py, sync-helper.sh, testy)
 │
 ├── claude/             WARIANT WYNIKOWY: plugin Claude Code (generowany przez render.py)
-├── codex/              WARIANT WYNIKOWY: Codex (na razie utrzymywany ręcznie)
-├── plugins/adhoc-sdlc/ WARIANT WYNIKOWY: plugin Codex / marketplace (ręczny)
+├── plugins/adhoc-sdlc/ WARIANT WYNIKOWY: plugin Codex / marketplace (generowany przez render.py)
 ├── antigravity/        Instalator dla Antigravity/Gemini (reużywa plugins/)
 │
 ├── .claude-plugin/     Manifest marketplace dla Claude Code (źródło ./claude)
-├── .agents/plugins/    Manifest marketplace dla Antigravity/Gemini (źródło ./plugins/adhoc-sdlc)
+├── .agents/plugins/    Manifest marketplace dla Codex/Antigravity (źródło ./plugins/adhoc-sdlc)
 │
 ├── adhoc-sdlc/         KORPUS roboczy skilla (plany, dzienniki) - gitignored, nie część dystrybucji
 ├── docs/               Dokumentacja repo (m.in. ten plik)
@@ -55,22 +56,34 @@ To jest serce repo. Trzy elementy współpracują:
 ### 3.1. `templates/` - źródło prawdy
 
 Neutralna proza promptów z tokenami `{{PLACEHOLDER}}` w miejscach, gdzie nazwa
-narzędzia różni się między runtime'ami. Zawartość:
+narzędzia albo gramatyka różni się między runtime'ami. Zawartość:
 
 ```
 templates/
 ├── commands/                exec.md, handoff.md, history.md, plan.md, resume.md
-└── skills/adhoc-sdlc/       SKILL.md, reference.md
+└── skills/
+    ├── adhoc-sdlc/          SKILL.md, reference.md
+    ├── cove/                SKILL.md, agents/openai.yaml (metadane Codex)
+    └── temper/              SKILL.md, README.md, examples/, integration/
 ```
 
 Używane placeholdery (i ile razy występują w szablonach):
 
-| Token              | Znaczenie                                   | Wystąpień |
-|--------------------|---------------------------------------------|-----------|
-| `{{ASK}}`          | narzędzie pytania do użytkownika             | 14        |
-| `{{PLUGIN_ROOT}}`  | ścieżka bazowa skilla w danym runtime        | 23        |
-| `{{SUBAGENT_TOOL}}`| sposób uruchomienia podagenta                | 4         |
-| `{{TODO}}`         | narzędzie listy zadań                        | 3         |
+| Token                | Znaczenie                                          | Wystąpień |
+|----------------------|----------------------------------------------------|-----------|
+| `{{ASK}}`            | narzędzie/forma pytania do użytkownika              | 12        |
+| `{{ASK_NOTE}}`       | dodatkowa wskazówka do pytania (pusta dla Claude)   | 2         |
+| `{{TODO}}`           | narzędzie listy zadań                               | 3         |
+| `{{SUBAGENT_VIA}}`   | klauzula "via ..." dla podagenta (pusta dla Codex)  | 4         |
+| `{{SKILL_HOME}}`     | katalog z SKILL.md/reference.md/scripts             | 22        |
+| `{{SKILL_HOME_NOTE}}`| objaśnienie ścieżki skilla (puste dla Claude)       | 1         |
+| `{{COMMANDS_HOME}}`  | katalog komend                                      | 1         |
+
+Placeholdery rozdzielono celowo: `SKILL_HOME` (katalog skilla) i `COMMANDS_HOME`
+(katalog komend) to dwie różne kotwice layoutu, bo Claude trzyma komendy w roocie
+pluginu, a Codex zagnieżdża je w skillu. `SUBAGENT_VIA`, `ASK_NOTE` i
+`SKILL_HOME_NOTE` są puste dla Claude, a niosą treść dla Codex (Codex w prozie
+mówi akcjami, nie nazwami narzędzi).
 
 Szablony edytujesz ręcznie. To jedyne miejsce, gdzie zmieniasz treść promptów.
 
@@ -80,32 +93,39 @@ Każdy runtime ma jeden plik JSON z polami:
 
 - `runtime` - nazwa (claude / codex / antigravity),
 - `active` - czy generator ma go renderować,
-- `placeholders` - mapowanie każdego tokenu na konkretny tekst (nazwę narzędzia),
+- `placeholders` - mapowanie każdego tokenu na konkretny tekst,
 - `files` - lista par `[ścieżka_szablonu, ścieżka_wyjściowa]`.
 
 Przykład (`runtimes/claude.json`): `{{ASK}}` -> `` `AskUserQuestion` ``,
-`{{TODO}}` -> `` `TaskCreate`/`TaskUpdate` ``, `{{PLUGIN_ROOT}}` ->
-`${CLAUDE_PLUGIN_ROOT}`. `files` kieruje render do `claude/...`.
+`{{TODO}}` -> `` `TaskCreate`/`TaskUpdate` ``, `{{SKILL_HOME}}` ->
+`${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc`. `files` kieruje render do `claude/...`.
+W `runtimes/codex.json` te same tokeny mapują się na frazy opisowe
+(`a structured question`, `your runtime's native task-tracking tool`),
+`{{SKILL_HOME}}` -> `<skill-dir>`, a `files` kieruje render do
+`plugins/adhoc-sdlc/...`.
 
 Stan flag `active` (czerwiec 2026):
 
-| Runtime      | active | Placeholdery                 | Cel `files`         |
-|--------------|--------|------------------------------|---------------------|
-| claude       | true   | kompletne (realne narzędzia) | `claude/...`        |
-| codex        | false  | szkielet, część `TODO-confirm`| `codex/...`        |
-| antigravity  | false  | szkielet, same `TODO-confirm`| brak (`files: []`)  |
+| Runtime      | active | Placeholdery                  | Cel `files`              |
+|--------------|--------|-------------------------------|--------------------------|
+| claude       | true   | nazwy narzędzi Claude Code    | `claude/...`             |
+| codex        | true   | frazy opisowe (mów akcjami)   | `plugins/adhoc-sdlc/...` |
+| antigravity  | false  | szkielet, same `TODO-confirm` | brak (`files: []`)       |
 
-Czyli generator produkuje obecnie tylko wariant Claude Code. Codex i Antigravity
-to szkielety oznaczone do dojrzenia (placeholdery typu `TODO-confirm-...` nie
-wolno zgadywać; trzeba potwierdzić realne nazwy narzędzi przed `active=true`).
+Czyli generator produkuje oba realne warianty: Claude Code (`claude/`) i plugin
+Codex (`plugins/adhoc-sdlc/`). Antigravity to nadal szkielet (placeholdery typu
+`TODO-confirm-...` nie wolno zgadywać; trzeba potwierdzić realne narzędzia przed
+`active=true`); render go pomija.
 
 ### 3.3. `tools/render.py` - renderowanie
 
 Dla każdego aktywnego runtime (lub jednego wskazanego przez `--runtime`):
 
 1. wczytuje szablon, podstawia placeholdery z mapy runtime,
-2. wstawia nagłówek `<!-- GENERATED by tools/render.py ... DO NOT EDIT here -->`
-   (po bloku frontmatter, żeby YAML dalej się parsował),
+2. wstawia nagłówek `GENERATED by tools/render.py ... DO NOT EDIT here`, w stylu
+   zależnym od rozszerzenia wyjścia: dla `.md` komentarz HTML
+   `<!-- ... -->` (po bloku frontmatter, żeby się parsował), dla `.yaml`/`.yml`
+   komentarz `# ...` (inaczej HTML zepsułby YAML),
 3. zapisuje do ścieżki wyjściowej z `files`,
 4. twardo przerywa, jeśli w szablonie jest token bez mapowania albo po renderze
    zostaje nieoczekiwany placeholder.
@@ -126,7 +146,7 @@ potwierdzić, że pliki na dysku odpowiadają źródłu. Testy generatora są w
 
 Każdy wygenerowany plik ma w nagłówku komentarz `GENERATED by tools/render.py
 from templates/... + runtimes/<rt>.json. DO NOT EDIT here`. Jeśli pliku nie ruszał
-generator (np. cały wariant `codex/`, bo jego runtime jest `active=false`), tego
+generator (np. wariant `antigravity/`, bo jego runtime jest `active=false`), tego
 nagłówka nie ma - taki plik jest utrzymywany ręcznie do czasu włączenia runtime.
 
 ## 4. Warianty wynikowe (gdzie jest efekt dla danego narzędzia)
@@ -139,41 +159,32 @@ claude/
 ├── commands/                      plan.md, exec.md, resume.md, history.md, handoff.md (generowane)
 └── skills/
     ├── adhoc-sdlc/                SKILL.md, reference.md (generowane); README*.md; scripts/
-    ├── cove/                      skill CoVe (weryfikacja faktów)
-    └── temper/                    skill hartowania strategii
+    ├── cove/                      SKILL.md (generowany)
+    └── temper/                    SKILL.md, README.md, examples/, integration/ (generowane)
 ```
 
-To wariant referencyjny i jedyny obecnie produkowany przez `render.py`. Katalog
-`scripts/` zawiera kanoniczną kopię helpera Python (patrz sekcja 5).
+Komendy leżą w roocie pluginu (`commands/`), bo Claude Code tak je odkrywa.
+Katalog `scripts/` zawiera kanoniczną kopię helpera Python (patrz sekcja 5);
+`README*.md` skilla są ręczne (poza generatorem).
 
-### 4.2. `codex/` - wariant Codex (ręczny)
-
-```
-codex/skills/adhoc-sdlc/   SKILL.md, reference.md, commands/, scripts/
-```
-
-Runtime `codex` ma `active=false`, więc pliki `.md` tutaj nie są obecnie
-odświeżane przez generator (brak nagłówka GENERATED). Mapowanie `files` w
-`codex.json` celuje w te ścieżki i zacznie nimi rządzić, gdy runtime dojrzeje.
-Brak tu skilli `cove`/`temper` (asymetria względem `claude/` i `plugins/`).
-
-### 4.3. `plugins/adhoc-sdlc/` - plugin Codex / marketplace (ręczny)
+### 4.2. `plugins/adhoc-sdlc/` - plugin Codex / marketplace (generowany)
 
 ```
 plugins/adhoc-sdlc/
-├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.3.3)
+├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.4.0)
 └── skills/
-    ├── adhoc-sdlc/             SKILL.md, reference.md, commands/, scripts/
-    ├── cove/                   (zawiera też agents/openai.yaml)
-    └── temper/
+    ├── adhoc-sdlc/             SKILL.md, reference.md, commands/, scripts/ (generowane + helper)
+    ├── cove/                   SKILL.md, agents/openai.yaml (generowane)
+    └── temper/                 SKILL.md, README.md, examples/, integration/ (generowane)
 ```
 
-Ten katalog nie jest celem żadnego `files` w `runtimes/*.json`, więc `render.py`
-do niego nie pisze - jest utrzymywany ręcznie (helper `.py` trafia tu przez
-`sync-helper.sh`). To pakiet instalowany jako plugin Codex z lokalnego marketplace
-(patrz sekcja 6) oraz baza skilli dla Antigravity.
+Komendy są zagnieżdżone w skillu (`skills/adhoc-sdlc/commands/`), inaczej niż w
+Claude - to layout, którego Codex oczekuje. `render.py` pisze tu wszystkie `.md`
+i `agents/openai.yaml`; helper `.py` trafia tu przez `sync-helper.sh`. To pakiet
+instalowany jako plugin Codex z marketplace (patrz sekcja 6) oraz baza skilli dla
+Antigravity.
 
-### 4.4. `antigravity/` - instalator dla Antigravity/Gemini
+### 4.3. `antigravity/` - instalator dla Antigravity/Gemini
 
 ```
 antigravity/
@@ -189,7 +200,7 @@ wariantu `plugins/`.
 
 Logika tworzenia plików planu i dziennika to kod Python, nie sam prompt:
 
-- `adhoc_sdlc.py` - główny helper (tryby `plan`, `execute`, `pack`),
+- `adhoc_sdlc.py` - główny helper (tryby `plan`, `execute`, `pack`, `config`),
 - `sdlc_doc.py` - operacje na sekcjach dokumentu,
 - `test_append.py`, `test_config.py`, `test_execute_json.py`, `test_pack.py`,
   `test_sdlc_doc.py` - testy.
@@ -197,10 +208,10 @@ Logika tworzenia plików planu i dziennika to kod Python, nie sam prompt:
 Kanoniczna kopia żyje w `claude/skills/adhoc-sdlc/scripts/`. Pakiety pluginów nie
 mogą sięgać po pliki spoza własnego drzewa, więc helper jest fizycznie
 duplikowany. `tools/sync-helper.sh` kopiuje wszystkie pliki `.py` z kopii
-kanonicznej do `codex/.../scripts` i `plugins/.../scripts`. Uruchom go po każdej
-zmianie helpera, potem `pytest` w każdym katalogu `scripts/`.
+kanonicznej do `plugins/adhoc-sdlc/skills/adhoc-sdlc/scripts`. Uruchom go po
+każdej zmianie helpera, potem `pytest` w każdym katalogu `scripts/`.
 
-Podział odpowiedzialności: `render.py` synchronizuje prompty (`.md` z
+Podział odpowiedzialności: `render.py` synchronizuje prompty (`.md`/`.yaml` z
 `templates/`), `sync-helper.sh` synchronizuje kod (`.py` z `claude/`). To dwa
 różne mechanizmy dla dwóch różnych rodzajów treści.
 
@@ -209,10 +220,12 @@ różne mechanizmy dla dwóch różnych rodzajów treści.
 | Plik                              | Dla kogo                | Źródło pluginu        |
 |-----------------------------------|-------------------------|------------------------|
 | `.claude-plugin/marketplace.json` | Claude Code             | `./claude`             |
-| `.agents/plugins/marketplace.json`| Antigravity / Gemini    | `./plugins/adhoc-sdlc` |
+| `.agents/plugins/marketplace.json`| Codex / Antigravity     | `./plugins/adhoc-sdlc` |
 
-`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.3.3`). To pliki,
-które środowisko czyta, żeby wiedzieć, skąd zainstalować plugin.
+`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.4.0`). To pliki,
+które środowisko czyta, żeby wiedzieć, skąd zainstalować plugin. Instalacja i
+aktualizacja idą z GitHuba (`codex plugin marketplace add daniel-grabowski/adhoc-sdlc`,
+`/plugin marketplace add ...`), nie z lokalnego checkoutu.
 
 ## 7. Korpus roboczy `adhoc-sdlc/`
 
@@ -225,21 +238,23 @@ trafiają plany i dzienniki konkretnych zadań prowadzonych przez skill.
 
 - Zmiana treści promptu skilla: edytuj plik w `templates/`, uruchom
   `python3 tools/render.py`, potwierdź `--check`. Nigdy nie edytuj wygenerowanych
-  plików w `claude/` ręcznie (nagłówek GENERATED ostrzega).
+  plików w `claude/` ani `plugins/` ręcznie (nagłówek GENERATED ostrzega).
 - Zmiana logiki helpera: edytuj `claude/skills/adhoc-sdlc/scripts/*.py`, uruchom
-  `tools/sync-helper.sh`, potem `pytest` w każdym `scripts/`.
-- Nowa nazwa narzędzia dla istniejącego runtime: zmień `placeholders` w
+  `tools/sync-helper.sh`, potem `pytest` w każdym `scripts/` oraz `pytest tools`.
+- Nowa nazwa narzędzia/forma dla istniejącego runtime: zmień `placeholders` w
   `runtimes/<rt>.json`, przerenderuj.
-- Włączenie nowego runtime (codex / antigravity): uzupełnij realne nazwy narzędzi
-  w jego `runtimes/<rt>.json` (zastąp `TODO-confirm-...`), ustaw `active=true`,
-  uzupełnij `files`, przerenderuj, dodaj brakujące skille, jeśli trzeba.
+- Włączenie nowego runtime (antigravity): uzupełnij realne narzędzia w jego
+  `runtimes/<rt>.json` (zastąp `TODO-confirm-...`), ustaw `active=true`, uzupełnij
+  `files`, przerenderuj.
 
 ## 9. Stan obecny i dług
 
-- Generator produkuje tylko wariant `claude/`. `codex/` i `plugins/` są
-  utrzymywane ręcznie; `codex.json` i `antigravity.json` to szkielety
-  (`active=false`) z placeholderami do potwierdzenia.
-- Wariant `codex/` nie ma skilli `cove`/`temper`, które są w `claude/` i
-  `plugins/`. Do rozstrzygnięcia, czy to celowe, czy do uzupełnienia.
-- Docelowo wszystkie warianty powinny pochodzić z generatora, gdy mapy narzędzi
-  dla Codex i Antigravity zostaną potwierdzone.
+- Generator produkuje oba realne warianty: `claude/` i `plugins/adhoc-sdlc/`
+  (oba `active=true`), wraz ze skillami `cove` i `temper` oraz metadanymi Codex
+  `cove/agents/openai.yaml`. Brak już ręcznie utrzymywanej prozy dystrybucyjnej i
+  brak legacy wariantu `codex/`.
+- `antigravity.json` to wciąż szkielet (`active=false`) z placeholderami do
+  potwierdzenia; Antigravity reużywa `plugins/`, ale własnego renderu nie ma do
+  czasu potwierdzenia jego narzędzi.
+- Ręcznie utrzymywane pozostają tylko: kanoniczna kopia helpera `.py` (synchro
+  przez `sync-helper.sh`), `README*.md` skilla Claude, manifesty i meta repo.

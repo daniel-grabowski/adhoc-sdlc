@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sync the shared adhoc-sdlc Python helper from the Claude variant (the canonical
-# copy) into the Codex variants. Plugin packages cannot reference files outside
+# copy) into the Codex plugin variant. Plugin packages cannot reference files outside
 # their own install tree, so the helper is physically duplicated. This script
 # keeps the shipped copies identical. Run it before committing any helper change,
 # then run pytest in each scripts directory.
@@ -13,7 +13,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="$REPO_ROOT/claude/skills/adhoc-sdlc/scripts"
 DSTS=(
-  "$REPO_ROOT/codex/skills/adhoc-sdlc/scripts"
   "$REPO_ROOT/plugins/adhoc-sdlc/skills/adhoc-sdlc/scripts"
 )
 

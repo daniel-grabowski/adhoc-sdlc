@@ -48,8 +48,6 @@ plugins/adhoc-sdlc/            Codex plugin: adhoc-sdlc
   .codex-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/cove/
-codex/                            Codex skill (cp -r install)
-  skills/adhoc-sdlc/
 antigravity/                      roadmap: extension format to be confirmed
 ```
 
@@ -114,16 +112,6 @@ For local development against a checkout:
 codex plugin marketplace add .
 codex plugin add adhoc-sdlc@adhoc-sdlc
 ```
-
-### Codex (plain skill compatibility)
-
-If you need the legacy plain-skill install instead of the plugin:
-
-```
-cp -r codex/skills/adhoc-sdlc ~/.codex/skills/
-```
-
-Then reload skills in your agent.
 
 ### Antigravity CLI
 

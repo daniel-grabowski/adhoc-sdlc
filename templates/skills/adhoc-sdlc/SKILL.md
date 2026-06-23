@@ -15,7 +15,7 @@ Use it when a task is too small for a formal issue but still needs durable decis
 
 ## Overview
 
-Use this skill for lightweight ad hoc work in the current project: too small for a formal issue workflow, but worth a durable plan and a resumable execution history. It produces two files under `./adhoc-sdlc`: a confirmed plan (`plan-*.md`) and an incremental execution journal (`execute-*.json`). The helper owns both; you do the work.
+Use this skill for lightweight ad hoc work in the current project: too small for a formal issue workflow, but worth a durable plan and a resumable execution history. It produces two files under `./adhoc-sdlc`: a confirmed plan (`plan-*.md`) and an incremental execution journal (`execute-*.json`). The helper owns both; you do the work.{{SKILL_HOME_NOTE}}
 
 The full file contract (frontmatter, files, helper flags, journal operations, handoff/resume/history mechanics) is in `reference.md`; read the section a command points you to.
 
@@ -23,12 +23,12 @@ The full file contract (frontmatter, files, helper flags, journal operations, ha
 
 Instructions in this skill and its commands are English; that is the source of truth. The behavior adapts to the conversation:
 
-- Match the user's language for all user-facing output: {{ASK}} prompts, status reports, and the prose body of plan files and journal entries.
+- Match the user's language for all user-facing output: questions asked via {{ASK}}, status reports, and the prose body of plan files and journal entries.
 - Keep machine-facing identifiers ASCII: semantic names and filenames are always lowercase ASCII kebab-case (the helper normalizes them).
 
 ## Commands (router)
 
-The skill exposes sub-commands invoked with a colon. Files live in `{{PLUGIN_ROOT}}/commands/`:
+The skill exposes sub-commands invoked with a colon. Files live in `{{COMMANDS_HOME}}/`:
 
 | Command | Helper mode | Role |
 |---------|-------------|------|
@@ -80,10 +80,10 @@ Use this as a light decision filter, not a mandatory report for every item:
 
 ### Phase 0: mode gate (before planning)
 
-After a brief read of the prompt and before planning, ask the user with a single {{ASK}} prompt carrying four questions, each with a recommendation tailored to the task. Three are orthogonal yes/no toggles; the fourth is a single multi-select for the quality gates (so all six modes fit within the {{ASK}} four-question limit):
+After a brief read of the prompt and before planning, ask the user to choose the six modes via {{ASK}}, each with a recommendation tailored to the task.{{ASK_NOTE}} Three are orthogonal yes/no toggles; the other three are quality gates. If the surface limits how many questions can be asked at once, pack the three quality gates into a single multi-select so all six modes fit; otherwise ask them however the surface allows:
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the anchors below as an internal checklist and asking only about critical blockers.
-2. Deep code verification. Yes: dispatch a read-only subagent (via the {{SUBAGENT_TOOL}}) to check assumptions against the codebase, then analyze and show its findings. No: handle it yourself and decide whether to read code at all.
+2. Deep code verification. Yes: dispatch a read-only subagent{{SUBAGENT_VIA}} to check assumptions against the codebase, then analyze and show its findings. No: handle it yourself and decide whether to read code at all.
 3. Test the execution. Yes: pick a method per stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. No: skip tests, but always run a final self-check and record the trace in the journal.
 4. Quality gates (multi-select, any combination):
    - Plan CoVe. Selected: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. Not selected: rely on the normal planning review.
@@ -104,7 +104,7 @@ For `history`, `resume` and `handoff`, the agent must not scan `adhoc-sdlc/` fil
 
 Reading `adhoc-sdlc/` files for resume/handoff/history is a layering violation, regardless of being read-only. The letter of the rule is the spirit of the rule.
 
-Two directories share the name `adhoc-sdlc`; do not conflate them. The CORPUS `./adhoc-sdlc` (under the project working directory: `plan-*`, `execute-*`, `handoff-*`) is the data this rule protects: never `Read`/`Grep`/`Glob` it for resume/history/handoff. The SKILL directory `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/` (`SKILL.md`, `reference.md`, `scripts/`) holds instructions and helper code: reading it is expected and required, because the commands point you to its sections. The ban is about the project corpus, never about the skill's own files.
+Two directories share the name `adhoc-sdlc`; do not conflate them. The CORPUS `./adhoc-sdlc` (under the project working directory: `plan-*`, `execute-*`, `handoff-*`) is the data this rule protects: never `Read`/`Grep`/`Glob` it for resume/history/handoff. The SKILL directory `{{SKILL_HOME}}/` (`SKILL.md`, `reference.md`, `scripts/`) holds instructions and helper code: reading it is expected and required, because the commands point you to its sections. The ban is about the project corpus, never about the skill's own files.
 
 Does the pack look incomplete? That is not an invitation to `Read`. Incompleteness is a FACT in `stats`/`warnings`/`budget`. The response: fix the flags and re-run `pack` (`--max-items`, `--days`, broader `--keywords`), or report a helper bug. Never bypass the helper.
 

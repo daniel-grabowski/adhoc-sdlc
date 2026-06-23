@@ -6,7 +6,7 @@ Repozytorium jest jedynym źródłem prawdy dla pluginu `adhoc-sdlc` oraz skilli
 
 ## Środowiska
 
-Claude Code jest pakowany pod `claude/`. Codex ma zwykły skill kompatybilnościowy pod `codex/` oraz publikowany plugin pod `plugins/adhoc-sdlc/`. Planowany wariant `antigravity/` nadal jest placeholderem roadmapy. Helper w Pythonie pod `scripts/` jest wspólny, więc zmiana helpera musi trafić do każdego dostarczanego wariantu runtime.
+Claude Code jest pakowany pod `claude/`; Codex jest pakowany jako publikowany plugin pod `plugins/adhoc-sdlc/`. Oba warianty są generowane z jednego źródła (`templates/` + `runtimes/<rt>.json`) przez `tools/render.py`. Planowany wariant `antigravity/` nadal jest placeholderem roadmapy. Helper w Pythonie pod `scripts/` jest wspólny, więc zmiana helpera musi trafić do każdego dostarczanego wariantu runtime.
 
 ## Konfiguracja lokalna (owner)
 
@@ -23,13 +23,13 @@ Checkout jest relokowalny: trzymaj go gdziekolwiek (na przykład pod wspólnym d
 
 ## Pętla dev
 
-1. Edytuj w `claude/skills/adhoc-sdlc` albo `claude/commands`.
-2. Testuj: `cd claude/skills/adhoc-sdlc/scripts && python3 -m pytest -q` i sprawdź komendy przez `claude --plugin-dir ./claude`.
-3. Zsynchronizuj wspólny helper: `tools/sync-helper.sh` kopiuje `scripts/*.py` z wariantu Claude do wariantów Codex. Potem `cd codex/skills/adhoc-sdlc/scripts && python3 -m pytest -q`.
+1. Edytuj prompty w `templates/` (jedyne źródło) albo wspólny helper w `claude/skills/adhoc-sdlc/scripts`.
+2. Renderuj: `python3 tools/render.py`, potem `python3 tools/render.py --check` (bramka driftu). Nie edytuj ręcznie generowanych plików w `claude/` ani `plugins/`; ostrzega o tym nagłówek `GENERATED`.
+3. Zsynchronizuj helper i testuj: `tools/sync-helper.sh` kopiuje `scripts/*.py` z wariantu Claude do wariantu pluginu Codex, potem uruchom `python3 -m pytest -q` w `claude/skills/adhoc-sdlc/scripts` i w `plugins/adhoc-sdlc/skills/adhoc-sdlc/scripts` oraz `python3 -m pytest tools -q`. Sprawdź komendy przez `claude --plugin-dir ./claude`.
 4. Podbij wersję w `claude/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` i `plugins/adhoc-sdlc/.codex-plugin/plugin.json`, gdy zmieniają się publiczne metadane lub zachowanie pluginu. Wersje Claude muszą się zgadzać: `claude plugin validate ./claude` i `claude plugin validate .` sprawdzają manifesty, a `claude plugin tag` sprawdza zgodność obu wersji przy release.
 5. Commit i push.
 6. Konsumenci pobierają release przez `/plugin update adhoc-sdlc` (w razie potrzeby najpierw `/plugin marketplace update adhoc-sdlc`).
 
 ## Wspólny helper
 
-`tools/sync-helper.sh` kopiuje helper z `claude/skills/adhoc-sdlc/scripts/` (kopia kanoniczna) do `codex/skills/adhoc-sdlc/scripts/` i `plugins/adhoc-sdlc/skills/adhoc-sdlc/scripts/`. Duplikacja jest celowa: pakiety pluginów nie mogą polegać na plikach spoza własnego drzewa instalacji, więc helper musi fizycznie leżeć w każdym wariancie runtime. Po każdej zmianie helpera uruchom skrypt i odpal testy w każdym dostarczanym wariancie, zanim zacommitujesz.
+`tools/sync-helper.sh` kopiuje helper z `claude/skills/adhoc-sdlc/scripts/` (kopia kanoniczna) do `plugins/adhoc-sdlc/skills/adhoc-sdlc/scripts/`. Duplikacja jest celowa: pakiety pluginów nie mogą polegać na plikach spoza własnego drzewa instalacji, więc helper musi fizycznie leżeć w każdym wariancie runtime. Po każdej zmianie helpera uruchom skrypt i odpal testy w każdym dostarczanym wariancie, zanim zacommitujesz.

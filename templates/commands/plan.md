@@ -6,7 +6,7 @@ argument-hint: "--name \"desc\" --title \"title\" [--project P] [--keywords a,b]
 
 # /adhoc-sdlc:plan
 
-Read `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/SKILL.md` (Read tool): sections "Plan file", "Language", "Commands", "Native todo list". For the file contract see `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/reference.md` (Helper, Files).
+Read `{{SKILL_HOME}}/SKILL.md` (Read tool): sections "Plan file", "Language", "Commands", "Native todo list". For the file contract see `{{SKILL_HOME}}/reference.md` (Helper, Files).
 
 Interactive command: it settles the real design decisions with the user, saves the plan file, and finally closes the loop into execution (native task list + optional `exec` run). The file is ONLY a plan; implementation belongs to `exec`, but the plan can launch it right away.
 
@@ -22,12 +22,12 @@ From `$ARGUMENTS` extract:
 
 ## Phase 0: mode gate
 
-Before asking, read the project's default modes with the helper: `python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py config --get-modes` (it returns each mode's default; no config file means all OFF). Use those values as the pre-selected answers in the mode-gate question below; the user can still flip any.
+Before asking, read the project's default modes with the helper: `python3 {{SKILL_HOME}}/scripts/adhoc_sdlc.py config --get-modes` (it returns each mode's default; no config file means all OFF). Use those values as the pre-selected answers in the mode-gate question below; the user can still flip any.
 
-After a brief read of the prompt and before planning, ask the user with a single {{ASK}} prompt carrying four questions, each with a task-tailored recommendation. Three are orthogonal yes/no toggles; the fourth is a single multi-select for the quality gates (so all six modes fit within the {{ASK}} four-question limit):
+After a brief read of the prompt and before planning, ask the user to choose the six modes via {{ASK}}, each with a task-tailored recommendation.{{ASK_NOTE}} Three are orthogonal yes/no toggles; the other three are quality gates. If the surface limits how many questions can be asked at once, pack the three quality gates into a single multi-select so all six modes fit; otherwise ask them however the surface allows:
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the Phase 1 anchors as an internal checklist and asking only about critical blockers.
-2. Deep code verification. Yes: dispatch a read-only subagent (via the {{SUBAGENT_TOOL}}) to check assumptions against the codebase, then analyze its findings and show them to the user. No: handle it yourself and decide whether to read code at all.
+2. Deep code verification. Yes: dispatch a read-only subagent{{SUBAGENT_VIA}} to check assumptions against the codebase, then analyze its findings and show them to the user. No: handle it yourself and decide whether to read code at all.
 3. Test the execution. Yes: pick a method per stack (UI: agent-browser or Playwright depending on availability; logic: the project's unit-test framework), run existing tests and write or adjust unit tests as needed. No: skip tests, but `exec` always runs a final self-check and records the trace in the journal.
 4. Quality gates (multi-select, any combination):
    - Plan CoVe. Selected: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. Not selected: rely on the normal planning review.
@@ -48,7 +48,7 @@ Before saving the plan, review the task against the ANCHORS and surface the real
 
 Use the `SKILL.md` Engineering checklist as a light filter while making these decisions. Apply KISS, YAGNI, DRY with judgment, local conventions first, separation of concerns, cohesion over cleverness, explicit contracts, testability, security/data safety, and evidence-based performance. Put only task-relevant consequences into `## Key Changes` or `## Assumptions`; do not create a checklist report unless the user asks for one.
 
-Think for the user: propose resolutions with a recommendation, verify assumptions in code and data sources instead of guessing, and call out risks and edge cases proactively. For each anchor with an OPEN decision ask the user an {{ASK}} prompt (concise, recommendation first, labeled "(rec.)"). Skip an anchor that is obvious or has no variant; do not ask about the obvious. When no anchor has an open decision, say so plainly ("no open design decisions") and move on.
+Think for the user: propose resolutions with a recommendation, verify assumptions in code and data sources instead of guessing, and call out risks and edge cases proactively. For each anchor with an OPEN decision ask the user {{ASK}} (concise, recommendation first, labeled "(rec.)"). Skip an anchor that is obvious or has no variant; do not ask about the obvious. When no anchor has an open decision, say so plainly ("no open design decisions") and move on.
 
 Do not assume decisions silently. If the user explicitly says "don't ask / just do it", do NOT block them with questions, but LIST the adopted resolutions as explicit assumptions (open to veto); never hide them only in the file. Adopted decisions go into the plan sections (Assumptions / Key Changes).
 
@@ -71,7 +71,7 @@ If `strategy-temper` is ON, run a compact Temper pass before saving the plan bod
 
 1. Create the plan file with the helper:
    ```bash
-   python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py plan \
+   python3 {{SKILL_HOME}}/scripts/adhoc_sdlc.py plan \
      --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE` from stderr and fix the call (e.g. unique name, allowed status/keywords/project); do not create the file by hand.
@@ -84,7 +84,7 @@ After saving the plan, ALWAYS close the loop with two points: (1) add/change any
 1. "Add or change anything in the plan?" If yes, apply with `Edit` on the body sections and show the change.
 2. "Run execution now?":
    - **YES** -> move into execution (like `/adhoc-sdlc:exec`):
-     1. create the journal with the SAME `--name` as the plan (this is how `exec` continues this very session, not a new one): `python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute --name "<name>" --title "<title>"`,
+     1. create the journal with the SAME `--name` as the plan (this is how `exec` continues this very session, not a new one): `python3 {{SKILL_HOME}}/scripts/adhoc_sdlc.py execute --name "<name>" --title "<title>"`,
      2. FORCE the native task list ({{TODO}}) seeded from `Key Changes` + a verification step. This is MANDATORY before the first code change. Time pressure or a "skip the list / just do it" request does NOT lift it: without the native list, do not start implementation,
      3. execute per the plan; append each significant step incrementally with `execute --append "..." --files <touched files>`; keep exactly one list item `in_progress`, mark it `completed` right after it is done.
    - **NO** -> show the plan path and suggest `/adhoc-sdlc:exec --name <name>` for later.

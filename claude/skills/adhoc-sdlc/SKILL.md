@@ -24,7 +24,7 @@ The full file contract (frontmatter, files, helper flags, journal operations, ha
 
 Instructions in this skill and its commands are English; that is the source of truth. The behavior adapts to the conversation:
 
-- Match the user's language for all user-facing output: `AskUserQuestion` prompts, status reports, and the prose body of plan files and journal entries.
+- Match the user's language for all user-facing output: questions asked via `AskUserQuestion`, status reports, and the prose body of plan files and journal entries.
 - Keep machine-facing identifiers ASCII: semantic names and filenames are always lowercase ASCII kebab-case (the helper normalizes them).
 
 ## Commands (router)
@@ -81,7 +81,7 @@ Use this as a light decision filter, not a mandatory report for every item:
 
 ### Phase 0: mode gate (before planning)
 
-After a brief read of the prompt and before planning, ask the user with a single `AskUserQuestion` prompt carrying four questions, each with a recommendation tailored to the task. Three are orthogonal yes/no toggles; the fourth is a single multi-select for the quality gates (so all six modes fit within the `AskUserQuestion` four-question limit):
+After a brief read of the prompt and before planning, ask the user to choose the six modes via `AskUserQuestion`, each with a recommendation tailored to the task. Three are orthogonal yes/no toggles; the other three are quality gates. If the surface limits how many questions can be asked at once, pack the three quality gates into a single multi-select so all six modes fit; otherwise ask them however the surface allows:
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the anchors below as an internal checklist and asking only about critical blockers.
 2. Deep code verification. Yes: dispatch a read-only subagent (via the `Agent` tool, `subagent_type: general-purpose`) to check assumptions against the codebase, then analyze and show its findings. No: handle it yourself and decide whether to read code at all.

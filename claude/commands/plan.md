@@ -25,7 +25,7 @@ From `$ARGUMENTS` extract:
 
 Before asking, read the project's default modes with the helper: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py config --get-modes` (it returns each mode's default; no config file means all OFF). Use those values as the pre-selected answers in the mode-gate question below; the user can still flip any.
 
-After a brief read of the prompt and before planning, ask the user with a single `AskUserQuestion` prompt carrying four questions, each with a task-tailored recommendation. Three are orthogonal yes/no toggles; the fourth is a single multi-select for the quality gates (so all six modes fit within the `AskUserQuestion` four-question limit):
+After a brief read of the prompt and before planning, ask the user to choose the six modes via `AskUserQuestion`, each with a task-tailored recommendation. Three are orthogonal yes/no toggles; the other three are quality gates. If the surface limits how many questions can be asked at once, pack the three quality gates into a single multi-select so all six modes fit; otherwise ask them however the surface allows:
 
 1. Brainstorming dialog. Yes: run a light inline brainstorm (intent, variants, edge cases, convergence). No: draft the plan yourself, using the Phase 1 anchors as an internal checklist and asking only about critical blockers.
 2. Deep code verification. Yes: dispatch a read-only subagent (via the `Agent` tool, `subagent_type: general-purpose`) to check assumptions against the codebase, then analyze its findings and show them to the user. No: handle it yourself and decide whether to read code at all.
@@ -49,7 +49,7 @@ Before saving the plan, review the task against the ANCHORS and surface the real
 
 Use the `SKILL.md` Engineering checklist as a light filter while making these decisions. Apply KISS, YAGNI, DRY with judgment, local conventions first, separation of concerns, cohesion over cleverness, explicit contracts, testability, security/data safety, and evidence-based performance. Put only task-relevant consequences into `## Key Changes` or `## Assumptions`; do not create a checklist report unless the user asks for one.
 
-Think for the user: propose resolutions with a recommendation, verify assumptions in code and data sources instead of guessing, and call out risks and edge cases proactively. For each anchor with an OPEN decision ask the user an `AskUserQuestion` prompt (concise, recommendation first, labeled "(rec.)"). Skip an anchor that is obvious or has no variant; do not ask about the obvious. When no anchor has an open decision, say so plainly ("no open design decisions") and move on.
+Think for the user: propose resolutions with a recommendation, verify assumptions in code and data sources instead of guessing, and call out risks and edge cases proactively. For each anchor with an OPEN decision ask the user `AskUserQuestion` (concise, recommendation first, labeled "(rec.)"). Skip an anchor that is obvious or has no variant; do not ask about the obvious. When no anchor has an open decision, say so plainly ("no open design decisions") and move on.
 
 Do not assume decisions silently. If the user explicitly says "don't ask / just do it", do NOT block them with questions, but LIST the adopted resolutions as explicit assumptions (open to veto); never hide them only in the file. Adopted decisions go into the plan sections (Assumptions / Key Changes).
 

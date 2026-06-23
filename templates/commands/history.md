@@ -6,13 +6,13 @@ argument-hint: "<the angle / what you are looking for> [--project P]"
 
 # /adhoc-sdlc:history
 
-Read `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/reference.md` (Read tool): section "History". Read `{{PLUGIN_ROOT}}/skills/adhoc-sdlc/SKILL.md`: section "Read-side authority".
+Read `{{SKILL_HOME}}/reference.md` (Read tool): section "History". Read `{{SKILL_HOME}}/SKILL.md`: section "Read-side authority".
 
 An ANALYTICAL, READ-ONLY command: it creates and modifies nothing. It searches the journal corpus (plans, execution journals, handoffs) for the ANGLE given by the user, focused on recurring problems and things already done. It ends by asking "what next". Match the user's language for the rendered report.
 
 ## Analysis angle (required)
 
-Take the angle from `$ARGUMENTS` (e.g. "recurring build problems", "what was already done on RF-001"). When `$ARGUMENTS` is empty -> ask the user an {{ASK}} prompt with common angles:
+Take the angle from `$ARGUMENTS` (e.g. "recurring build problems", "what was already done on RF-001"). When `$ARGUMENTS` is empty -> ask the user {{ASK}} with common angles:
 - (a) recurring problems / blockers,
 - (b) what was already done / duplicates of earlier approaches,
 - (c) decisions and deviations from the plan,
@@ -25,7 +25,7 @@ The helper (`pack`) is the only read-side authority: do NOT use `Read`/`Grep`/`G
 1. Extract domain keywords from the angle (this is judgment, e.g. "fpc build problems" -> `build,fpc`).
 2. Build the context pack:
    ```bash
-   python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py pack \
+   python3 {{SKILL_HOME}}/scripts/adhoc_sdlc.py pack \
      --intent history --angle "<angle>" --keywords <a,b,c> --format json [--project <P>] [--days <N>]
    ```
    CHECK the exit code; on non-zero read `ERROR/EXPECTED/EXAMPLE` and fix the flags.
@@ -36,15 +36,15 @@ The helper (`pack`) is the only read-side authority: do NOT use `Read`/`Grep`/`G
    - weak matches: with keywords the `items` are already gated (zero-overlap noise sits in `below_threshold`, not here), so confident hits dominate; still note a relatively low `items[].score` among them as a thinner, less certain overlap. When the angle had NO keywords (recency-only ranking, gate off), apply stronger judgment and flag incidental matches explicitly,
    - Conclusions section: RECURRENCE (the same themes over time), "ALREADY DONE" (decisions and their outcome), SSoT candidates.
 4. Write NOTHING. State incompleteness (`omitted`, `truncated`) as fact: do not read files; if needed narrow `--keywords`/`--days` and re-run `pack`.
-5. End with an {{ASK}} prompt "what next" (max 1-2 questions): create a plan (`/adhoc-sdlc:plan`) / resume a session (`/adhoc-sdlc:resume`) / deepen the analysis (another angle) / nothing.
+5. End with {{ASK}} for "what next" (max 1-2 questions): create a plan (`/adhoc-sdlc:plan`) / resume a session (`/adhoc-sdlc:resume`) / deepen the analysis (another angle) / nothing.
 
 ## Model routing (Claude Code)
 
 Pack-building and rendering are mechanical read-side work; delegate them to a cheaper model so the main loop (Opus) is not loaded with the full pack (~12 KB) and spends judgment only where it matters.
 
 - Step 1 (extract keywords from the angle) stays in the MAIN loop: it is judgment about the angle.
-- Steps 2-4 (run `pack`, render the report from the `presentation` contract, state incompleteness) go to a SUBAGENT: dispatch one read-only agent with `model: sonnet` (via the {{SUBAGENT_TOOL}}). Its prompt must carry: the angle, the keywords (and `--project`/`--days` if any), the read-side authority rule (only the helper `pack`; never `Read`/`Grep`/`Glob` the corpus `./adhoc-sdlc`), the rendering contract from "Execution" step 3, and the editorial rules (Polish with full diacritics, no em-dash, no emoji). It returns ONLY the finished report as a string and writes nothing.
-- Step 5 (the "what next" {{ASK}} prompt) stays in the MAIN loop: user interaction is never delegated.
+- Steps 2-4 (run `pack`, render the report from the `presentation` contract, state incompleteness) go to a SUBAGENT: dispatch one read-only agent with `model: sonnet`{{SUBAGENT_VIA}}. Its prompt must carry: the angle, the keywords (and `--project`/`--days` if any), the read-side authority rule (only the helper `pack`; never `Read`/`Grep`/`Glob` the corpus `./adhoc-sdlc`), the rendering contract from "Execution" step 3, and the editorial rules (Polish with full diacritics, no em-dash, no emoji). It returns ONLY the finished report as a string and writes nothing.
+- Step 5 (asking "what next" via {{ASK}}) stays in the MAIN loop: user interaction is never delegated.
 
 Boundary (do NOT delegate): planning design, execution with its decisions/verification, and handoff bodies stay on the main model - they need live session context. Only the read/recon render is routed to Sonnet.
 

@@ -6,7 +6,7 @@ The repository is the single source of truth for the `adhoc-sdlc` plugin and its
 
 ## Runtimes
 
-Claude Code is packaged under `claude/`. Codex has both a plain compatibility skill under `codex/` and the published plugin under `plugins/adhoc-sdlc/`. The planned `antigravity/` variant is still a roadmap placeholder. The Python helper under `scripts/` is shared, so a helper change has to land in every shipped runtime variant.
+Claude Code is packaged under `claude/`; Codex is packaged as the published plugin under `plugins/adhoc-sdlc/`. Both variants are generated from one source (`templates/` + `runtimes/<rt>.json`) by `tools/render.py`. The planned `antigravity/` variant is still a roadmap placeholder. The Python helper under `scripts/` is shared, so a helper change has to land in every shipped runtime variant.
 
 ## Local setup (owner)
 
@@ -23,13 +23,13 @@ The checkout is relocatable: keep it anywhere (for example under a shared `proje
 
 ## Dev loop
 
-1. Edit under `claude/skills/adhoc-sdlc` or `claude/commands`.
-2. Test: `cd claude/skills/adhoc-sdlc/scripts && python3 -m pytest -q`, and exercise the commands with `claude --plugin-dir ./claude`.
-3. Sync the shared helper: `tools/sync-helper.sh` copies `scripts/*.py` from the Claude variant into the Codex variants. Then `cd codex/skills/adhoc-sdlc/scripts && python3 -m pytest -q`.
+1. Edit the prompts under `templates/` (the single source) or the shared helper under `claude/skills/adhoc-sdlc/scripts`.
+2. Render: `python3 tools/render.py`, then `python3 tools/render.py --check` (the drift gate). Never hand-edit generated files under `claude/` or `plugins/`; the `GENERATED` header warns you.
+3. Sync the helper and test: `tools/sync-helper.sh` copies `scripts/*.py` from the Claude variant into the Codex plugin variant, then run `python3 -m pytest -q` in `claude/skills/adhoc-sdlc/scripts` and in `plugins/adhoc-sdlc/skills/adhoc-sdlc/scripts`, plus `python3 -m pytest tools -q`. Exercise the commands with `claude --plugin-dir ./claude`.
 4. Bump the version in `claude/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and `plugins/adhoc-sdlc/.codex-plugin/plugin.json` when public plugin metadata or behavior changes. Claude versions must agree: `claude plugin validate ./claude` and `claude plugin validate .` check the manifests, and `claude plugin tag` checks that the two Claude versions match at release time.
 5. Commit and push.
 6. Consumers pull the release with `/plugin update adhoc-sdlc` (after `/plugin marketplace update adhoc-sdlc` if needed).
 
 ## The shared helper
 
-`tools/sync-helper.sh` copies the helper from `claude/skills/adhoc-sdlc/scripts/` (the canonical copy) into `codex/skills/adhoc-sdlc/scripts/` and `plugins/adhoc-sdlc/skills/adhoc-sdlc/scripts/`. The duplication is deliberate: plugin packages cannot rely on files outside their own install tree, so the helper has to physically live inside each runtime variant. Run the script after every helper change and run the tests in each shipped variant before you commit.
+`tools/sync-helper.sh` copies the helper from `claude/skills/adhoc-sdlc/scripts/` (the canonical copy) into `plugins/adhoc-sdlc/skills/adhoc-sdlc/scripts/`. The duplication is deliberate: plugin packages cannot rely on files outside their own install tree, so the helper has to physically live inside each runtime variant. Run the script after every helper change and run the tests in each shipped variant before you commit.

@@ -1,5 +1,37 @@
 # Dziennik projektu adhoc-sdlc
 
+## 2026-06-23 - Maszyna: pełne generowanie wariantu Codex + cove/temper z jednego źródła
+
+Status: przygotowane lokalnie w tym commicie, push na main
+Zakres: konsolidacja generatora tak, by oba realne warianty (Claude Code i plugin Codex) wraz ze skillami `cove` i `temper` powstawały z jednego źródła (`templates/` + `runtimes/`); usunięcie legacy wariantu `codex/`; bump 0.3.4 -> 0.4.0
+
+### Przyczyna
+
+`cove` i `temper` były utrzymywane podwójnie (`claude/` i `plugins/`, treść identyczna), wariant `codex/` był martwym duplikatem „plain skill" bez `cove`/`temper`, a generator produkował tylko `claude/`. Cel: maszyna z jednym źródłem, zero ręcznie utrzymywanej prozy dystrybucyjnej, instalacja i aktualizacja z GitHuba.
+
+### Co się zmieniło
+
+- `templates/`: dodano `skills/cove` i `skills/temper` (kanon, identyczne z dotychczasowymi wariantami) oraz `skills/cove/agents/openai.yaml` (metadane Codex).
+- Placeholdery ścieżek rozbite: `{{PLUGIN_ROOT}}/skills/adhoc-sdlc` -> `{{SKILL_HOME}}`, `{{PLUGIN_ROOT}}/commands` -> `{{COMMANDS_HOME}}` (różny layout komend: Claude w roocie pluginu, Codex w skillu).
+- Neutralizacja gramatyki dla generowania prozy Codex: bramka modów bez twardego „four questions" (warunkowe pakowanie bramek w multi-select); `{{ASK}}` sprowadzone do jednej roli gramatycznej; nowe placeholdery `{{SUBAGENT_VIA}}` (pusty dla Codex), `{{ASK_NOTE}}`, `{{SKILL_HOME_NOTE}}` (puste dla Claude). To lekko przeredagowało shipowaną prozę Claude (znaczenie i jawne `AskUserQuestion` zachowane, egzekwowane testem regresji).
+- `tools/render.py`: nagłówek zależny od rozszerzenia (`.yaml`/`.yml` -> `#`, reszta -> `<!-- -->`), żeby generować `openai.yaml` bez psucia YAML; +2 testy w `test_render.py`.
+- `runtimes/claude.json`: nowy zestaw placeholderów + `files` dla `cove`/`temper`. `runtimes/codex.json`: `active=true`, retarget na `plugins/adhoc-sdlc/`, frazy opisowe, `files` dla `cove` (+`openai.yaml`) i `temper`. `runtimes/antigravity.json`: klucze placeholderów wyrównane do nowego zestawu (wartości nadal `TODO-confirm`, `active=false`).
+- Usunięto `codex/` (legacy). `sync-helper.sh`: cel tylko `plugins/`. `README`/`CONTRIBUTING` (EN+PL) i `docs/struktura-repozytorium.md` zaktualizowane.
+- Bump 0.3.4 -> 0.4.0 w 3 manifestach.
+
+### Czego nie zmieniono
+
+- Antigravity nadal `active=false` (narzędzia nieustalone, zakaz zgadywania); reużywa `plugins/`.
+- Format `plan-*`/`execute-*`, API helpera, manifesty marketplace (źródła `./claude` i `./plugins/adhoc-sdlc`).
+- `README*.md` skilla Claude (poza generatorem).
+
+### Weryfikacja
+
+- `python3 tools/render.py --check` -> „check OK: claude, codex up to date" (zero drift).
+- `pytest`: helper Claude 95 passed, helper plugin Codex 95 passed, generator `tools` 9 passed (z nowymi testami nagłówka; YAML przeszedł).
+- 0 placeholderów `{{...}}` w `claude/` i `plugins/`; 0 `PLUGIN_ROOT`/`SUBAGENT_TOOL` w źródłach; `openai.yaml` z nagłówkiem `# GENERATED`; wersja 0.4.0 w 3 manifestach, 0.3.4 = 0; JSON 7/7 parsowalne.
+- `git diff claude/` minimalny (reword słowny; `exec.md` i `handoff.md` bez zmian bajtowych).
+
 ## 2026-06-22 - Generator build-time: deterministyczne wiązanie akcji z narzędziami
 
 Status: przygotowane lokalnie w tym commicie

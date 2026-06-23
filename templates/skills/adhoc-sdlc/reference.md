@@ -43,7 +43,7 @@ Use the bundled helper instead of rewriting file creation logic. It defaults to 
 Create a confirmed plan:
 
 ```bash
-python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py plan \
+python3 {{SKILL_HOME}}/scripts/adhoc_sdlc.py plan \
   --name "operator panel start stop good button" \
   --title "Operator panel fixes: Start/Stop and Good"
 ```
@@ -51,7 +51,7 @@ python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py plan \
 Start or append execution:
 
 ```bash
-python3 {{PLUGIN_ROOT}}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute \
+python3 {{SKILL_HOME}}/scripts/adhoc_sdlc.py execute \
   --name "operator panel start stop good button" \
   --title "Operator panel fixes: Start/Stop and Good" \
   --append "Implemented the Start/Stop button" \
@@ -91,7 +91,7 @@ A snapshot of session state for a new context window. Created by the helper (`ha
 
 Resume from one of up to 4 most recent sessions, in two steps:
 
-1. `pack --intent resume --limit 4 --format json` returns candidates in `related` (metadata). The agent builds an {{ASK}} prompt (label = `updated` + `title`, description = project + keywords) plus an optional "include related history" choice.
+1. `pack --intent resume --limit 4 --format json` returns candidates in `related` (metadata). The agent presents a choice via {{ASK}} (label = `updated` + `title`, description = project + keywords) plus an optional "include related history" choice.
 2. After the choice: `pack --intent resume --name <chosen> [--include-history --history-angle "..."]` returns `primary` with `extracts` (Goal, Next Steps, What Worked/Didn't). The agent continues from Next Steps using only the pack, without `Read`-ing the file.
 
 No candidates (`stats.matched=0` / `warnings:["no_candidates"]`) -> "no session to resume". Read-side authority applies (see `SKILL.md`).

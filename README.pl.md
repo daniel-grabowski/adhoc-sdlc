@@ -59,8 +59,6 @@ plugins/adhoc-sdlc/            plugin Codex: adhoc-sdlc
   .codex-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/cove/
-codex/                            skill Codex (instalacja cp -r, kompatybilność)
-  skills/adhoc-sdlc/
 antigravity/                      plany: format rozszerzenia do ustalenia
 ```
 
@@ -125,16 +123,6 @@ Do lokalnej pracy na checkoucie:
 codex plugin marketplace add .
 codex plugin add adhoc-sdlc@adhoc-sdlc
 ```
-
-### Codex (kompatybilny plain skill)
-
-Jeśli potrzebujesz starej instalacji jako plain skill zamiast pluginu:
-
-```
-cp -r codex/skills/adhoc-sdlc ~/.codex/skills/
-```
-
-Następnie przeładuj skille w swoim agencie.
 
 ### Antigravity CLI
 

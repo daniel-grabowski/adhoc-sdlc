@@ -1,20 +1,29 @@
 {
   "runtime": "codex",
-  "active": false,
-  "_note": "SZKIELET do dojrzewania w kolejnej iteracji. Wartosci oparte na inwentaryzacji obecnych plikow codex/ (update_plan, <skill-dir>, native choice UI). SUBAGENT_TOOL nie ma jawnej nazwy w plikach Codeksa - do potwierdzenia przed ustawieniem active=true. Render pomija ten runtime dopoki active=false.",
+  "active": true,
+  "description": "Codex / Codex-plugin tool bindings for adhoc-sdlc prompt templates. Codex names no dedicated question/subagent tool in its prose (speak in actions), so ASK/TODO render as descriptive phrases and the subagent via-clause is empty. Paths resolve against the installed skill dir (<skill-dir>). Output tree is the Codex plugin: plugins/adhoc-sdlc/.",
   "placeholders": {
-    "ASK": "a structured question (native choice UI when the surface provides one, otherwise plain numbered text)",
-    "TODO": "`update_plan`",
-    "SUBAGENT_TOOL": "TODO-confirm-codex-subagent-dispatch",
-    "PLUGIN_ROOT": "<skill-dir>"
+    "ASK": "a structured question",
+    "ASK_NOTE": " Use a native choice UI when the surface provides one, otherwise plain numbered options; do not imply that the plugin provides its own custom form UI.",
+    "TODO": "your runtime's native task-tracking tool",
+    "SUBAGENT_VIA": "",
+    "SKILL_HOME": "<skill-dir>",
+    "SKILL_HOME_NOTE": " When command docs show `<skill-dir>`, resolve it to the directory containing this `SKILL.md` and `reference.md`; do not hard-code `~/.codex/skills/adhoc-sdlc` when the skill came from a Codex plugin install.",
+    "COMMANDS_HOME": "<skill-dir>/commands"
   },
   "files": [
-    ["commands/plan.md", "codex/skills/adhoc-sdlc/commands/plan.md"],
-    ["commands/exec.md", "codex/skills/adhoc-sdlc/commands/exec.md"],
-    ["commands/resume.md", "codex/skills/adhoc-sdlc/commands/resume.md"],
-    ["commands/history.md", "codex/skills/adhoc-sdlc/commands/history.md"],
-    ["commands/handoff.md", "codex/skills/adhoc-sdlc/commands/handoff.md"],
-    ["skills/adhoc-sdlc/SKILL.md", "codex/skills/adhoc-sdlc/SKILL.md"],
-    ["skills/adhoc-sdlc/reference.md", "codex/skills/adhoc-sdlc/reference.md"]
+    ["commands/plan.md", "plugins/adhoc-sdlc/skills/adhoc-sdlc/commands/plan.md"],
+    ["commands/exec.md", "plugins/adhoc-sdlc/skills/adhoc-sdlc/commands/exec.md"],
+    ["commands/resume.md", "plugins/adhoc-sdlc/skills/adhoc-sdlc/commands/resume.md"],
+    ["commands/history.md", "plugins/adhoc-sdlc/skills/adhoc-sdlc/commands/history.md"],
+    ["commands/handoff.md", "plugins/adhoc-sdlc/skills/adhoc-sdlc/commands/handoff.md"],
+    ["skills/adhoc-sdlc/SKILL.md", "plugins/adhoc-sdlc/skills/adhoc-sdlc/SKILL.md"],
+    ["skills/adhoc-sdlc/reference.md", "plugins/adhoc-sdlc/skills/adhoc-sdlc/reference.md"],
+    ["skills/cove/SKILL.md", "plugins/adhoc-sdlc/skills/cove/SKILL.md"],
+    ["skills/cove/agents/openai.yaml", "plugins/adhoc-sdlc/skills/cove/agents/openai.yaml"],
+    ["skills/temper/SKILL.md", "plugins/adhoc-sdlc/skills/temper/SKILL.md"],
+    ["skills/temper/README.md", "plugins/adhoc-sdlc/skills/temper/README.md"],
+    ["skills/temper/examples/sample-output.md", "plugins/adhoc-sdlc/skills/temper/examples/sample-output.md"],
+    ["skills/temper/integration/adhoc-sdlc-integration.md", "plugins/adhoc-sdlc/skills/temper/integration/adhoc-sdlc-integration.md"]
   ]
 }
