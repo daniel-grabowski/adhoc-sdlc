@@ -37,7 +37,7 @@ The skill exposes sub-commands invoked with a colon. Files live in `${CLAUDE_PLU
 | `/adhoc-sdlc:exec` | `execute` | run the plan + execution journal |
 | `/adhoc-sdlc:handoff` | `handoff` | snapshot session state (history, many files) |
 | `/adhoc-sdlc:resume` | `pack --intent resume` | load one of the 4 most recent sessions |
-| `/adhoc-sdlc:history` | `pack --intent history` | analyze the corpus for an angle (read-only) |
+| `/adhoc-sdlc:history` | `search` | full-text recall (BM25) over the corpus, grouped by session (read-only) |
 
 ## Lifecycle
 
@@ -62,7 +62,7 @@ The native todo list (`TaskCreate`/`TaskUpdate`) is the live progress view; the 
 
 ## Plan file
 
-Write the confirmed plan into `plan-*` with: title, summary, key changes, test plan, assumptions. Run the plan command as a guided conversation, not a form.
+Write the confirmed plan into `plan-*` with: title, summary, key changes, test plan, assumptions. Run the plan command as a guided conversation, not a form. Optionally pass `--prompt "<verbatim request>"` to persist the user's original wording in an `## Original Prompt` section; it is durable context and the main bridge that lets later free-text `history` searches (often Polish) find an English-tagged plan.
 
 ### Engineering checklist
 
@@ -99,15 +99,15 @@ Before writing the file, surface the real design decisions and ask about the ope
 
 After writing the file, close the loop: offer to add or change anything, then offer to run execution now. Running execution makes seeding the native task list mandatory before any code change.
 
-## Read-side authority (pack)
+## Read-side authority
 
-For `history`, `resume` and `handoff`, the agent must not scan `adhoc-sdlc/` files directly (`Read`/`Grep`/`Glob`). The helper (`pack`) is the only read-side authority: discovery, frontmatter parsing, section extraction, relevance scoring and budgeting. The agent receives a ready context pack and renders or synthesizes only from it, per the `presentation` field.
+For `history`, `resume` and `handoff`, the agent must not scan `adhoc-sdlc/` files directly (`Read`/`Grep`/`Glob`). The helper is the only read-side authority through two modes: `pack` (resume/handoff: discovery, frontmatter parsing, section extraction, relevance scoring, budgeting) and `search` (history: deterministic BM25 full-text recall over the whole corpus, grouped by session). The agent receives a ready context pack or a ready ranking and renders or synthesizes only from it - never the reverse.
 
 Reading `adhoc-sdlc/` files for resume/handoff/history is a layering violation, regardless of being read-only. The letter of the rule is the spirit of the rule.
 
 Two directories share the name `adhoc-sdlc`; do not conflate them. The CORPUS `./adhoc-sdlc` (under the project working directory: `plan-*`, `execute-*`, `handoff-*`) is the data this rule protects: never `Read`/`Grep`/`Glob` it for resume/history/handoff. The SKILL directory `${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/` (`SKILL.md`, `reference.md`, `scripts/`) holds instructions and helper code: reading it is expected and required, because the commands point you to its sections. The ban is about the project corpus, never about the skill's own files.
 
-Does the pack look incomplete? That is not an invitation to `Read`. Incompleteness is a FACT in `stats`/`warnings`/`budget`. The response: fix the flags and re-run `pack` (`--max-items`, `--days`, broader `--keywords`), or report a helper bug. Never bypass the helper.
+Does the pack or the search ranking look incomplete? That is not an invitation to `Read`. Incompleteness is a FACT in `stats`/`warnings`/`budget`. The response: fix the flags and re-run the helper (`pack`: `--max-items`, `--days`, broader `--keywords`; `search`: a different free-text phrase or a wider `--limit`), or report a helper bug. `search` returning `no_matches` means the corpus has nothing for that text, not that you should grep it. Never bypass the helper.
 
 | Excuse | Reality |
 |--------|---------|

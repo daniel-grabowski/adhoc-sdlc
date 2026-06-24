@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import time
 import unicodedata
 
 import sdlc_doc
@@ -284,12 +285,15 @@ def update_frontmatter_field(text: str, key: str, value: str) -> str:
 
 # --- Szablony body ------------------------------------------------------------
 
-def plan_body() -> str:
-    return """## Summary
+def plan_body(prompt: str = "") -> str:
+    # Sekcja ## Original Prompt jest additywna: trwały, dosłowny zapis zlecenia (most PL<->EN
+    # dla FTS). Bez --prompt szablon zostaje jak dawniej (wsteczna zgodność).
+    op = f"## Original Prompt\n\n{prompt.strip()}\n\n" if prompt.strip() else ""
+    return f"""## Summary
 
 TODO
 
-## Key Changes
+{op}## Key Changes
 
 TODO
 
@@ -409,6 +413,7 @@ def build_execute_obj(meta: dict, plan_path: Path, first_entry: dict | None) -> 
         "title": meta["title"],
         "project": meta.get("project", ""),
         "keywords": meta.get("keywords", []),
+        "original_prompt": meta.get("original_prompt", ""),
         "created": meta["created"],
         "updated": meta["updated"],
         "status": meta["status"],
@@ -418,6 +423,18 @@ def build_execute_obj(meta: dict, plan_path: Path, first_entry: dict | None) -> 
         "verification": [],
         "final_result": None,
     }
+
+
+def _plan_prompt(plan_path: Path) -> str:
+    """Dosłowny Original Prompt z planu (jedyne wejście promptu człowieka). Dziedziczony
+    do dziennika, by FTS indeksował go także w execute (sesja = plan + dziennik)."""
+    try:
+        text = plan_path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    _meta, body = sdlc_doc.split_frontmatter(text)
+    sec = sdlc_doc.get_section(sdlc_doc.parse_sections(body), "Original Prompt")
+    return sec["text"] if sec and not sec["is_placeholder"] else ""
 
 
 def dump_execute_json(obj: dict) -> str:
@@ -479,10 +496,11 @@ def cmd_plan(args: argparse.Namespace) -> int:
         )
     created_at = now()
     date_value = args.date or today()
+    prompt = (getattr(args, "prompt", None) or "").strip()
     plan_path = path / f"plan-{date_value}-{name}.md"
     meta = {"type": "plan", "name": name, "title": title, "project": project,
             "keywords": keywords, "created": created_at, "updated": created_at, "status": status}
-    write_exclusive(plan_path, build_frontmatter(meta) + plan_body())
+    write_exclusive(plan_path, build_frontmatter(meta) + plan_body(prompt))
     print(f"semantic_name={name}")
     print(f"plan={plan_path}")
     return 0
@@ -556,6 +574,7 @@ def cmd_execute(args: argparse.Namespace) -> int:
     created_at = now()
     execute_path = path / f"execute-{args.date or today()}-{name}.json"
     meta = {"name": name, "title": title, "project": project, "keywords": keywords,
+            "original_prompt": _plan_prompt(plans[0]),
             "created": created_at, "updated": created_at, "status": status or "in-progress"}
     obj = build_execute_obj(meta, plans[0], make_entry(note, files, phase) if note else None)
     if args.decision:
@@ -747,6 +766,112 @@ def cmd_pack(args: argparse.Namespace) -> int:
     return 0
 
 
+# --- Search: full-text recall (BM25) nad korpusem ----------------------------
+
+VALID_SEARCH_FORMATS = ("text", "json")
+
+_SLOT_LABELS = (
+    ("planned", "ustalono"),
+    ("decided", "zdecydowano"),
+    ("executed", "wykonano"),
+    ("verified", "zweryfikowano"),
+    ("red_lights", "czerwone światło"),
+)
+
+
+def render_search_text(res: dict) -> str:
+    """Czytelny ranking sesji ze snippetami i slotami (do testu interaktywnego).
+
+    ASCII-safe markery (bez em-dash, bez emoji). Pokazuje, DLACZEGO sesja trafiła:
+    trafione termy, pola, artefakty oraz co ustalono/zdecydowano/wykonano/zweryfikowano.
+    """
+    st = res.get("stats", {})
+    qterms = res.get("query_terms") or []
+    total = len(qterms)
+    terms = ", ".join(qterms)
+    lines = [
+        f'zapytanie: "{res.get("query", "")}"  termy: [{terms}]  tryb: {res.get("mode", "")}'
+        f'  fuzzy: {"on" if res.get("fuzzy") else "off"}',
+        f'sesje w zasięgu: {st.get("sessions", 0)} | zwrócono: {st.get("returned", 0)} | '
+        f'plików: {st.get("files_scanned", 0)}',
+    ]
+    warn = res.get("warnings") or []
+    if warn:
+        lines.append("ostrzeżenia: " + ", ".join(warn))
+    results = res.get("results") or []
+    if not results:
+        lines.append("(brak trafień)")
+        return "\n".join(lines)
+    for i, r in enumerate(results, 1):
+        proj = r.get("project") or "-"
+        lines.append("")
+        lines.append(f'{i}. [pokrycie {r.get("coverage", 0)}/{total}, score {r.get("score")}] '
+                     f'{r.get("session")} - "{r.get("title", "")}"  '
+                     f'(projekt: {proj}, updated: {r.get("updated", "")})')
+        lines.append("   trafione: " + ", ".join(r.get("matched_terms") or []))
+        lines.append("   pola:     " + ", ".join(r.get("matched_fields") or []))
+        lines.append("   artefakty: " + ", ".join(a.get("type", "") for a in (r.get("artifacts") or [])))
+        slots = r.get("summary_slots") or {}
+        for key, label in _SLOT_LABELS:
+            val = slots.get(key)
+            if val:
+                lines.append(f"   {label}: {val}")
+        for sn in r.get("snippets") or []:
+            head = sn.get("heading") or "(preambuła)"
+            lines.append(f'   > [{sn.get("type", "")}/{head} x{sn.get("hits", 0)}] {sn.get("text", "")}')
+    return "\n".join(lines)
+
+
+def _run_search(root: Path, query: str, project: str, limit: int, fmt: str, fuzzy: bool) -> None:
+    res = sdlc_doc.search_corpus(root, query, limit=limit, project=project, fuzzy=fuzzy, today_iso=now())
+    if fmt == "json":
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+    else:
+        print(render_search_text(res))
+
+
+def _search_interactive(root: Path, project: str, limit: int, fmt: str, fuzzy: bool) -> int:
+    print('Tryb interaktywny. Wpisz frazę i Enter; pusta linia, "exit" albo Ctrl-D kończy.')
+    while True:
+        try:
+            line = input("szukaj> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        if not line or line.lower() in ("exit", "quit"):
+            break
+        t0 = time.perf_counter()
+        _run_search(root, line, project, limit, fmt, fuzzy)
+        print(f"[{(time.perf_counter() - t0) * 1000.0:.1f} ms]")
+    return 0
+
+
+def cmd_search(args: argparse.Namespace) -> int:
+    mode = "search"
+    fmt = args.format
+    if fmt not in VALID_SEARCH_FORMATS:
+        raise ContractError(
+            f"niedozwolony --format dla search: {fmt!r}",
+            f"jedna z wartości: {', '.join(VALID_SEARCH_FORMATS)}",
+            'search "ekran powitalny" --format json',
+        )
+    limit = validate_limit(args.limit)  # 0 = bez limitu (search_corpus zwraca wszystkie)
+    project = validate_project(args.project, mode)
+    fuzzy = not args.no_fuzzy
+    root = Path(args.root).resolve()
+    query = " ".join(args.query or []).strip()
+    if args.interactive:
+        return _search_interactive(root, project, limit, fmt, fuzzy)
+    if not query:
+        raise ContractError(
+            "brak zapytania do wyszukania",
+            "wolny tekst (bez wymaganego protokołu) albo --interactive",
+            'search "ekran powitalny tło" --limit 5',
+        )
+    _run_search(root, query, project, limit, fmt, fuzzy)
+    return 0
+
+
 def default_modes() -> dict:
     """Wbudowane wartości: wszystkie tryby OFF (zachowanie sprzed configu)."""
     return {key: False for key in MODE_KEYS}
@@ -834,6 +959,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--keywords")
     plan.add_argument("--status")
     plan.add_argument("--date")
+    plan.add_argument("--prompt", help="dosłowny oryginalny prompt zlecenia (sekcja ## Original Prompt)")
     plan.set_defaults(func=cmd_plan)
 
     execute = sub.add_parser("execute", help="create or append an execution journal (JSON)")
@@ -887,6 +1013,16 @@ def build_parser() -> argparse.ArgumentParser:
     pack.add_argument("--limit", type=int)
     pack.add_argument("--format", default="json")
     pack.set_defaults(func=cmd_pack)
+
+    search = sub.add_parser("search", help="full-text recall (BM25) over the corpus, grouped by session")
+    search.add_argument("--root", default=str(DEFAULT_ROOT))
+    search.add_argument("--project")
+    search.add_argument("--limit", type=int, default=10, help="liczba sesji w wyniku (0 = bez limitu)")
+    search.add_argument("--format", default="text", help=f"jedna z wartości: {', '.join(VALID_SEARCH_FORMATS)}")
+    search.add_argument("--interactive", action="store_true", help="pętla fraza -> ranking (do testów)")
+    search.add_argument("--no-fuzzy", action="store_true", help="wyłącz most rdzeniowy (tylko dopasowanie dokładne)")
+    search.add_argument("query", nargs="*", help="wolny tekst zapytania")
+    search.set_defaults(func=cmd_search)
 
     config = sub.add_parser("config", help="read or initialize default-mode config (json)")
     config.add_argument("--root", default=str(DEFAULT_ROOT))

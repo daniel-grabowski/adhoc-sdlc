@@ -20,7 +20,9 @@ status: in-progress | done | abandoned
 ---
 ```
 
-Plan and handoff are markdown with the frontmatter above. The execution journal is native JSON (`execute-*.json`): the same meta fields at top level plus `plan` (path), `entries` (incremental records: `ts`, `note`, optional `phase`, a `files` list of `{path, change}`), `decisions`, `verification` and `final_result`. Touched files are a structural element, not loose text; `history`/`resume` return them as `touched_files`.
+Plan and handoff are markdown with the frontmatter above. The execution journal is native JSON (`execute-*.json`): the same meta fields at top level plus `plan` (path), `original_prompt` (the verbatim request, inherited from the plan's `## Original Prompt` section), `entries` (incremental records: `ts`, `note`, optional `phase`, a `files` list of `{path, change}`), `decisions`, `verification` and `final_result`. Touched files are a structural element, not loose text; `history`/`resume` return them as `touched_files`.
+
+A plan may carry an optional `## Original Prompt` section (written by `plan --prompt "<verbatim request>"`): the user's own wording, stored durably so a later free-text `history` search can match it. It is additive and backward compatible; older artifacts without it stay searchable on their existing content.
 
 Only the helper creates files under `adhoc-sdlc/` (the single source of truth for names, frontmatter and JSON). Do not write them by hand with `Write`. You may fill the markdown body sections (plan/handoff) with `Edit`, but `execute-*.json` changes only through the helper (`execute --append/--decision/--verification/--final`), never by manual `Edit`/`Write`. The helper is a hard contract guard: bad input gives exit 2 plus `ERROR/EXPECTED/EXAMPLE` on stderr, with zero side effects. After every call, check the exit code and fix the call per the hints when it is non-zero.
 
@@ -46,8 +48,11 @@ Create a confirmed plan:
 ```bash
 python3 <skill-dir>/scripts/adhoc_sdlc.py plan \
   --name "operator panel start stop good button" \
-  --title "Operator panel fixes: Start/Stop and Good"
+  --title "Operator panel fixes: Start/Stop and Good" \
+  --prompt "Fix the operator panel: Start/Stop buttons and the Good button"
 ```
+
+`--prompt` is optional; when given, the verbatim text is stored in an `## Original Prompt` section of the plan and inherited into the journal's `original_prompt` field, so `history` can recall the session from the user's own wording.
 
 Start or append execution:
 
@@ -99,6 +104,21 @@ No candidates (`stats.matched=0` / `warnings:["no_candidates"]`) -> "no session 
 
 ## History
 
-Retrospective analysis of the corpus (read-only). Requires an "angle". The agent extracts keywords from the angle (judgment) and calls `pack --intent history --angle "<angle>" --keywords a,b [--project] [--days]`. The pack returns `items` with `extracts` (narrowed, scored, budgeted), `signals.keyword_index` (a recurrence signal for grouping) and `presentation` (compact_report, group_by theme_then_date).
+A read-only mechanism for returning to earlier work. The user types FREE TEXT (no keywords, title or project required) and the agent calls `search "<free text>" --format json [--project <P>] [--limit N]`. This is a deterministic, lexical full-text recall (Okapi BM25, k1=1.5, b=0.75), not the old keyword gate and not embedding-based semantic search; the practical "semantic" feel comes from indexing the whole content (summary, decisions, verification, steps) together with the persistent original prompt, not from any understanding of meaning. Python retrieves and ranks; the model only presents what Python returns and never searches the corpus itself.
 
-Stats contract: `matched` = records in scope (time/project), `relevant` = records with a non-zero keyword overlap (the topical hits), `included` = shown after budget, `omitted` = relevant minus included, `below_threshold` = matched minus relevant (in scope, zero keyword overlap, removed by the relevance gate). When keywords are given the `items` are gated to relevant records only; `warnings:["no_relevant"]` means scope is non-empty but nothing matches the theme. Keyword matching is normalized for simple plural/singular (`colors` matches `color`), so a near-miss token still scores. The agent renders a human report per `presentation`: a title with the angle plus date range plus the stats above (lead with `relevant`/`included`; `below_threshold` is the filtered-out noise, never bare `matched`), thematic groups, a Conclusions section (recurrence, "already done", SSoT candidates) and at most 1-2 "what next" questions. References come from `items[].path` + `extracts[].heading`. Read-side authority applies (see `SKILL.md`).
+### How matching works (exact mechanics)
+
+The match unit is the WORD (a whole word, not a character n-gram or trigram), and the query is matched per word, never as one literal phrase. The ranking unit is the SESSION: all records sharing a `name` (plan + execute + handoff) are one document, so a result is a session you return to, not a file. The source of truth is `scripts/sdlc_doc.py`; the constants named below are its current defaults.
+
+1. Query to words. The free text is split into individual words: runs of Unicode alphanumerics, also split on camelCase (`welcome-page` and `frWelcomePage` both yield `welcome`, `page`), lowercased, lightly de-pluralized, filtered by a small PL/EN stoplist; words shorter than `MIN_TERM_LEN` (2) are dropped. Each word is searched independently.
+2. Corpus to words. The same tokenization runs over every record of a session merged into one document; section bodies are indexed, template HEADINGS are not (boilerplate, identical across files, so a `matched_field` always reflects real content); field weights boost keywords / name / title / original_prompt over body.
+3. Best hit per query word, per session: either an exact word, or (when the query word is at least `FUZZY_MIN_TOKEN` (4) characters and fuzzy is on) a corpus word sharing a leading prefix of at least `FUZZY_MIN_PREFIX` (4) characters, with similarity (shared prefix divided by the longer word) of at least `FUZZY_MIN_SIM` (0.5). An exact word weighs 1.0; a stem hit weighs `FUZZY_PENALTY` (0.6) times similarity, so exact always wins, and the bridge shows as `query~corpus` in `matched_terms`. Words of 2-3 characters match exactly only (below the bridge threshold), and `--no-fuzzy` disables the bridge entirely.
+4. Rank. COVERAGE first (how many distinct query words a session matched, so two words always beat one), then Okapi BM25 (`k1` 1.5, `b` 0.75; IDF over sessions) to break ties within the same coverage, then recency, then a deterministic key.
+
+In short: it searches the query as separate words (not as one phrase), and it matches whole words (not four-character chunks or trigrams); the only role of "4" is the fuzzy stem-bridge threshold in step 3.
+
+Result shape per session: `{session, title, project, updated, score, coverage, matched_terms, matched_fields, artifacts[], summary_slots{planned, decided, executed, verified, red_lights}, snippets[]}` (`coverage` = how many distinct query words matched), plus top-level `query`, `query_terms`, `mode: "bm25_fulltext"`, `fuzzy` (bool), `stats` (`files_scanned`, `files_in_scope`, `sessions`, `returned`) and `warnings` (`empty_query`, `no_matches`). `--limit` caps returned sessions (`0` = all).
+
+Two modes: (1) SEARCH renders the ranking from the result above: per session, the score, why it matched (`matched_terms`/`matched_fields`), the artifacts (by `artifacts[].path`), the `summary_slots` (planned / decided / executed / verified / red light) and the best `snippets`; (2) SYNTHESIS, only when the user picks a session, writes a fuller narrative of that ONE session from its `summary_slots` and `snippets` (the history of decisions, not the code). `warnings:["no_matches"]` means the corpus has nothing for that text: say so plainly, do not invent matches and do not read files. The search is instant, so render inline and do not put an LLM in the hot path. End with at most 1-2 "which session to return to, and why" questions. Read-side authority applies (see `SKILL.md`): the only reader is the helper, in `search` mode for history.
+
+PL/EN bridge and limits: the cross-language reach comes from the step-3 stem bridge (`ganta`~`gantt`, `skinowanie`~`skinowe`, `licencja`~`license`) together with the persistent original prompt (often the user's Polish wording), which is the main link to English-tagged plans. The limits: very short roots (under four characters, e.g. `tła`/`tło`) are not bridged, because Polish and English both inflect suffixes and the bridge is anchored on the leading stem; a four-character query word can over-reach to a longer unrelated word sharing those leading letters (the 0.6 penalty and the visible `query~corpus` keep that rare); the method is lexical recall rather than understanding; and artifacts saved before the original-prompt feature are recalled on their existing content only.

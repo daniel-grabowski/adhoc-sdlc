@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import math
 import re
 import time
+from collections import Counter
 from pathlib import Path
 
 
@@ -343,7 +345,9 @@ def _extract_execute_json(path) -> dict:
     ver_text = "\n".join(x for x in ver_lines if x).strip()
 
     final = data.get("final_result") or ""
+    op_text = (data.get("original_prompt") or "").strip()
     sections = [
+        {"heading": "Original Prompt", "level": 2, "text": op_text, "is_placeholder": op_text == ""},
         {"heading": "Steps", "level": 2, "text": steps_text, "is_placeholder": steps_text == ""},
         {"heading": "Decisions And Deviations", "level": 2, "text": dec_text, "is_placeholder": dec_text == ""},
         {"heading": "Verification", "level": 2, "text": ver_text, "is_placeholder": ver_text == ""},
@@ -702,3 +706,337 @@ def _pack_handoff(pack, records, query, budget, today_iso) -> dict:
     if matched == 0:
         pack["warnings"].append("no_candidates")
     return pack
+
+
+# --- Full-text recall (BM25, grupowane po SESJI) -----------------------------
+# To NIE jest semantic search embeddingowy: to deterministyczny full-text recall.
+# Użytkowa "semantyczność" bierze się z indeksowania pełnej treści (plan, dziennik,
+# decyzje, weryfikacja) plus trwałego Original Prompt. Most PL<->EN to Original
+# Prompt, nie magia. Jednostką wyszukiwania jest SESJA (wszystkie rekordy o tym
+# samym `name`: plan + execute + handoff), bo użytkownik szuka przejazdu, nie pliku.
+
+BM25_K1 = 1.5
+BM25_B = 0.75
+MIN_TERM_LEN = 2
+
+# Most rdzeniowy (fuzzy): polski i angielski odmieniają SUFIKSY, więc dyskryminujący
+# jest PREFIKS (rdzeń). Ekspansja zapytania na tokeny korpusu dzielące wspólny prefiks
+# rdzenia (skinowanie~skin, ganta~gantt, licencja~license). Trzy bezpieczniki precyzji:
+# (1) tylko tokeny >= FUZZY_MIN_TOKEN, (2) wspólny prefiks >= FUZZY_MIN_PREFIX i pokrycie
+# >= FUZZY_MIN_SIM dłuższego tokenu, (3) kara FUZZY_PENALTY * podobieństwo - dokładny rdzeń
+# zawsze bije rdzeniowy. matched_terms pokazuje most jawnie (`zapytanie~korpus`).
+FUZZY_MIN_TOKEN = 4
+FUZZY_MIN_PREFIX = 4
+FUZZY_MIN_SIM = 0.5
+FUZZY_PENALTY = 0.6
+
+# Boost pól przy budowie ważonej reprezentacji termów sesji.
+_FIELD_BOOST = {"keywords": 3, "name": 3, "title": 3, "original_prompt": 3, "body": 1}
+
+# Krótka stoplista PL+EN (najczęstsze słowa funkcyjne). Reszta szumu tłumiona przez IDF.
+_STOPWORDS = {
+    "the", "and", "for", "are", "was", "this", "that", "with", "from", "has",
+    "you", "your", "not", "but", "they", "our", "its",
+    "na", "do", "to", "ze", "że", "sie", "się", "nie", "po", "za", "od", "jak",
+    "co", "czy", "oraz", "lub", "dla", "przez", "jest", "sa", "są", "ten", "ta",
+    "te", "tym", "tego", "albo", "bez", "lub",
+}
+
+# Nagłówek sekcji -> etykieta pola (do matched_fields).
+_SECTION_FIELD = {
+    "summary": "summary",
+    "key changes": "key_changes",
+    "original prompt": "original_prompt",
+    "decisions and deviations": "decisions",
+    "steps": "steps",
+    "final result": "final",
+    "verification": "verification",
+    "goal": "goal",
+    "next steps": "next_steps",
+    "what didn't work": "red_lights",
+    "what worked": "what_worked",
+}
+
+# Sloty streszczenia sesji (planned/decided/executed/verified/red_lights) -> nagłówek źródłowy.
+_SLOT_SOURCES = (
+    ("planned", "Summary"),
+    ("decided", "Decisions And Deviations"),
+    ("executed", "Final Result"),
+    ("verified", "Verification"),
+    ("red_lights", "What Didn't Work"),
+)
+
+_WORD_RE = re.compile(r"[^\W_]+", re.UNICODE)
+# Granica camelCase: mała litera/cyfra, po której następuje wielka (też polska).
+_CAMEL_RE = re.compile(r"(?<=[a-z0-9ąćęłńóśźż])(?=[A-ZĄĆĘŁŃÓŚŹŻ])")
+
+
+def _terms(text) -> list[str]:
+    """Tokenizacja do FTS: runy alfanumeryczne (Unicode), rozbicie camelCase, lower,
+    stem liczby mnogiej, odsiew stoplisty i tokenów < MIN_TERM_LEN. Zwraca listę (z powtórzeniami).
+    `welcome-page -> [welcome, page]`, `frWelcomePage -> [fr, welcome, page]`.
+    """
+    out: list[str] = []
+    for run in _WORD_RE.findall(text or ""):
+        for piece in _CAMEL_RE.sub(" ", run).split():
+            t = _stem_kw(piece.lower())
+            if len(t) >= MIN_TERM_LEN and t not in _STOPWORDS:
+                out.append(t)
+    return out
+
+
+def _field_for_heading(heading: str) -> str:
+    return _SECTION_FIELD.get((heading or "").strip().lower(), "body")
+
+
+def _group_sessions(records: list[dict]) -> dict:
+    """Grupuje rekordy po `name` (semantyczna nazwa sesji); fallback po ścieżce."""
+    sessions: dict = {}
+    for rec in records:
+        key = rec.get("name") or rec.get("path")
+        sessions.setdefault(key, []).append(rec)
+    return sessions
+
+
+def _session_terms(recs: list[dict]) -> tuple[Counter, dict]:
+    """Ważona reprezentacja termów całej sesji + mapa term->zbiór pól, w których wystąpił."""
+    tf: Counter = Counter()
+    term_fields: dict = {}
+
+    def add(text: str, boost: int, field: str) -> None:
+        for t in _terms(text):
+            tf[t] += boost
+            term_fields.setdefault(t, set()).add(field)
+
+    for rec in recs:
+        add(" ".join(rec.get("keywords") or []), _FIELD_BOOST["keywords"], "keywords")
+        add(rec.get("name", ""), _FIELD_BOOST["name"], "name")
+        add(rec.get("title", ""), _FIELD_BOOST["title"], "title")
+        # Indeksujemy TREŚĆ sekcji, nie tekst nagłówków: nagłówki to boilerplate szablonu
+        # (Summary/Steps/Original Prompt...) identyczny dla wszystkich dokumentów - jego słowa
+        # zafałszowałyby matched_terms/matched_fields (np. słowo "prompt" z nagłówka). Nagłówek
+        # służy tylko do KLASYFIKACJI pola, do którego trafia treść.
+        for sec in rec.get("_sections_full", []):
+            if sec.get("is_placeholder"):
+                continue
+            field = _field_for_heading(sec.get("heading", ""))
+            boost = _FIELD_BOOST["original_prompt"] if field == "original_prompt" else _FIELD_BOOST["body"]
+            add(sec.get("text", ""), boost, field)
+    return tf, term_fields
+
+
+def _bm25_term(term: str, tf: Counter, dl: int, idf: dict, avgdl: float) -> float:
+    """Wkład jednego termu do Okapi BM25 (k1, b) dla dokumentu-sesji."""
+    f = tf.get(term, 0)
+    if not f or dl <= 0 or avgdl <= 0:
+        return 0.0
+    denom = f + BM25_K1 * (1.0 - BM25_B + BM25_B * dl / avgdl)
+    return idf.get(term, 0.0) * (f * (BM25_K1 + 1.0)) / denom
+
+
+def _bm25_score_fuzzy(expansions: dict, tf: Counter, dl: int, idf: dict, avgdl: float) -> tuple[float, dict]:
+    """BM25 z mostem rdzeniowym: dla każdego ORYGINALNEGO termu zapytania bierze najlepsze
+    trafienie (dokładne albo rdzeniowe), bez podwójnego liczenia. `expansions` to
+    {term_zapytania: {token_korpusu: podobieństwo}} (dokładny token ma podobieństwo 1.0).
+    Zwraca (score, matched), gdzie matched: term_zapytania -> (token, czy_dokładny).
+    """
+    score = 0.0
+    matched: dict = {}
+    for qt, candidates in expansions.items():
+        best = 0.0
+        best_token = None
+        best_exact = False
+        for token, sim in candidates.items():
+            base = _bm25_term(token, tf, dl, idf, avgdl)
+            if not base:
+                continue
+            weight = 1.0 if token == qt else FUZZY_PENALTY * sim
+            contrib = weight * base
+            if contrib > best:
+                best, best_token, best_exact = contrib, token, token == qt
+        if best > 0:
+            score += best
+            matched[qt] = (best_token, best_exact)
+    return score, matched
+
+
+def _session_updated(recs: list[dict]) -> str:
+    return max((r.get("updated") or "" for r in recs), default="")
+
+
+def _session_title(recs: list[dict]) -> str:
+    for typ in ("plan", "handoff", "execute"):
+        for r in recs:
+            if r.get("type") == typ and r.get("title"):
+                return r["title"]
+    for r in recs:
+        if r.get("title"):
+            return r["title"]
+    return (recs[0].get("name", "") if recs else "")
+
+
+def _summary_slots(recs: list[dict]) -> dict:
+    """Deterministyczne sloty streszczenia sesji z konkretnych sekcji (retrieval, nie synteza)."""
+    slots: dict = {}
+    for slot, heading in _SLOT_SOURCES:
+        text = ""
+        for r in recs:
+            sec = get_section(r.get("_sections_full", []), heading)
+            if sec and not sec["is_placeholder"]:
+                text = sec["text"]
+                break
+        slots[slot] = _truncate(" ".join(text.split()), 400)[0] if text else ""
+    if not slots.get("red_lights"):
+        for r in recs:
+            sec = get_section(r.get("_sections_full", []), "Next Steps")
+            if sec and not sec["is_placeholder"]:
+                slots["red_lights"] = _truncate(" ".join(sec["text"].split()), 400)[0]
+                break
+    return slots
+
+
+def _session_snippets(recs: list[dict], match_tokens: set, limit: int = 3) -> list[dict]:
+    """Sekcje sesji z największą liczbą realnie dopasowanych tokenów (plik + nagłówek)."""
+    cand: list[tuple] = []
+    for r in recs:
+        for sec in r.get("_sections_full", []):
+            if sec.get("is_placeholder"):
+                continue
+            text = sec.get("text", "")
+            hits = sum(1 for t in _terms(text) if t in match_tokens)
+            if hits:
+                cand.append((hits, r.get("type", ""), sec.get("heading", ""), text))
+    cand.sort(key=lambda x: x[0], reverse=True)
+    out: list[dict] = []
+    for hits, typ, heading, text in cand[:limit]:
+        out.append({"type": typ, "heading": heading, "hits": hits,
+                    "text": _truncate(" ".join(text.split()), 240)[0]})
+    return out
+
+
+def _session_result(name: str, recs: list[dict], score: float, matched: dict,
+                    tf: Counter, term_fields: dict) -> dict:
+    # matched: term_zapytania -> (token_korpusu, czy_dokładny). Most rdzeniowy pokazujemy
+    # jawnie jako `zapytanie~token`, żeby nigdy nie udawać dopasowania dokładnego.
+    match_tokens = {tok for tok, _ in matched.values()}
+    matched_terms = sorted(tok if exact else f"{qt}~{tok}" for qt, (tok, exact) in matched.items())
+    matched_fields = sorted({f for tok in match_tokens for f in term_fields.get(tok, set())})
+    artifacts = [{"type": r.get("type", ""), "path": r["path"], "status": r.get("status", "")}
+                 for r in sorted(recs, key=lambda r: (r.get("type", ""), r["path"]))]
+    project = next((r.get("project") for r in recs if r.get("project")), "")
+    return {
+        "session": name,
+        "title": _session_title(recs),
+        "project": project,
+        "updated": _session_updated(recs),
+        "score": round(score, 4),
+        "coverage": len(matched),
+        "matched_terms": matched_terms,
+        "matched_fields": matched_fields,
+        "artifacts": artifacts,
+        "summary_slots": _summary_slots(recs),
+        "snippets": _session_snippets(recs, match_tokens),
+    }
+
+
+def _apply_skipped_search(result: dict, skipped: dict) -> None:
+    result["stats"]["unreadable"] = len(skipped["unreadable"])
+    result["stats"]["incomplete_frontmatter"] = len(skipped["incomplete"])
+    if skipped["unreadable"]:
+        result["warnings"].append("unreadable_files")
+    if skipped["incomplete"]:
+        result["warnings"].append("incomplete_frontmatter")
+
+
+def _common_prefix_len(a: str, b: str) -> int:
+    n = min(len(a), len(b))
+    i = 0
+    while i < n and a[i] == b[i]:
+        i += 1
+    return i
+
+
+def _expand_term(qt: str, vocab: list[str]) -> dict:
+    """Most rdzeniowy: tokeny korpusu dzielące z `qt` prefiks rdzenia. {token: podobieństwo},
+    token dokładny ma podobieństwo 1.0. Tokeny < FUZZY_MIN_TOKEN nie są rozszerzane (anti-szum)."""
+    out = {qt: 1.0}
+    if len(qt) < FUZZY_MIN_TOKEN:
+        return out
+    for v in vocab:
+        if v == qt:
+            continue
+        p = _common_prefix_len(qt, v)
+        if p < FUZZY_MIN_PREFIX:
+            continue
+        sim = p / max(len(qt), len(v))
+        if sim >= FUZZY_MIN_SIM:
+            out[v] = max(out.get(v, 0.0), sim)
+    return out
+
+
+def search_corpus(root, query: str, *, limit: int = 10, project: str = "",
+                  fuzzy: bool = True, today_iso: str | None = None) -> dict:
+    """Full-text recall (BM25) nad korpusem, grupowany po sesji. Read-side authority.
+
+    Zwraca history-result per sesja: session/title/score/matched_terms/matched_fields/
+    artifacts/summary_slots/snippets. Wolny tekst na wejściu, ZERO wymaganego protokołu.
+    Deterministyczny, indeks budowany per-zapytanie w pamięci. `fuzzy` włącza most rdzeniowy
+    (prefiks) dla fleksji PL/EN; przy `fuzzy=False` liczy się tylko dopasowanie dokładne.
+    """
+    if today_iso is None:
+        today_iso = _now_iso()
+    records, skipped = load_records(root)
+    in_scope = [r for r in records if _in_scope(r, project, None, today_iso)]
+    query_terms = _terms(query)
+    sessions = _group_sessions(in_scope)
+    result = {
+        "query": query,
+        "query_terms": sorted(set(query_terms)),
+        "mode": "bm25_fulltext",
+        "fuzzy": fuzzy,
+        "results": [],
+        "stats": {"files_scanned": len(records), "files_in_scope": len(in_scope),
+                  "sessions": len(sessions), "returned": 0},
+        "warnings": [],
+    }
+    if not query_terms:
+        result["warnings"].append("empty_query")
+        _apply_skipped_search(result, skipped)
+        return result
+
+    built = []
+    df: Counter = Counter()
+    total_len = 0
+    for key, recs in sessions.items():
+        tf, term_fields = _session_terms(recs)
+        dl = sum(tf.values())
+        built.append((key, recs, tf, term_fields, dl))
+        total_len += dl
+        for t in tf:
+            df[t] += 1
+    n = len(built)
+    avgdl = (total_len / n) if n else 0.0
+    idf = {t: math.log(1 + (n - d + 0.5) / (d + 0.5)) for t, d in df.items()}
+
+    # Ekspansja rdzeniowa liczona raz na całe zapytanie (słownik = tokeny korpusu).
+    vocab = [t for t in df if len(t) >= FUZZY_MIN_TOKEN] if fuzzy else []
+    expansions = {qt: (_expand_term(qt, vocab) if fuzzy else {qt: 1.0}) for qt in set(query_terms)}
+
+    scored = []
+    for key, recs, tf, term_fields, dl in built:
+        s, matched = _bm25_score_fuzzy(expansions, tf, dl, idf, avgdl)
+        if s > 0:
+            scored.append((s, key, recs, tf, term_fields, matched))
+    # Ranking: POKRYCIE nadrzędne (ile różnych słów zapytania trafiło), bo sesja z dwoma
+    # słowami ma bić sesję z jednym; BM25 (rzadkość+częstość) rozstrzyga w obrębie pokrycia,
+    # potem świeżość i deterministyczny klucz.
+    scored.sort(key=lambda x: (len(x[5]), x[0], _session_updated(x[2]), x[1]), reverse=True)
+
+    top = scored if limit <= 0 else scored[:limit]
+    result["results"] = [_session_result(key, recs, s, matched, tf, term_fields)
+                         for s, key, recs, tf, term_fields, matched in top]
+    result["stats"]["returned"] = len(result["results"])
+    if not scored:
+        result["warnings"].append("no_matches")
+    _apply_skipped_search(result, skipped)
+    return result
