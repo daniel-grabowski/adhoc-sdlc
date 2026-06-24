@@ -79,15 +79,15 @@ Trzy skille to jeden przepływ: zaplanuj zmianę, zweryfikuj fakty, na których 
 
 ```mermaid
 flowchart LR
-    cove{{"cove: weryfikacja faktów"}} -.->|opcjonalnie| plan
-    temper{{"temper: hartowanie strategii"}} -.->|opcjonalnie| plan
-    plan(["/adhoc-sdlc:plan"]) --> exec(["/adhoc-sdlc:exec"])
-    exec --> ecove{{"weryfikacja wykonania"}}
-    exec -->|reset kontekstu| handoff(["/adhoc-sdlc:handoff"])
-    handoff -.->|"/adhoc-sdlc:resume"| exec
-    plan ==> disk[("plan + dziennik<br/>na dysku")]
-    exec ==> disk
-    disk -.->|tylko odczyt| history(["/adhoc-sdlc:history"])
+    plan(["adhoc-sdlc:plan"]) -.->|opcjonalnie| cove{{"cove (weryfikacja faktów)"}}
+    plan -.->|opcjonalnie| temper{{"temper (hartowanie strategii)"}}
+    plan --> exec(["adhoc-sdlc:exec"])
+    exec -.->|opcjonalnie| ecove{{"weryfikacja wykonania"}}
+    ecove ==> disk[("plan + dziennik<br/>na dysku")]
+    exec -->|reset kontekstu| handoff(["adhoc-sdlc:handoff"])
+    handoff -.->|"adhoc-sdlc:resume"| exec
+    plan ==> disk
+    disk -.->|tylko odczyt| history(["adhoc-sdlc:history"])
 
     classDef cmd fill:#e3f2fd,stroke:#1565c0,color:#0d2b45
     classDef gate fill:#fff3cd,stroke:#b8860b,color:#3d2f00

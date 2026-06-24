@@ -62,15 +62,15 @@ The three skills are one workflow: plan the change, verify the facts it rests on
 
 ```mermaid
 flowchart LR
-    cove{{"cove: verify facts"}} -.->|optional| plan
-    temper{{"temper: harden strategy"}} -.->|optional| plan
-    plan(["/adhoc-sdlc:plan"]) --> exec(["/adhoc-sdlc:exec"])
-    exec --> ecove{{"execution cove"}}
-    exec -->|context reset| handoff(["/adhoc-sdlc:handoff"])
-    handoff -.->|"/adhoc-sdlc:resume"| exec
-    plan ==> disk[("plan + journal<br/>on disk")]
-    exec ==> disk
-    disk -.->|read-only| history(["/adhoc-sdlc:history"])
+    plan(["adhoc-sdlc:plan"]) -.->|optional| cove{{"cove (verify facts)"}}
+    plan -.->|optional| temper{{"temper (harden strategy)"}}
+    plan --> exec(["adhoc-sdlc:exec"])
+    exec -.->|optional| ecove{{"execution cove"}}
+    ecove ==> disk[("plan + journal<br/>on disk")]
+    exec -->|context reset| handoff(["adhoc-sdlc:handoff"])
+    handoff -.->|"adhoc-sdlc:resume"| exec
+    plan ==> disk
+    disk -.->|read-only| history(["adhoc-sdlc:history"])
 
     classDef cmd fill:#e3f2fd,stroke:#1565c0,color:#0d2b45
     classDef gate fill:#fff3cd,stroke:#b8860b,color:#3d2f00
