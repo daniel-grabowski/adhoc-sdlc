@@ -12,6 +12,8 @@ Interactive command: it settles the real design decisions with the user, saves t
 
 Match the user's language for all output (questions, reports, plan prose). Keep the semantic name and filenames ASCII (the helper normalizes them).
 
+If {{ASK}} fails with an input-validation error, retry the call once with the same content (a transient serialization glitch, not a mistake in your input) before falling back to plain-text questions.
+
 ## Argument parsing
 
 From `$ARGUMENTS` extract:

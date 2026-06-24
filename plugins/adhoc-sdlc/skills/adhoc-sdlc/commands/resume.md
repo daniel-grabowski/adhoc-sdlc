@@ -11,6 +11,8 @@ Read `<skill-dir>/reference.md` (Read tool): section "Resume". Read `<skill-dir>
 
 Loads the previous session state from a handoff to continue work. Shows up to the 4 most recent sessions and asks which to load. Match the user's language for the questions and summary.
 
+If a structured question fails with an input-validation error, retry the call once with the same content (a transient serialization glitch, not a mistake in your input) before falling back to plain-text questions.
+
 ## Execution
 
 The helper (`pack`) is the only read-side authority: do NOT read `adhoc-sdlc/` files via `Read`/`Grep`.

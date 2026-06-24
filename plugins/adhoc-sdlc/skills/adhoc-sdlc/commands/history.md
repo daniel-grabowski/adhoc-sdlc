@@ -11,6 +11,8 @@ Read `<skill-dir>/reference.md` (Read tool): section "History". Read `<skill-dir
 
 An ANALYTICAL, READ-ONLY command: it creates and modifies nothing. It searches the journal corpus (plans, execution journals, handoffs) for the ANGLE given by the user, focused on recurring problems and things already done. It ends by asking "what next". Match the user's language for the rendered report.
 
+If a structured question fails with an input-validation error, retry the call once with the same content (a transient serialization glitch, not a mistake in your input) before falling back to plain-text questions.
+
 ## Analysis angle (required)
 
 Take the angle from `$ARGUMENTS` (e.g. "recurring build problems", "what was already done on RF-001"). When `$ARGUMENTS` is empty -> ask the user a structured question with common angles:
