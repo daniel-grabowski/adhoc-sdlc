@@ -82,6 +82,14 @@ flowchart LR
 
 Shapes carry the meaning: rounded is a command, a hexagon is an optional gate (`cove` and `temper` before the plan is saved, execution `cove` before execution closes), and the cylinder is the on-disk record. Solid edges are the main flow, dotted edges are optional or read-only, and thick edges write to the plan and journal that outlive a context reset, which is what `handoff` and `resume` bridge.
 
+## Research basis
+
+The `cove` skill is an implementation and adaptation of Chain-of-Verification (CoVe), a method introduced by Dhuliawala et al. The model drafts an answer, plans independent verification questions, answers them without leaning on the draft, and writes a final response that keeps only what held up. This repo adapts that loop to the sources of truth an agent actually has: repository code, plans, execution journals, command output, tests, documentation, and issue trackers.
+
+> Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu, Roberta Raileanu, Xian Li, Asli Celikyilmaz, and Jason Weston. 2024. [Chain-of-Verification Reduces Hallucination in Large Language Models](https://aclanthology.org/2024.findings-acl.212/). In *Findings of the Association for Computational Linguistics: ACL 2024*, pages 3563-3578. DOI: [10.18653/v1/2024.findings-acl.212](https://doi.org/10.18653/v1/2024.findings-acl.212).
+
+`cove` adapts that method; it does not claim to originate it. `temper` and `adhoc-sdlc` are original to this repo and do not derive from a single source paper. This project is not affiliated with or endorsed by the paper's authors or the ACL.
+
 ## Layout
 
 One directory per agent runtime, each packaged in that runtime's native format. The Python helper is shared across variants and duplicated where plugin packaging requires a self-contained directory.
@@ -171,7 +179,7 @@ Planned, most likely as a skill like the Codex variant rather than a plugin. The
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 ## Author
 

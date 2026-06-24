@@ -99,6 +99,14 @@ flowchart LR
 
 Znaczenie niosą kształty: zaokrąglony to komenda, sześciokąt to opcjonalna bramka (`cove` i `temper` przed zapisem planu, `cove` wykonania przed zamknięciem wykonania), a walec to zapis na dysku. Krawędzie ciągłe to główny przepływ, kropkowane to opcjonalne albo tylko do odczytu, a grube zapisują plan i dziennik, które przeżywają reset kontekstu. Ten most budują `handoff` i `resume`.
 
+## Podstawa badawcza
+
+Skill `cove` to implementacja i adaptacja Chain-of-Verification (CoVe), metody wprowadzonej przez Dhuliawalę i in. Model pisze szkic odpowiedzi, planuje niezależne pytania weryfikacyjne, odpowiada na nie bez opierania się na szkicu i tworzy finalną odpowiedź, która zostawia tylko to, co się obroniło. To repo przenosi tę pętlę na źródła prawdy, które agent faktycznie ma: kod repozytorium, plany, dzienniki wykonania, wyjście komend, testy, dokumentację i trackery zadań.
+
+> Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu, Roberta Raileanu, Xian Li, Asli Celikyilmaz, and Jason Weston. 2024. [Chain-of-Verification Reduces Hallucination in Large Language Models](https://aclanthology.org/2024.findings-acl.212/). In *Findings of the Association for Computational Linguistics: ACL 2024*, pages 3563-3578. DOI: [10.18653/v1/2024.findings-acl.212](https://doi.org/10.18653/v1/2024.findings-acl.212).
+
+`cove` adaptuje tę metodę, nie rości sobie jej autorstwa. `temper` i `adhoc-sdlc` są oryginalne dla tego repo i nie wywodzą się z jednego artykułu. Ten projekt nie jest powiązany z autorami pracy ani z ACL i nie jest przez nich firmowany.
+
 ## Układ
 
 Jeden katalog na środowisko agenta, każdy spakowany w natywnym formacie tego środowiska. Helper w Pythonie jest wspólny dla wariantów i zduplikowany tam, gdzie plugin musi być samowystarczalnym katalogiem.
@@ -188,7 +196,7 @@ W planach, najpewniej jako skill (jak wariant Codex), nie plugin. Dokładny form
 
 ## Licencja
 
-MIT. Zobacz [LICENSE](LICENSE).
+Apache-2.0. Zobacz [LICENSE](LICENSE) i [NOTICE](NOTICE).
 
 ## Autor
 

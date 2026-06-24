@@ -54,8 +54,9 @@ Nie wyolbrzymiaj wyników artykułu źródłowego. Często cytowana liczba
 uniwersalnej gwarancji dokładności; traktuj ją jako dowód, że krótka, celna
 weryfikacja ujawnia fakty pominięte w długiej generacji. Źródło: Dhuliawala i in.,
 „Chain-of-Verification Reduces Hallucination in Large Language Models",
-Findings of ACL 2024 (arXiv 2023). Artykuł nie obejmuje użycia narzędzi
-zewnętrznych, więc łącz CoVe z właściwym dla zadania źródłem prawdy.
+Findings of ACL 2024, strony 3563-3578 (DOI 10.18653/v1/2024.findings-acl.212;
+https://aclanthology.org/2024.findings-acl.212/; arXiv 2023). Artykuł nie obejmuje
+użycia narzędzi zewnętrznych, więc łącz CoVe z właściwym dla zadania źródłem prawdy.
 
 ## Więcej
 

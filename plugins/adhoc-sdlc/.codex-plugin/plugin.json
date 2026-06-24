@@ -9,7 +9,7 @@
   },
   "homepage": "https://github.com/daniel-grabowski/adhoc-sdlc",
   "repository": "https://github.com/daniel-grabowski/adhoc-sdlc",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "sdlc",
     "planning",

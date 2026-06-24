@@ -16,7 +16,7 @@ Use it when correctness matters more than speed. It reduces hallucinated or over
 
 Use Chain-of-Verification (CoVe) to reduce hallucinations by drafting an answer, planning independent verification questions, answering those questions without copying the draft, and revising the final answer to keep only verified claims.
 
-Primary source: Dhuliawala et al., "Chain-of-Verification Reduces Hallucination in Large Language Models", Findings of ACL 2024. The arXiv version was submitted in 2023.
+Primary source: this skill adapts the method from Dhuliawala et al., "Chain-of-Verification Reduces Hallucination in Large Language Models", Findings of ACL 2024, pages 3563-3578 (DOI: 10.18653/v1/2024.findings-acl.212; https://aclanthology.org/2024.findings-acl.212/). The arXiv version was submitted in 2023.
 
 ## Evidence Boundary
 

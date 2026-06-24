@@ -50,8 +50,9 @@ specific to its Wikidata list task (Llama 65B), not a universal accuracy
 guarantee; treat it as evidence that short, targeted verification exposes facts
 missed in long-form generation. Primary source: Dhuliawala et al.,
 "Chain-of-Verification Reduces Hallucination in Large Language Models",
-Findings of ACL 2024 (arXiv 2023). The paper does not cover external tool use, so
-combine CoVe with the right source of truth for the task.
+Findings of ACL 2024, pages 3563-3578 (DOI 10.18653/v1/2024.findings-acl.212;
+https://aclanthology.org/2024.findings-acl.212/; arXiv 2023). The paper does not
+cover external tool use, so combine CoVe with the right source of truth for the task.
 
 ## More detail
 

@@ -7,6 +7,6 @@
     "email": "daniel.grabowski@faktoria.io"
   },
   "homepage": "https://github.com/daniel-grabowski/adhoc-sdlc",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": ["sdlc", "planning", "journal", "ad-hoc", "workflow", "verification", "cove"]
 }

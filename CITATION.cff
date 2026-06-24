@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the project and the Chain-of-Verification paper it builds on."
+title: adhoc-sdlc
+abstract: "A small SDLC toolkit for AI coding agents: planning journals, Chain-of-Verification, and strategy hardening, packaged for Claude Code and Codex."
+type: software
+authors:
+  - family-names: Grabowski
+    given-names: Daniel
+    email: daniel.grabowski@faktoria.io
+license: Apache-2.0
+version: "0.4.0"
+repository-code: "https://github.com/daniel-grabowski/adhoc-sdlc"
+url: "https://github.com/daniel-grabowski/adhoc-sdlc"
+keywords:
+  - sdlc
+  - planning
+  - journal
+  - ad-hoc
+  - workflow
+  - verification
+  - cove
+references:
+  - type: conference-paper
+    title: "Chain-of-Verification Reduces Hallucination in Large Language Models"
+    authors:
+      - family-names: Dhuliawala
+        given-names: Shehzaad
+      - family-names: Komeili
+        given-names: Mojtaba
+      - family-names: Xu
+        given-names: Jing
+      - family-names: Raileanu
+        given-names: Roberta
+      - family-names: Li
+        given-names: Xian
+      - family-names: Celikyilmaz
+        given-names: Asli
+      - family-names: Weston
+        given-names: Jason
+    year: 2024
+    collection-title: "Findings of the Association for Computational Linguistics: ACL 2024"
+    start: 3563
+    end: 3578
+    doi: "10.18653/v1/2024.findings-acl.212"
+    url: "https://aclanthology.org/2024.findings-acl.212/"

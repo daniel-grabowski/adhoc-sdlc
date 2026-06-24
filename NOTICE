@@ -1,0 +1,17 @@
+adhoc-sdlc
+Copyright 2026 Daniel Grabowski
+
+This product includes the `cove` skill, an implementation and adaptation of the
+Chain-of-Verification (CoVe) method for agentic software engineering tasks.
+
+The Chain-of-Verification method is described in:
+
+  Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu, Roberta Raileanu, Xian Li,
+  Asli Celikyilmaz, and Jason Weston. 2024. "Chain-of-Verification Reduces
+  Hallucination in Large Language Models." In Findings of the Association for
+  Computational Linguistics: ACL 2024, pages 3563-3578, Bangkok, Thailand.
+  DOI: 10.18653/v1/2024.findings-acl.212
+  https://aclanthology.org/2024.findings-acl.212/
+
+This project is not affiliated with, endorsed by, or sponsored by the authors
+of the paper or by the Association for Computational Linguistics.
