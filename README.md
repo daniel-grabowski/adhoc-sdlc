@@ -10,6 +10,26 @@
 
 AI coding is fast, but speed without a record is fragile. This repo gives Claude Code and Codex a shared workflow for planning, verifying, journaling, resuming, and handing off small tasks without turning every change into a formal issue.
 
+## Quick start
+
+Install the plugin from the marketplace, then start a new session.
+
+**Claude Code:**
+
+```
+/plugin marketplace add daniel-grabowski/adhoc-sdlc
+/plugin install adhoc-sdlc@adhoc-sdlc
+```
+
+**Codex:**
+
+```
+codex plugin marketplace add daniel-grabowski/adhoc-sdlc --ref main
+codex plugin add adhoc-sdlc@adhoc-sdlc
+```
+
+For local development against a checkout, source switching, and the Antigravity status, see [Install](#install) below.
+
 ## Harness, not vibe coding
 
 Addy Osmani's [The New Software Lifecycle](https://addyosmani.com/blog/new-sdlc-vibe-coding/), and the [Google whitepaper](https://www.kaggle.com/whitepaper-the-new-SDLC-with-vibe-coding) behind it, frame an agent as a model plus a harness. The model is one input; the harness is the instructions, tools, context rules, and verification wrapped around it. The paper's rough split is 10% model, 90% harness. It also puts the line between vibe coding and engineering in one place: verification. Code that merely seems to work is vibe coding; code whose outputs get checked is engineering.
