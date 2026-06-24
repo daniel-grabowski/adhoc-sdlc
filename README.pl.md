@@ -8,7 +8,7 @@
 
 ## Dlaczego
 
-AI koduje szybko, ale szybkość bez zapisu decyzji jest krucha. To repo daje Claude Code i Codex wspólny workflow do planowania, weryfikacji, dziennikowania, wznawiania i przekazywania małych zadań bez zamieniania każdej zmiany w formalne issue.
+AI potrafi kodować szybko, ale szybkość bez zapisu decyzji jest krucha. To repo daje Claude Code i Codex wspólny workflow do planowania, weryfikacji, zarządzania dziennikiem prac, wznawiania i przekazywania małych zadań bez zamieniania każdej zmiany w formalne issue.
 
 ## Szybki start
 
