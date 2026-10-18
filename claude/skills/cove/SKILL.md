@@ -105,9 +105,9 @@ Every measurement carries one evidence label in the same sentence:
 - `inferred`: derived from other measurements, code, configuration, or documentation without running it. Name the source.
 - `guess`: an estimate with no measurement or derivation behind it. Say so plainly.
 
-Plan verification questions about how each number was obtained: "Which command produced this number, and how many runs?", "What is the spread across runs?", "What limits this result?". Downgrade a `measured` label that cannot answer them to `inferred` or `guess`.
+Plan verification questions about how each number was obtained: "Which command produced this number, and how many runs?", "What is the spread across runs?", "What limits this result?". Downgrade a `measured` label that cannot answer them: to `inferred` when a source or derivation can be named, otherwise to `guess`.
 
-A report that says `green`, `passed`, or an equivalent verdict is refused while it contains a measurement without a label: label the number or remove it, then issue the verdict again.
+Do not issue a `green`, `passed`, or equivalent verdict while the report contains a measurement without a label: label the number or remove it first.
 
 Example with all three labels:
 
@@ -145,7 +145,7 @@ A: <verified answer>
 
 [CROSS-CHECK]
 - <claim>: CONSISTENT/INCONSISTENT/INCONCLUSIVE (<reason>)
-- <measurement claim>: CONSISTENT (measured: <N> runs, range <min-max>, limitation: <what limits it>)
+- <measurement claim>: CONSISTENT/INCONSISTENT/INCONCLUSIVE (measured: <N> runs, range <min-max>, limitation: <what limits it> | inferred: <source> | guess)
 
 [FINAL VERIFIED RESPONSE]
 <revised answer>
