@@ -95,6 +95,28 @@ Break the biography into atomic facts: dates, offices, places, affiliations, pub
 
 Verify timeline, actors, outputs, names, versions, file paths, commands, and exact error text. For repo claims, inspect the actual repo. For current public facts, browse primary sources.
 
+### Measurements
+
+A measurement is any number a report states as a result: durations, counts, sizes, rates, percentages, test totals, latencies. Identifiers such as issue numbers, line numbers, versions, and commit hashes are not measurements.
+
+Every measurement carries one evidence label in the same sentence:
+
+- `measured`: you ran the command or probe yourself. State the number of runs, the range across those runs (`range` or `min-max`), and what limits the result (machine, data set, cache state, sample size). A single run is still `measured`, with 1 run and a range of that one value.
+- `inferred`: derived from other measurements, code, configuration, or documentation without running it. Name the source.
+- `guess`: an estimate with no measurement or derivation behind it. Say so plainly.
+
+Plan verification questions about how each number was obtained: "Which command produced this number, and how many runs?", "What is the spread across runs?", "What limits this result?". Downgrade a `measured` label that cannot answer them to `inferred` or `guess`.
+
+A report that says `green`, `passed`, or an equivalent verdict is refused while it contains a measurement without a label: label the number or remove it, then issue the verdict again.
+
+Example with all three labels:
+
+```text
+The full test suite ran in 41-47 s (measured: 5 runs, range 41-47 s, limitation: warm build cache on one machine).
+CI should need about 1 min for the same suite (inferred: CI runners are slower than this machine per the CI provider's published runner specs).
+The nightly batch would take about 10 min on production data (guess: no production-size data set was available to run it).
+```
+
 ## Rules
 
 - Never skip verification for factual claims when high accuracy matters.
@@ -103,6 +125,7 @@ Verify timeline, actors, outputs, names, versions, file paths, commands, and exa
 - Prefer fewer verified facts over many uncertain facts.
 - Mark confidence and state when verification was inconclusive.
 - For code generation and bug fixes, use tests and runtime checks; use CoVe only for factual surrounding claims.
+- Label every measurement `measured`, `inferred`, or `guess` in the same sentence; `measured` also states the number of runs, the range, and the limitation. Refuse a `green` or `passed` report while any measurement is unlabeled (see Measurements).
 
 ## Output Shape
 
@@ -122,6 +145,7 @@ A: <verified answer>
 
 [CROSS-CHECK]
 - <claim>: CONSISTENT/INCONSISTENT/INCONCLUSIVE (<reason>)
+- <measurement claim>: CONSISTENT (measured: <N> runs, range <min-max>, limitation: <what limits it>)
 
 [FINAL VERIFIED RESPONSE]
 <revised answer>
