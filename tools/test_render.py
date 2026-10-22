@@ -108,7 +108,9 @@ class RenderTests(unittest.TestCase):
         # AC-002 (#7557): SKILL_VIA jawnie wiąże wywołanie skilla per runtime (DEC-002).
         claude = render.render_one("skills/intention-hardening/SKILL.md", self.placeholders, "claude")
         self.assertIn("the `cove` skill (via the `Skill` tool; skills shipped in this plugin are named `adhoc-sdlc:<name>`)", claude)
-        self.assertIn("the `memory` skill (via the `Skill` tool;", claude)
+        # Skill memory jest skillem użytkownika spoza pluginu: bez sugestii nazwy adhoc-sdlc:memory (#7559).
+        self.assertIn("the `memory` skill (a user skill outside this plugin, invoked by its own name `memory`)", claude)
+        self.assertNotIn("the `memory` skill (via the `Skill` tool;", claude)
         codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
         codex = render.render_one("skills/intention-hardening/SKILL.md", codex_spec["placeholders"], "codex")
         self.assertIn("the `temper` skill (invoke it as `$<name>`)", codex)
@@ -152,6 +154,37 @@ class RenderTests(unittest.TestCase):
                 text = render.render_one("skills/temper/" + readme, placeholders, runtime)
                 self.assertNotIn(old, text, f"{runtime}: stary opis w {readme}")
                 self.assertIn("`Operator options`", text, f"{runtime}: brak Operator options w {readme}")
+
+    def test_plan_calls_intention_hardening_and_dont_ask_keeps_gates(self):
+        # AC-004 (#7559, DEC-006, DEC-008, DEC-005): Phase 1 woła bramkę zamiaru, "nie pytaj" zostawia CoVe i Temper.
+        codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
+        for runtime, placeholders in (("claude", self.placeholders), ("codex", codex_spec["placeholders"])):
+            via = placeholders["SKILL_VIA"]
+            plan = render.render_one("commands/plan.md", placeholders, runtime)
+            skill = render.render_one("skills/adhoc-sdlc/SKILL.md", placeholders, runtime)
+            phase1 = plan.split("## Phase 1")[1].split("## Phase 2")[0]
+            design = skill.split("### Design decisions")[1].split("## Read-side authority")[0]
+            for name, text in (("plan.md Phase 1", phase1), ("SKILL.md Design decisions", design)):
+                self.assertIn("run the `intention-hardening` skill" + via + " on the request", text, f"{runtime}: {name}")
+            self.assertIn("the goal and success criterion in `## Summary`", phase1)
+            self.assertIn("the interpretations and assumptions in `## Assumptions`", phase1)
+            self.assertIn("`## Original Prompt` through the helper's `--prompt` flag", phase1)
+            self.assertIn("[--prompt \"<verbatim request>\"]", plan)
+            self.assertIn("run the `cove` skill" + via + " on the draft plan", phase1)
+            self.assertIn("run the `temper` skill" + via + " on the draft plan", phase1)
+            self.assertIn("follows the skill's Goal boundary rule", phase1)
+            self.assertIn("`<condition> -> operator option not taken: <change>`", phase1)
+            self.assertIn("Operator options belong in the temper response, outside the plan file", phase1)
+            mode_gate = plan.split("## Phase 1")[0]
+            for name, text in (("plan.md mode gate", mode_gate), ("SKILL.md", skill)):
+                self.assertIn("`plan-cove` and `strategy-temper` are ON, the other four modes take the project defaults", text, f"{runtime}: {name}")
+                self.assertIn("request reading still runs", text, f"{runtime}: {name}")
+            for name, text in (("plan.md", plan), ("SKILL.md", skill)):
+                self.assertNotIn("default every mode to OFF", text, f"{runtime}: {name}")
+                self.assertNotIn("proves the original scope is too small", text, f"{runtime}: {name}")
+        # Źródła: fraza nie wraca w żadnym szablonie.
+        for path in render.TEMPLATES_DIR.rglob("*.md"):
+            self.assertNotIn("default every mode to OFF", path.read_text(encoding="utf-8"), str(path))
 
     def test_disk_matches_render(self):
         # Odpowiednik `render.py --check`: dysk == render dla aktywnego runtime claude.

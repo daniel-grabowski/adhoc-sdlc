@@ -54,7 +54,7 @@ Skip deepening for a small unambiguous change, a task with exact acceptance crit
 
 ### 3. Budget
 
-One bounded memory read following the `memory` skill{{SKILL_VIA}}: one search, then a read of the hits that matter. Add the decisions and run records already at hand. When the `memory` skill or the `forge` binary is not available, record `sources unavailable` (`źródła niedostępne`) and continue on local sources; do not pretend to know. Once the budget is spent, ask instead of searching further.
+One bounded memory read following the `memory` skill (a user skill outside this plugin, invoked by its own name `memory`): one search, then a read of the hits that matter. Add the decisions and run records already at hand. When the `memory` skill or the `forge` binary is not available, record `sources unavailable` (`źródła niedostępne`) and continue on local sources; do not pretend to know. Once the budget is spent, ask instead of searching further.
 
 ### 4. Decision anchors
 

@@ -50,7 +50,8 @@ oznaczane; uogólnialne wracają jako kandydaci do pamięci, skill ich nie zapis
 ## Miejsce w przepływie
 
 `intention-hardening` działa pierwszy: ustala, czego chcemy, potem `cove`
-sprawdza fakty, a `temper` strategię. Wołają go `/adhoc-sdlc:plan` i `/forge init`.
+sprawdza fakty, a `temper` strategię. Woła go `/adhoc-sdlc:plan`; wywołanie z
+`/forge init` w FORGE jest planowane.
 
 ## Więcej
 

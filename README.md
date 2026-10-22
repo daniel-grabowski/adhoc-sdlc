@@ -50,7 +50,7 @@ What: a lightweight SDLC for small, ad hoc implementation work. Why: it keeps ev
 
 ### Intention hardening
 
-What: a planning gate that hardens the user's intent: goal and success criterion, load-bearing terms with their project meaning and source, named interpretations, and one deciding question or explicit assumptions. Why: it catches a silently narrowed term or a widened scope before the plan is accepted, ahead of `cove` and `temper`. It ships as the `intention-hardening` skill, called by `/adhoc-sdlc:plan` and `/forge init`. See [claude/skills/intention-hardening/README.md](claude/skills/intention-hardening/README.md) for details.
+What: a planning gate that hardens the user's intent: goal and success criterion, load-bearing terms with their project meaning and source, named interpretations, and one deciding question or explicit assumptions. Why: it catches a silently narrowed term or a widened scope before the plan is accepted, ahead of `cove` and `temper`. It ships as the `intention-hardening` skill, called by `/adhoc-sdlc:plan`; a call from FORGE `/forge init` is planned. See [claude/skills/intention-hardening/README.md](claude/skills/intention-hardening/README.md) for details.
 
 ### CoVe
 

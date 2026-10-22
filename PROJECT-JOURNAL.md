@@ -1,5 +1,29 @@
 # Dziennik projektu adhoc-sdlc
 
+## 2026-10-22 - Wydanie 0.5.0: bramka zamiaru w planie, „nie pytaj” zostawia CoVe i Temper
+
+Status: wydane (scalenie origin/main, push)
+Zakres: workspace FORGE intention-hardening [#7556](https://rm.dflex.pl/issues/7556), zadania TASK-001 [#7557](https://rm.dflex.pl/issues/7557), TASK-002 [#7558](https://rm.dflex.pl/issues/7558) i TASK-003 [#7559](https://rm.dflex.pl/issues/7559).
+
+### Przyczyna
+
+Żaden krok planu nie sprawdzał, jak odczytano zlecenie (CoVe sprawdza fakty, Temper strategię), a „nie pytaj” wyłączało wszystkie tryby, więc w najkrótszych zleceniach plan powstawał bez żadnej bramki. Temper dopuszczał też wpisanie do planu zmiany spoza celu.
+
+### Co się zmieniło
+
+- Nowy skill `intention-hardening` (cel i kryterium, pojęcia nośne ze źródłem, interpretacje, kotwice decyzji) i placeholder `{{SKILL_VIA}}` w `runtimes/*.json`.
+- `temper`: fix tylko w granicach celu; zmiana spoza celu czeka w `Operator options` na decyzję operatora (`Widening: <zmiana>` albo wpis „operator option not taken” w `## Accepted Risks`).
+- `/adhoc-sdlc:plan` i `SKILL.md`: Phase 1 woła `intention-hardening`, a CoVe i Temper planu odsyłają do skilli `cove` i `temper`; wynik bramki trafia do `## Summary`, `## Assumptions` i `## Original Prompt` (`--prompt`). Przy „nie pytaj” odczyt zlecenia zawsze, `plan-cove` i `strategy-temper` ON, pozostałe tryby z konfiguracji.
+- Odwołanie do skilla `memory` nie sugeruje nazwy pluginu (to skill użytkownika). Wersja 0.4.0 -> 0.5.0 w trzech manifestach.
+
+### Czego nie zmieniono
+
+- Helper Python i `exec.md` (exec nadal czyta z `## Mode` tylko `test-execution` i `execution-cove`).
+
+### Weryfikacja
+
+- `python3 tools/render.py --check`, `pytest` (generator i helper), `claude plugin validate ./claude` i `.`: dowody w przebiegu FORGE zadania [#7559](https://rm.dflex.pl/issues/7559).
+
 ## 2026-06-23 - Redesign diagramów mermaid: overview i session-flow odwzorowują faktyczną mechanikę
 
 Status: przygotowane lokalnie w tym commicie

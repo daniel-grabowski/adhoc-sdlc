@@ -51,7 +51,8 @@ the generalisable ones are returned as memory candidates, never written by the s
 ## Where it sits
 
 `intention-hardening` runs first: it settles what is wanted, then `cove` checks the
-facts and `temper` the strategy. It is called by `/adhoc-sdlc:plan` and `/forge init`.
+facts and `temper` the strategy. It is called by `/adhoc-sdlc:plan`; a call from
+FORGE `/forge init` is planned.
 
 ## More detail
 

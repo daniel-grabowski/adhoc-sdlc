@@ -37,17 +37,13 @@ After a brief read of the prompt and before planning, ask the user to choose the
    - Strategy Temper. Selected: after Plan CoVe and before saving the plan, run a focused failure-mode pass on the strategy (edge cases, partial failure, retries/idempotency, migration/existing state, integration boundaries, verification gaps, reversibility, security/data safety, architecture responsibility leaks). Not selected: rely on the normal planning review and the required final self-check.
    - Execution CoVe. Selected: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. Not selected: rely on tests plus the required final self-check.
 
-If the user has already said "don't ask" in this session, do not block: default every mode to OFF (draft the plan, no subagent, no tests, no CoVe gates; always a final self-check + journal) and list the assumed modes explicitly.
+If the user has already said "don't ask" in this session, do not block: the Phase 1 request reading still runs, `plan-cove` and `strategy-temper` are ON, the other four modes take the project defaults read above (`config --get-modes`), and you list the assumed modes explicitly (always a final self-check + journal).
 
 Record the chosen modes (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, `execution-cove`); they are written into the plan body in Phase 2 as the contract `exec` reads.
 
-## Phase 1: design decisions (anchors + judgment)
+## Phase 1: design decisions (intention hardening + judgment)
 
-Before saving the plan, review the task against the ANCHORS and surface the real open decisions:
-- **Scope** what is in, what is out,
-- **Approach / variants** when there is more than one sensible path,
-- **Edge cases** boundary situations (empty, off-screen, error, zero-length list),
-- **Test plan** what verifies the result and how.
+Before saving the plan, run the `intention-hardening` skill (invoke it as `$<name>`) on the request; it always reads the request, also under "don't ask". It returns the goal and success criterion, the load-bearing terms with their source, the interpretations (every narrowing or widening named), the question asked or the assumptions made, and the decision anchors (scope, variants, edge cases, test strategy). Record that result in the existing plan sections: the goal and success criterion in `## Summary`, the interpretations and assumptions in `## Assumptions`, and the user's verbatim request in `## Original Prompt` through the helper's `--prompt` flag (Phase 2).
 
 Use the `SKILL.md` Engineering checklist as a light filter while making these decisions. Apply KISS, YAGNI, DRY with judgment, local conventions first, separation of concerns, cohesion over cleverness, explicit contracts, testability, security/data safety, and evidence-based performance. Put only task-relevant consequences into `## Key Changes` or `## Assumptions`; do not create a checklist report unless the user asks for one.
 
@@ -55,30 +51,22 @@ Think for the user: propose resolutions with a recommendation, verify assumption
 
 Do not assume decisions silently. If the user explicitly says "don't ask / just do it", do NOT block them with questions, but LIST the adopted resolutions as explicit assumptions (open to veto); never hide them only in the file. Adopted decisions go into the plan sections (Assumptions / Key Changes).
 
-If `plan-cove` is ON, run a compact CoVe pass before saving the plan body:
-- draft the plan as provisional, not as truth;
-- ask independent verification questions for factual claims and assumptions, such as which files/API/tests actually exist, which constraints are confirmed, and which plan claims still need caveats;
-- answer those questions from the source of truth for the task (repo inspection, docs, tests, databases, web only when appropriate);
-- revise the plan so unverified claims move to `## Assumptions` or are explicitly caveated.
+If `plan-cove` is ON, run the `cove` skill (invoke it as `$<name>`) on the draft plan before saving the plan body: treat the draft as provisional, verify its factual claims and assumptions against the source of truth for the task, and revise the plan so unverified claims move to `## Assumptions` or are explicitly caveated.
 
-If `strategy-temper` is ON, run a compact Temper pass before saving the plan body:
-- Treat the draft plan as a strategy under test, not as final truth.
-- Use verified facts from Plan CoVe when available; treat unverified factual claims as assumptions, not facts.
-- Enumerate concrete failure modes as `condition -> what breaks -> consequence -> resolution`.
-- Cover only relevant categories: edge cases, partial failure, retries/idempotency, migration/existing state, integration boundaries, verification gaps, reversibility, security/data safety, and architecture responsibility leaks.
-- For each failure mode either update the plan, move an unverified factual dependency to `## Assumptions`, adjust the test plan, record an accepted risk with a reason, or reject it as speculative noise.
+If `strategy-temper` is ON, run the `temper` skill (invoke it as `$<name>`) on the draft plan after Plan CoVe and before saving the plan body, using its adhoc-sdlc plan output:
 - When risks are worth recording, add `## Tempered Risks` and `## Accepted Risks` sections to the plan body (`condition -> fix` / `condition -> why acceptable`); the fixes must already be incorporated into the plan, not left as a detached TODO.
-- Do not expand the feature unless a failure mode proves the original scope is too small to be safe. No fallback sprawl, abstraction creep, or speculative defensive layers.
+- A change beyond the plan's goal follows the skill's Goal boundary rule: it does not enter the plan, it waits in `Operator options` for the operator's decision. Taken: state it as `Widening: <change>` and fold it into the plan as a fix. Declined, or under "don't ask": record it under `## Accepted Risks` as `<condition> -> operator option not taken: <change>`.
+- Operator options belong in the temper response, outside the plan file.
 
 ## Phase 2: save the plan file
 
 1. Create the plan file with the helper:
    ```bash
    python3 <skill-dir>/scripts/adhoc_sdlc.py plan \
-     --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>]
+     --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>] [--prompt "<verbatim request>"]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE` from stderr and fix the call (e.g. unique name, allowed status/keywords/project); do not create the file by hand.
-3. Read the returned `plan=...` path and fill the body sections (`## Summary`, `## Key Changes`, `## Test Plan`, `## Assumptions`) with `Edit`, incorporating the Phase 1 decisions and any `plan-cove` revisions. Then add a `## Mode` section recording the Phase 0 toggles (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, `execution-cove`, plus any defaults assumed under "don't ask"). When `strategy-temper` is ON and there are risks worth recording, also add the optional `## Tempered Risks` and `## Accepted Risks` sections. Do NOT touch the frontmatter block.
+3. Read the returned `plan=...` path and fill the body sections (`## Summary`, `## Key Changes`, `## Test Plan`, `## Assumptions`) with `Edit`, incorporating the Phase 1 decisions and any `plan-cove` revisions. Then add a `## Mode` section recording the Phase 0 toggles (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, `execution-cove`, plus any defaults assumed under "don't ask"). When `strategy-temper` is ON and there are risks worth recording, also add the optional `## Tempered Risks` and `## Accepted Risks` sections; temper's Operator options stay in its response, not in the file. Do NOT touch the frontmatter block.
 
 ## Phase 3: close the loop
 
