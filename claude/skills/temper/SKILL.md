@@ -10,7 +10,7 @@ description: "What: Harness strategy hardening gate for plans, architecture, and
 
 `temper` is a Harness strategy hardening gate. It pressure-tests a plan, architecture, implementation direction, or current change strategy by looking for concrete failure modes before execution or commit.
 
-It does not verify facts, review code line by line, or expand the feature by default. It checks whether the proposed strategy survives realistic edge cases, integration boundaries, partial failures, retries, reversibility constraints, and verification gaps.
+It does not verify facts, review code line by line, or expand the feature beyond the plan's goal. The goal is given: `temper` hardens how the plan reaches it, not what the plan is for. It checks whether the proposed strategy survives realistic edge cases, integration boundaries, partial failures, retries, reversibility constraints, and verification gaps.
 
 ## Why
 
@@ -21,6 +21,8 @@ A good `temper` pass ends with one of three outcomes for every meaningful risk:
 - the plan is changed to close the risk;
 - the risk is explicitly accepted with a reason;
 - the concern is rejected as speculative noise or sent back to CoVe because it depends on an unverified fact.
+
+A change that would add behavior or scope beyond the goal is not a plan change: it goes to the operator as an option or is recorded as an accepted risk (see step 4).
 
 ## Relationship to Harness, CoVe, adhoc-sdlc, review, and tests
 
@@ -119,7 +121,7 @@ Definitions:
 - **speculative** - possible, but not enough evidence to change the plan unless the blast radius is high.
 - **blocker** - should stop implementation until fixed or explicitly accepted by the user.
 - **important** - should normally be fixed or recorded as accepted risk.
-- **minor** - should not expand scope unless cheap and local.
+- **minor** - fix only when the change is cheap, local, and within the goal; otherwise accept or reject.
 
 ## Process
 
@@ -129,6 +131,7 @@ State what is being tempered:
 
 ```text
 Subject: <plan / architecture / current change strategy / adhoc-sdlc plan>
+Goal: <the intent the plan serves, from intention-hardening, the request, or the plan Summary>
 ```
 
 If the subject came from an `adhoc-sdlc` plan, keep the plan as the source of truth and treat `temper` as a planning gate.
@@ -182,10 +185,17 @@ Two agents append execution results concurrently -> journal order becomes mislea
 
 For every failure mode, choose exactly one resolution:
 
-- **fix** - update the plan/strategy with a specific change;
+- **fix** - update the plan/strategy with a specific change within the plan's goal;
 - **accept** - record as accepted risk with a reason;
 - **reject** - mark as speculative/noise and explain why it should not change the plan;
 - **verify-with-cove** - send factual uncertainty back to CoVe or source inspection.
+
+Goal boundary: a `fix` changes only how the plan reaches its goal. When closing a failure mode would add behavior, a feature, or scope the goal does not cover, it is not a `fix` and does not enter the plan automatically. Resolve it as `accept` and either:
+
+- list the change under `Operator options` for the operator to decide, with a short reason and its cost; or
+- record the risk under Accepted Risks when it is tolerable without the change.
+
+The plan grows only when the operator takes an option. An option not taken is recorded under Accepted Risks.
 
 Do not close a failure mode with hand-waving.
 
@@ -237,6 +247,9 @@ Use this shape unless the user asks for full audit detail:
 ## Rejected/speculative risks
 - <condition> -> <why not changing the plan>
 
+## Operator options
+- <change beyond the goal> -> <why it would help>; cost: <cost>
+
 ## Iterations
 Converged after <N> pass(es).
 
@@ -244,7 +257,7 @@ Converged after <N> pass(es).
 <self-contained revised plan, ready for execution>
 ```
 
-Keep `Final tempered plan` last.
+Keep `Final tempered plan` last. Omit `Operator options` when every fix stays within the goal.
 
 ### adhoc-sdlc plan output
 
@@ -261,6 +274,8 @@ When integrated into `/adhoc-sdlc:plan`, keep the response shorter and produce s
 ```
 
 Then ensure the final plan already includes the fixes. Do not leave the user with a separate patch list that still needs interpretation.
+
+Operator options are not a plan section: list them in the response, outside the plan file. An option the user takes widens the goal and its change is folded into the plan; an option not taken (including under "don't ask") goes to `## Accepted Risks` as `<condition> -> operator option not taken: <change>`.
 
 ### Current git changes output
 
@@ -314,7 +329,7 @@ Avoid these:
 
 - **Fallback sprawl** - adding normalizers, retries, and wrappers for scenarios that cannot happen.
 - **Abstraction creep** - introducing layers or interfaces just in case.
-- **Scope drift** - silently expanding the feature instead of naming that the original scope is too small.
+- **Scope drift** - folding a change that adds behavior or scope beyond the goal into the plan as a `fix`, instead of offering it under `Operator options` or recording it under Accepted Risks.
 - **Fact verification by strategy review** - using `temper` to pretend facts were verified.
 - **Speculative hardening** - changing the plan for low-evidence risks with low blast radius.
 - **Second source of truth** - adding a workaround that bypasses the existing contract.
@@ -357,4 +372,16 @@ impact: migration,data
 breaks: historical analytics field is empty for archived rows
 consequence: old reports show unknown instead of derived value
 resolution: accept, because the field is optional, not used for decisions, and backfill cost is out of scope
+```
+
+### Example: change beyond the goal
+
+```text
+condition: the handoff plan has no recovery path when the session crashes mid-write
+evidence: inferred
+severity: important
+impact: workflow
+breaks: a partial handoff file is left behind
+consequence: the next resume reads stale state
+resolution: accept, the goal is the handoff format, not crash recovery; Operator options: add an atomic write with a recovery step (cost: one helper change and a test)
 ```

@@ -18,8 +18,8 @@ is accepted with a stated reason, or the concern is rejected as speculative
 
 ## What it is not
 
-`temper` does not verify facts, review code line by line, or grow the feature by
-default. It is one tool among several:
+`temper` does not verify facts, review code line by line, or grow the feature
+beyond the plan's goal. It is one tool among several:
 
 - CoVe checks whether a claim is true.
 - Temper checks whether the strategy survives realistic failure modes.
@@ -50,7 +50,10 @@ There is no `/temper` command. Invoke it two ways:
 
 When run inside `/adhoc-sdlc:plan`, the result is written into the plan body as
 `## Tempered Risks` and `## Accepted Risks`, with the fixes already folded into
-the plan rather than left as a separate to-do list.
+the plan rather than left as a separate to-do list. A fix stays within the plan's
+goal; a change that would add behavior or scope beyond it is listed under
+`Operator options` (with a reason and its cost) for the operator to decide, and an
+option not taken is recorded under `## Accepted Risks`.
 
 ## Integration with adhoc-sdlc
 

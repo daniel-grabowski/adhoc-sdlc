@@ -18,8 +18,8 @@ odrzucona jako spekulacja (lub odesłana do CoVe, gdy zależy od niezweryfikowan
 
 ## Czym nie jest
 
-`temper` nie weryfikuje faktów, nie recenzuje kodu linijka po linijce i domyślnie
-nie rozszerza funkcji. To jedno z kilku narzędzi:
+`temper` nie weryfikuje faktów, nie recenzuje kodu linijka po linijce i nie
+rozszerza funkcji poza cel planu. To jedno z kilku narzędzi:
 
 - CoVe sprawdza, czy twierdzenie jest prawdziwe.
 - Temper sprawdza, czy strategia wytrzyma realistyczne tryby awarii.
@@ -50,7 +50,10 @@ Komenda `/temper` nie istnieje. Wywołujesz go na dwa sposoby:
 
 Uruchomiony w `/adhoc-sdlc:plan`, wynik trafia do treści planu jako sekcje
 `## Tempered Risks` i `## Accepted Risks`, z poprawkami już wpiętymi w plan, a nie
-zostawionymi jako osobna lista zadań.
+zostawionymi jako osobna lista zadań. Poprawka mieści się w celu planu; zmiana,
+która dodałaby zachowanie albo zakres spoza celu, trafia do sekcji
+`Operator options` (z uzasadnieniem i kosztem) do decyzji operatora, a opcja
+niewybrana trafia do `## Accepted Risks`.
 
 ## Integracja z adhoc-sdlc
 

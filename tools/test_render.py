@@ -120,6 +120,26 @@ class RenderTests(unittest.TestCase):
                 sorted(prefix + "skills/intention-hardening/" + n for n in ("SKILL.md", "README.md", "README.pl.md")),
             )
 
+    def test_temper_fix_stays_within_goal(self):
+        # AC-003 (#7558, DEC-005): fix tylko w granicach celu, zmiana spoza celu do Operator options albo Accepted Risks.
+        codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
+        for runtime, placeholders in (("claude", self.placeholders), ("codex", codex_spec["placeholders"])):
+            out = render.render_one("skills/temper/SKILL.md", placeholders, runtime)
+            for phrase in (
+                "resolution: fix | accept | reject | verify-with-cove",
+                "a specific change within the plan's goal",
+                "Goal boundary: a `fix` changes only how the plan reaches its goal",
+                "it is not a `fix` and does not enter the plan automatically",
+                "list the change under `Operator options` for the operator to decide, with a short reason and its cost",
+                "record the risk under Accepted Risks when it is tolerable without the change",
+                "The plan grows only when the operator takes an option",
+                "## Operator options\n- <change beyond the goal> -> <why it would help>; cost: <cost>",
+                "Operator options are not a plan section",
+                "instead of offering it under `Operator options` or recording it under Accepted Risks",
+            ):
+                self.assertIn(phrase, out, f"{runtime}: brak frazy kontraktu: {phrase}")
+            self.assertNotIn("expand the feature by default", out)
+
     def test_disk_matches_render(self):
         # Odpowiednik `render.py --check`: dysk == render dla aktywnego runtime claude.
         for template_rel, output_rel in self.files:
