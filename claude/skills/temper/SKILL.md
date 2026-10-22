@@ -22,7 +22,7 @@ A good `temper` pass ends with one of three outcomes for every meaningful risk:
 - the risk is explicitly accepted with a reason;
 - the concern is rejected as speculative noise or sent back to CoVe because it depends on an unverified fact.
 
-A change that would add behavior or scope beyond the goal is not a plan change: it goes to the operator as an option or is recorded as an accepted risk (see step 4).
+A change that would add behavior or scope beyond the goal is not a plan change: it goes to the operator as an option and becomes an accepted risk only when the operator declines it or under "don't ask" (see step 4).
 
 ## Relationship to Harness, CoVe, adhoc-sdlc, review, and tests
 
@@ -190,12 +190,13 @@ For every failure mode, choose exactly one resolution:
 - **reject** - mark as speculative/noise and explain why it should not change the plan;
 - **verify-with-cove** - send factual uncertainty back to CoVe or source inspection.
 
-Goal boundary: a `fix` changes only how the plan reaches its goal. When closing a failure mode would add behavior, a feature, or scope the goal does not cover, it is not a `fix` and does not enter the plan automatically. Resolve it as `accept` and either:
+Goal boundary: a `fix` changes only how the plan reaches its goal. A change that makes behavior the plan already contains work correctly under a failure mode (input validation, error handling for a step the plan already has, a retry guard on a planned call) is within the goal and resolves as `fix`. "Would add behavior" means behavior the goal does not cover: when closing a failure mode would add such behavior, a feature, or scope, it is not a `fix` and does not enter the plan automatically:
 
-- list the change under `Operator options` for the operator to decide, with a short reason and its cost; or
-- record the risk under Accepted Risks when it is tolerable without the change.
+- list the change only under `Operator options` for the operator to decide, with a short reason and its cost;
+- when the operator takes the option, state it explicitly as `Widening: <change>` and fold the change into the plan;
+- when the operator declines it, or under "don't ask", resolve it as `accept` and record it under Accepted Risks as `<condition> -> operator option not taken: <change>`.
 
-The plan grows only when the operator takes an option. An option not taken is recorded under Accepted Risks.
+The plan grows only when the operator takes an option.
 
 Do not close a failure mode with hand-waving.
 
@@ -275,7 +276,7 @@ When integrated into `/adhoc-sdlc:plan`, keep the response shorter and produce s
 
 Then ensure the final plan already includes the fixes. Do not leave the user with a separate patch list that still needs interpretation.
 
-Operator options are not a plan section: list them in the response, outside the plan file. An option the user takes widens the goal and its change is folded into the plan; an option not taken (including under "don't ask") goes to `## Accepted Risks` as `<condition> -> operator option not taken: <change>`.
+Operator options are not a plan section: list them in the response, outside the plan file. An option the user takes is stated as `Widening: <change>` and its change is folded into the plan; an option the user declines, or any option under "don't ask", goes to `## Accepted Risks` as `<condition> -> operator option not taken: <change>`.
 
 ### Current git changes output
 

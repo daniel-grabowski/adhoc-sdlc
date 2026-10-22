@@ -130,8 +130,11 @@ class RenderTests(unittest.TestCase):
                 "a specific change within the plan's goal",
                 "Goal boundary: a `fix` changes only how the plan reaches its goal",
                 "it is not a `fix` and does not enter the plan automatically",
-                "list the change under `Operator options` for the operator to decide, with a short reason and its cost",
-                "record the risk under Accepted Risks when it is tolerable without the change",
+                "error handling for a step the plan already has, a retry guard on a planned call) is within the goal and resolves as `fix`",
+                "\"Would add behavior\" means behavior the goal does not cover",
+                "list the change only under `Operator options` for the operator to decide, with a short reason and its cost",
+                "state it explicitly as `Widening: <change>`",
+                "when the operator declines it, or under \"don't ask\", resolve it as `accept` and record it under Accepted Risks",
                 "The plan grows only when the operator takes an option",
                 "## Operator options\n- <change beyond the goal> -> <why it would help>; cost: <cost>",
                 "Operator options are not a plan section",
@@ -139,6 +142,10 @@ class RenderTests(unittest.TestCase):
             ):
                 self.assertIn(phrase, out, f"{runtime}: brak frazy kontraktu: {phrase}")
             self.assertNotIn("expand the feature by default", out)
+            for readme, old in (("README.md", "grow the feature by\ndefault"), ("README.pl.md", "domyślnie\nnie rozszerza funkcji")):
+                text = render.render_one("skills/temper/" + readme, placeholders, runtime)
+                self.assertNotIn(old, text, f"{runtime}: stary opis w {readme}")
+                self.assertIn("`Operator options`", text, f"{runtime}: brak Operator options w {readme}")
 
     def test_disk_matches_render(self):
         # Odpowiednik `render.py --check`: dysk == render dla aktywnego runtime claude.
