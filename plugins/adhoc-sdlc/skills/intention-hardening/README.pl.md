@@ -53,7 +53,8 @@ oznaczane; uogólnialne wracają jako kandydaci do pamięci, skill ich nie zapis
 `intention-hardening` działa pierwszy: ustala, czego chcemy, potem `cove`
 sprawdza fakty, a `temper` strategię. Woła go `/adhoc-sdlc:plan` oraz `/forge init`
 w FORGE: przewodnik init FORGE woła go przed `cove` i `temper`, a bez pluginu
-zatrzymuje się z jawnym komunikatem.
+albo gdy brakuje skilla włączonego trybu zatrzymuje się z jawnym komunikatem,
+a dalej idzie tylko za zgodą operatora.
 
 ## Więcej
 

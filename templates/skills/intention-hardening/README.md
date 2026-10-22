@@ -53,7 +53,8 @@ the generalisable ones are returned as memory candidates, never written by the s
 `intention-hardening` runs first: it settles what is wanted, then `cove` checks the
 facts and `temper` the strategy. It is called by `/adhoc-sdlc:plan` and by FORGE
 `/forge init`: the FORGE init guide calls it before `cove` and `temper` and stops
-with an explicit message when the plugin is missing.
+with an explicit message when the plugin or a skill of an enabled mode is missing,
+and continues only with the operator's consent.
 
 ## More detail
 

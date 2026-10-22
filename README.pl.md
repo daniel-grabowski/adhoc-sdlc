@@ -60,7 +60,7 @@ Bramka planowania, która utwardza zamiar użytkownika: cel i kryterium sukcesu,
 
 #### Dlaczego
 
-Wychwytuje po cichu zawężone pojęcie albo poszerzony zakres, zanim plan zostanie zaakceptowany, przed `cove` i `temper`. Dostarczany jako skill `intention-hardening`, wołany przez `/adhoc-sdlc:plan` i przez `/forge init` w FORGE, którego przewodnik init woła też `cove` i `temper`, a bez pluginu zatrzymuje się z jawnym komunikatem. Szczegóły w [claude/skills/intention-hardening/README.pl.md](claude/skills/intention-hardening/README.pl.md).
+Wychwytuje po cichu zawężone pojęcie albo poszerzony zakres, zanim plan zostanie zaakceptowany, przed `cove` i `temper`. Dostarczany jako skill `intention-hardening`, wołany przez `/adhoc-sdlc:plan` i przez `/forge init` w FORGE, którego przewodnik init woła też `cove` i `temper`, a bez pluginu albo gdy brakuje skilla włączonego trybu zatrzymuje się z jawnym komunikatem, a dalej idzie tylko za zgodą operatora. Szczegóły w [claude/skills/intention-hardening/README.pl.md](claude/skills/intention-hardening/README.pl.md).
 
 ### CoVe
 
