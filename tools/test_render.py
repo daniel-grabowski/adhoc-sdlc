@@ -73,6 +73,53 @@ class RenderTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             render.render_one("commands/plan.md", incomplete, "claude")
 
+    def test_intention_hardening_contract_phrases(self):
+        # AC-001 (#7557): kontrakt bramki zamiaru w szablonie skilla.
+        out = render.render_one("skills/intention-hardening/SKILL.md", self.placeholders, "claude")
+        for phrase in (
+            "name: intention-hardening",
+            "Goal in one sentence, plus the success criterion",
+            "Load-bearing terms: for each, its meaning in this project and the source",
+            "ask one question that shows the concrete difference",
+            "assumption labelled `interpretacja`",
+            "Name every narrowing or widening",
+            "Deepen when any of these holds",
+            "Skip deepening for a small unambiguous change",
+            "A memory hit is background to confirm, not evidence",
+            "Memory never replaces the user's current intent",
+            "One bounded memory read following the `memory` skill",
+            "`sources unavailable` (`źródła niedostępne`)",
+            "Once the budget is spent, ask instead of searching further",
+            "scope: what is in and what is out",
+            "`korekta intencji (plan|kod|odbiór)`",
+            "P0 block `Kandydaci do pamięci` as `[hipoteza]`",
+            "The skill never writes to memory itself",
+            "Under \"don't ask\"",
+            "Return to the caller, without writing anything",
+            "IPR Assumptions with owner `interpretacja` or `operator`",
+            "the Mode key `intent`",
+            "Summary, Assumptions, and Original Prompt",
+            "It is not `/forge:harden`",
+            "intention-hardening -> cove -> temper",
+        ):
+            self.assertIn(phrase, out, f"brak frazy kontraktu: {phrase}")
+
+    def test_skill_via_binds_per_runtime(self):
+        # AC-002 (#7557): SKILL_VIA jawnie wiąże wywołanie skilla per runtime (DEC-002).
+        claude = render.render_one("skills/intention-hardening/SKILL.md", self.placeholders, "claude")
+        self.assertIn("the `cove` skill (via the `Skill` tool; skills shipped in this plugin are named `adhoc-sdlc:<name>`)", claude)
+        self.assertIn("the `memory` skill (via the `Skill` tool;", claude)
+        codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
+        codex = render.render_one("skills/intention-hardening/SKILL.md", codex_spec["placeholders"], "codex")
+        self.assertIn("the `temper` skill (invoke it as `$<name>`)", codex)
+        self.assertNotIn("`Skill` tool", codex)
+        for files, prefix in ((self.files, "claude/"), (codex_spec["files"], "plugins/adhoc-sdlc/")):
+            outputs = [o for t, o in files if t.startswith("skills/intention-hardening/")]
+            self.assertEqual(
+                sorted(outputs),
+                sorted(prefix + "skills/intention-hardening/" + n for n in ("SKILL.md", "README.md", "README.pl.md")),
+            )
+
     def test_disk_matches_render(self):
         # Odpowiednik `render.py --check`: dysk == render dla aktywnego runtime claude.
         for template_rel, output_rel in self.files:

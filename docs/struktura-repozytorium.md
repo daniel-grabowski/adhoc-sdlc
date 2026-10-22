@@ -8,8 +8,8 @@ edytować prompty skilla albo dodawać nowy runtime.
 ## 1. Po co to repo
 
 Repozytorium dystrybuuje skill `adhoc-sdlc` (lekki cykl SDLC: plan + wznawialny
-dziennik wykonania) oraz skille pomocnicze `cove` (weryfikacja faktów) i `temper`
-(hartowanie strategii) do kilku środowisk agentów AI: Claude Code, Codex,
+dziennik wykonania) oraz skille pomocnicze `intention-hardening` (utwardzanie
+zamiaru przed planem), `cove` (weryfikacja faktów) i `temper` (hartowanie strategii) do kilku środowisk agentów AI: Claude Code, Codex,
 Antigravity (Gemini). Każde środowisko nazywa swoje narzędzia inaczej (np.
 pytanie do użytkownika to `AskUserQuestion` w Claude Code, a w Codex opisowo
 "a structured question" z natywnym UI wyboru), więc ten sam prompt musi istnieć w
@@ -72,7 +72,8 @@ templates/
 └── skills/
     ├── adhoc-sdlc/          SKILL.md, reference.md, README.md, README.pl.md
     ├── cove/                SKILL.md, README.md, README.pl.md, agents/openai.yaml (metadane Codex)
-    └── temper/              SKILL.md, README.md, README.pl.md, examples/, integration/
+    ├── temper/              SKILL.md, README.md, README.pl.md, examples/, integration/
+    └── intention-hardening/ SKILL.md, README.md, README.pl.md
 ```
 
 Używane placeholdery (i ile razy występują w szablonach):
@@ -83,6 +84,7 @@ Używane placeholdery (i ile razy występują w szablonach):
 | `{{ASK_NOTE}}`       | dodatkowa wskazówka do pytania (pusta dla Claude)   | 2         |
 | `{{TODO}}`           | narzędzie listy zadań                               | 3         |
 | `{{SUBAGENT_VIA}}`   | klauzula "via ..." dla podagenta (pusta dla Codex)  | 4         |
+| `{{SKILL_VIA}}`      | klauzula wywołania skilla (`Skill` w Claude, `$<name>` w Codex) | 3 |
 | `{{SKILL_HOME}}`     | katalog z SKILL.md/reference.md/scripts             | 22        |
 | `{{SKILL_HOME_NOTE}}`| objaśnienie ścieżki skilla (puste dla Claude)       | 1         |
 | `{{COMMANDS_HOME}}`  | katalog komend                                      | 1         |
@@ -92,7 +94,9 @@ Placeholdery rozdzielono celowo: `SKILL_HOME` (katalog skilla) i `COMMANDS_HOME`
 (katalog komend) to dwie różne kotwice layoutu, bo Claude trzyma komendy w roocie
 pluginu, a Codex zagnieżdża je w skillu. `SUBAGENT_VIA`, `ASK_NOTE` i
 `SKILL_HOME_NOTE` są puste dla Claude, a niosą treść dla Codex (Codex w prozie
-mówi akcjami, nie nazwami narzędzi). `ASSETS` to prefiks ścieżki do katalogu
+mówi akcjami, nie nazwami narzędzi). `SKILL_VIA` wiąże odwołanie do innego skilla:
+w Claude narzędzie `Skill` z nazwą `adhoc-sdlc:<name>` dla skilli pluginu, w Codex
+`$<name>` (hipoteza oparta na jedynym dowodzie, `$cove` w `cove/agents/openai.yaml`). `ASSETS` to prefiks ścieżki do katalogu
 `assets/`, różny per runtime (Claude trzy poziomy w górę, Codex cztery), bo README
 skilli leżą na różnej głębokości względem korzenia repo.
 
@@ -171,7 +175,8 @@ claude/
 └── skills/
     ├── adhoc-sdlc/                SKILL.md, reference.md, README.md, README.pl.md (generowane); scripts/
     ├── cove/                      SKILL.md, README.md, README.pl.md (generowane)
-    └── temper/                    SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
+    ├── temper/                    SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
+    └── intention-hardening/       SKILL.md, README.md, README.pl.md (generowane)
 ```
 
 Komendy leżą w roocie pluginu (`commands/`), bo Claude Code tak je odkrywa.
@@ -187,7 +192,8 @@ plugins/adhoc-sdlc/
 └── skills/
     ├── adhoc-sdlc/             SKILL.md, reference.md, README.md, README.pl.md, commands/, scripts/ (generowane + helper)
     ├── cove/                   SKILL.md, README.md, README.pl.md, agents/openai.yaml (generowane)
-    └── temper/                 SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
+    ├── temper/                 SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
+    └── intention-hardening/    SKILL.md, README.md, README.pl.md (generowane)
 ```
 
 Komendy są zagnieżdżone w skillu (`skills/adhoc-sdlc/commands/`), inaczej niż w
@@ -262,7 +268,7 @@ trafiają plany i dzienniki konkretnych zadań prowadzonych przez skill.
 ## 9. Stan obecny i dług
 
 - Generator produkuje oba realne warianty: `claude/` i `plugins/adhoc-sdlc/`
-  (oba `active=true`), wraz ze skillami `cove` i `temper`, ich README (EN+PL) oraz
+  (oba `active=true`), wraz ze skillami `intention-hardening`, `cove` i `temper`, ich README (EN+PL) oraz
   metadanymi Codex `cove/agents/openai.yaml`. Brak już ręcznie utrzymywanej prozy
   dystrybucyjnej i brak legacy wariantu `codex/`.
 - `antigravity.json` to wciąż szkielet (`active=false`) z placeholderami do

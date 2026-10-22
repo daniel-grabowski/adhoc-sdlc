@@ -1,12 +1,13 @@
 {
   "runtime": "codex",
   "active": true,
-  "description": "Codex / Codex-plugin tool bindings for adhoc-sdlc prompt templates. Codex names no dedicated question/subagent tool in its prose (speak in actions), so ASK/TODO render as descriptive phrases and the subagent via-clause is empty. Paths resolve against the installed skill dir (<skill-dir>). Output tree is the Codex plugin: plugins/adhoc-sdlc/.",
+  "description": "Codex / Codex-plugin tool bindings for adhoc-sdlc prompt templates. Codex names no dedicated question/subagent tool in its prose (speak in actions), so ASK/TODO render as descriptive phrases and the subagent via-clause is empty. SKILL_VIA renders `$<name>` after the only evidence in the repo (`$cove` in skills/cove/agents/openai.yaml); the plugin-skill invocation syntax is not yet confirmed. Paths resolve against the installed skill dir (<skill-dir>). Output tree is the Codex plugin: plugins/adhoc-sdlc/.",
   "placeholders": {
     "ASK": "a structured question",
     "ASK_NOTE": " Use a native choice UI when the surface provides one, otherwise plain numbered options; do not imply that the plugin provides its own custom form UI.",
     "TODO": "your runtime's native task-tracking tool",
     "SUBAGENT_VIA": "",
+    "SKILL_VIA": " (invoke it as `$<name>`)",
     "SKILL_HOME": "<skill-dir>",
     "SKILL_HOME_NOTE": " When command docs show `<skill-dir>`, resolve it to the directory containing this `SKILL.md` and `reference.md`; do not hard-code `~/.codex/skills/adhoc-sdlc` when the skill came from a Codex plugin install.",
     "COMMANDS_HOME": "<skill-dir>/commands",
@@ -30,6 +31,9 @@
     ["skills/temper/README.md", "plugins/adhoc-sdlc/skills/temper/README.md"],
     ["skills/temper/README.pl.md", "plugins/adhoc-sdlc/skills/temper/README.pl.md"],
     ["skills/temper/examples/sample-output.md", "plugins/adhoc-sdlc/skills/temper/examples/sample-output.md"],
-    ["skills/temper/integration/adhoc-sdlc-integration.md", "plugins/adhoc-sdlc/skills/temper/integration/adhoc-sdlc-integration.md"]
+    ["skills/temper/integration/adhoc-sdlc-integration.md", "plugins/adhoc-sdlc/skills/temper/integration/adhoc-sdlc-integration.md"],
+    ["skills/intention-hardening/SKILL.md", "plugins/adhoc-sdlc/skills/intention-hardening/SKILL.md"],
+    ["skills/intention-hardening/README.md", "plugins/adhoc-sdlc/skills/intention-hardening/README.md"],
+    ["skills/intention-hardening/README.pl.md", "plugins/adhoc-sdlc/skills/intention-hardening/README.pl.md"]
   ]
 }

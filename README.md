@@ -4,7 +4,7 @@
 
 ## What
 
-`adhoc-sdlc` is a small SDLC toolkit for AI coding agents. It packages three reusable skills: `adhoc-sdlc` for lightweight implementation work with a durable plan and execution journal, `cove` for Chain-of-Verification before factual claims reach a user, and `temper` for hardening a plan's strategy against failure modes before execution.
+`adhoc-sdlc` is a small SDLC toolkit for AI coding agents. It packages four reusable skills: `adhoc-sdlc` for lightweight implementation work with a durable plan and execution journal, `intention-hardening` for settling what the user actually asked for before a plan is written, `cove` for Chain-of-Verification before factual claims reach a user, and `temper` for hardening a plan's strategy against failure modes before execution.
 
 ## Why
 
@@ -47,6 +47,10 @@ What: a lightweight SDLC for small, ad hoc implementation work. Why: it keeps ev
 <p align="center">
   <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
 </p>
+
+### Intention hardening
+
+What: a planning gate that hardens the user's intent: goal and success criterion, load-bearing terms with their project meaning and source, named interpretations, and one deciding question or explicit assumptions. Why: it catches a silently narrowed term or a widened scope before the plan is accepted, ahead of `cove` and `temper`. It ships as the `intention-hardening` skill, called by `/adhoc-sdlc:plan` and `/forge init`. See [claude/skills/intention-hardening/README.md](claude/skills/intention-hardening/README.md) for details.
 
 ### CoVe
 
@@ -97,15 +101,17 @@ One directory per agent runtime, each packaged in that runtime's native format. 
 ```
 .claude-plugin/marketplace.json   Claude Code marketplace entry
 .agents/plugins/marketplace.json  Codex marketplace entry
-claude/                           Claude Code plugin: adhoc-sdlc + cove + temper
+claude/                           Claude Code plugin: adhoc-sdlc + intention-hardening + cove + temper
   .claude-plugin/plugin.json
   skills/adhoc-sdlc/
+  skills/intention-hardening/
   skills/cove/
   skills/temper/
   commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
-plugins/adhoc-sdlc/            Codex plugin: adhoc-sdlc + cove + temper
+plugins/adhoc-sdlc/            Codex plugin: adhoc-sdlc + intention-hardening + cove + temper
   .codex-plugin/plugin.json
   skills/adhoc-sdlc/
+  skills/intention-hardening/
   skills/cove/
   skills/temper/
 antigravity/                      roadmap: extension format to be confirmed

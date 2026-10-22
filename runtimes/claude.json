@@ -7,6 +7,7 @@
     "ASK_NOTE": "",
     "TODO": "`TaskCreate`/`TaskUpdate`",
     "SUBAGENT_VIA": " (via the `Agent` tool, `subagent_type: general-purpose`)",
+    "SKILL_VIA": " (via the `Skill` tool; skills shipped in this plugin are named `adhoc-sdlc:<name>`)",
     "SKILL_HOME": "${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc",
     "SKILL_HOME_NOTE": "",
     "COMMANDS_HOME": "${CLAUDE_PLUGIN_ROOT}/commands",
@@ -29,6 +30,9 @@
     ["skills/temper/README.md", "claude/skills/temper/README.md"],
     ["skills/temper/README.pl.md", "claude/skills/temper/README.pl.md"],
     ["skills/temper/examples/sample-output.md", "claude/skills/temper/examples/sample-output.md"],
-    ["skills/temper/integration/adhoc-sdlc-integration.md", "claude/skills/temper/integration/adhoc-sdlc-integration.md"]
+    ["skills/temper/integration/adhoc-sdlc-integration.md", "claude/skills/temper/integration/adhoc-sdlc-integration.md"],
+    ["skills/intention-hardening/SKILL.md", "claude/skills/intention-hardening/SKILL.md"],
+    ["skills/intention-hardening/README.md", "claude/skills/intention-hardening/README.md"],
+    ["skills/intention-hardening/README.pl.md", "claude/skills/intention-hardening/README.pl.md"]
   ]
 }
