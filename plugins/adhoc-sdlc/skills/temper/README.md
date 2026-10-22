@@ -53,8 +53,9 @@ When run inside `/adhoc-sdlc:plan`, the result is written into the plan body as
 `## Tempered Risks` and `## Accepted Risks`, with the fixes already folded into
 the plan rather than left as a separate to-do list. A fix stays within the plan's
 goal; a change that would add behavior or scope beyond it is listed under
-`Operator options` (with a reason and its cost) for the operator to decide, and an
-option not taken is recorded under `## Accepted Risks`.
+`Operator options` (with a reason and its cost) for the operator to decide; an option
+taken is stated as `Widening: <change>`, and an option declined (or any option
+under "don't ask") is recorded under `## Accepted Risks`.
 
 ## Integration with adhoc-sdlc
 

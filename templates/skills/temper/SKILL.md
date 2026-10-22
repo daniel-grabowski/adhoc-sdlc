@@ -21,7 +21,7 @@ A good `temper` pass ends with one of three outcomes for every meaningful risk:
 - the risk is explicitly accepted with a reason;
 - the concern is rejected as speculative noise or sent back to CoVe because it depends on an unverified fact.
 
-A change that would add behavior or scope beyond the goal is not a plan change: it goes to the operator as an option and becomes an accepted risk only when the operator declines it or under "don't ask" (see step 4).
+A change that would add behavior or scope beyond the goal is not a plan change: it stays open in `Operator options` until the operator decides, then becomes a `fix` stated as `Widening: <change>` or, when declined or under "don't ask", an `accept` (see step 4).
 
 ## Relationship to Harness, CoVe, adhoc-sdlc, review, and tests
 
@@ -120,7 +120,7 @@ Definitions:
 - **speculative** - possible, but not enough evidence to change the plan unless the blast radius is high.
 - **blocker** - should stop implementation until fixed or explicitly accepted by the user.
 - **important** - should normally be fixed or recorded as accepted risk.
-- **minor** - fix only when the change is cheap, local, and within the goal; otherwise accept or reject.
+- **minor** - fix only when the change is cheap, local, and within the goal; otherwise accept or reject, or list it under `Operator options` when the change is beyond the goal.
 
 ## Process
 
@@ -189,10 +189,12 @@ For every failure mode, choose exactly one resolution:
 - **reject** - mark as speculative/noise and explain why it should not change the plan;
 - **verify-with-cove** - send factual uncertainty back to CoVe or source inspection.
 
+An item in `Operator options` gets its resolution only after the operator decides: `fix` with `Widening: <change>`, or `accept`.
+
 Goal boundary: a `fix` changes only how the plan reaches its goal. A change that makes behavior the plan already contains work correctly under a failure mode (input validation, error handling for a step the plan already has, a retry guard on a planned call) is within the goal and resolves as `fix`. "Would add behavior" means behavior the goal does not cover: when closing a failure mode would add such behavior, a feature, or scope, it is not a `fix` and does not enter the plan automatically:
 
 - list the change only under `Operator options` for the operator to decide, with a short reason and its cost;
-- when the operator takes the option, state it explicitly as `Widening: <change>` and fold the change into the plan;
+- when the operator takes the option, state it explicitly as `Widening: <change>` and fold the change into the plan as a `fix`;
 - when the operator declines it, or under "don't ask", resolve it as `accept` and record it under Accepted Risks as `<condition> -> operator option not taken: <change>`.
 
 The plan grows only when the operator takes an option.
@@ -317,7 +319,7 @@ List unchanged directories only when needed for context.
 Stop when:
 
 - no new blocker failure modes are found;
-- all important failure modes are fixed, accepted, rejected, or sent to CoVe;
+- all important failure modes are fixed, accepted, rejected, sent to CoVe, or listed under `Operator options` for the operator's decision;
 - speculative risks are separated from confirmed/inferred findings;
 - the final plan is self-contained and executable.
 
@@ -329,7 +331,7 @@ Avoid these:
 
 - **Fallback sprawl** - adding normalizers, retries, and wrappers for scenarios that cannot happen.
 - **Abstraction creep** - introducing layers or interfaces just in case.
-- **Scope drift** - folding a change that adds behavior or scope beyond the goal into the plan as a `fix`, instead of offering it under `Operator options` or recording it under Accepted Risks.
+- **Scope drift** - folding a change that adds behavior or scope beyond the goal into the plan as a `fix`, instead of offering it under `Operator options` for the operator's decision.
 - **Fact verification by strategy review** - using `temper` to pretend facts were verified.
 - **Speculative hardening** - changing the plan for low-evidence risks with low blast radius.
 - **Second source of truth** - adding a workaround that bypasses the existing contract.
@@ -371,7 +373,7 @@ severity: minor
 impact: migration,data
 breaks: historical analytics field is empty for archived rows
 consequence: old reports show unknown instead of derived value
-resolution: accept, because the field is optional, not used for decisions, and backfill cost is out of scope
+resolution: accept, because the field is optional and not used for decisions, so the gap is tolerable without a backfill
 ```
 
 ### Example: change beyond the goal
@@ -383,5 +385,12 @@ severity: important
 impact: workflow
 breaks: a partial handoff file is left behind
 consequence: the next resume reads stale state
-resolution: accept, the goal is the handoff format, not crash recovery; Operator options: add an atomic write with a recovery step (cost: one helper change and a test)
+resolution: pending operator decision; Operator options: add an atomic write with a recovery step (cost: one helper change and a test), because the goal is the handoff format, not crash recovery
+```
+
+After the operator decides:
+
+```text
+declined or "don't ask" -> accept: the handoff plan has no recovery path when the session crashes mid-write -> operator option not taken: atomic write with recovery
+taken -> Widening: atomic write with recovery; resolution: fix, the change is folded into the plan
 ```

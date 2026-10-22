@@ -53,8 +53,9 @@ Uruchomiony w `/adhoc-sdlc:plan`, wynik trafia do treści planu jako sekcje
 `## Tempered Risks` i `## Accepted Risks`, z poprawkami już wpiętymi w plan, a nie
 zostawionymi jako osobna lista zadań. Poprawka mieści się w celu planu; zmiana,
 która dodałaby zachowanie albo zakres spoza celu, trafia do sekcji
-`Operator options` (z uzasadnieniem i kosztem) do decyzji operatora, a opcja
-niewybrana trafia do `## Accepted Risks`.
+`Operator options` (z uzasadnieniem i kosztem) do decyzji operatora; opcję
+przyjętą zapisuje się jako `Widening: <change>`, a odrzuconą (albo każdą przy
+„nie pytaj”) w `## Accepted Risks`.
 
 ## Integracja z adhoc-sdlc
 

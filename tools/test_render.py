@@ -138,10 +138,16 @@ class RenderTests(unittest.TestCase):
                 "The plan grows only when the operator takes an option",
                 "## Operator options\n- <change beyond the goal> -> <why it would help>; cost: <cost>",
                 "Operator options are not a plan section",
-                "instead of offering it under `Operator options` or recording it under Accepted Risks",
+                "instead of offering it under `Operator options` for the operator's decision",
+                "An item in `Operator options` gets its resolution only after the operator decides",
+                "resolution: pending operator decision; Operator options: add an atomic write",
+                "declined or \"don't ask\" -> accept:",
+                "taken -> Widening: atomic write with recovery; resolution: fix",
             ):
                 self.assertIn(phrase, out, f"{runtime}: brak frazy kontraktu: {phrase}")
             self.assertNotIn("expand the feature by default", out)
+            self.assertNotIn("resolution: accept, the goal is the handoff format", out)
+            self.assertNotIn("or recording it under Accepted Risks", out)
             for readme, old in (("README.md", "grow the feature by\ndefault"), ("README.pl.md", "domyślnie\nnie rozszerza funkcji")):
                 text = render.render_one("skills/temper/" + readme, placeholders, runtime)
                 self.assertNotIn(old, text, f"{runtime}: stary opis w {readme}")

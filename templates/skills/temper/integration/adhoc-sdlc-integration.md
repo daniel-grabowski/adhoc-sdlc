@@ -79,7 +79,7 @@ When `strategy-temper` is ON, insert these sections into the plan body:
 
 The final plan must already include the fixes. Do not leave `Tempered Risks` as a detached TODO list.
 
-A fix stays within the plan's goal. A change that would add behavior or scope beyond it is not inserted into the plan: `temper` lists it under `Operator options` in its response, and an option the user does not take is recorded under `## Accepted Risks`.
+A fix stays within the plan's goal. A change that would add behavior or scope beyond it is not inserted into the plan: `temper` lists it under `Operator options` in its response, an option the user takes is stated as `Widening: <change>`, and an option the user declines (or any option under "don't ask") is recorded under `## Accepted Risks`.
 
 ## 5. Execution behavior
 
