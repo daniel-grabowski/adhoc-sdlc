@@ -8,6 +8,7 @@ walidację kontraktu nowych flag, mieszany korpus md+json oraz backward compat s
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -194,15 +195,27 @@ class MixedCorpusTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             # stary dziennik markdown (inna nazwa) + nowy json
             write_legacy_md_execute(tmp, "old-task")
-            seed_plan(tmp, "new task", tasks=ONE_TASK)
-            run("execute", "--root", tmp, "--name", "new task", "--title", "T", "--keywords", "modal",
-                "--append", "nowy", "--files", "n.pas")
+            plan_path = seed_plan(tmp, "new task", tasks=ONE_TASK).stdout.split("plan=", 1)[1].splitlines()[0]
+            # Plan i dziennik new-task to dwa rekordy o tej samej nazwie; ich kolejność w packu zależy od
+            # tego, czy updated obu plików wypadł w tej samej sekundzie. Cofnięte updated planu ustala
+            # kolejność (dziennik przed planem), w której wybór rekordu po samej nazwie dawał plan.
+            with open(plan_path, encoding="utf-8") as fh:
+                text = fh.read()
+            text = re.sub(r"^updated: .*$", "updated: 2026-06-01T09:00:00+02:00", text, count=1, flags=re.M)
+            with open(plan_path, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(text)
+            r = run("execute", "--root", tmp, "--name", "new task", "--title", "T", "--keywords", "modal",
+                    "--append", "nowy", "--files", "n.pas")
+            self.assertEqual(r.returncode, 0, r.stderr)
             pack = sdlc_doc.build_context_pack("history", root=tmp, keywords=["modal"], angle="m", today_iso=TODAY_ISO)
             names = {it["name"] for it in pack["items"]}
             self.assertIn("old-task", names)
             self.assertIn("new-task", names)
-            # touched_files tylko dla json; stary md ma pustą listę
-            by_name = {it["name"]: it for it in pack["items"]}
+            # touched_files tylko dla json; stary md ma pustą listę. Rekord wybierany po typie i nazwie,
+            # bo plan o tej samej nazwie też jest w packu (bez touched_files).
+            executes = [it for it in pack["items"] if it["type"] == "execute"]
+            self.assertEqual(sorted(it["name"] for it in executes), ["new-task", "old-task"])
+            by_name = {it["name"]: it for it in executes}
             self.assertEqual([f["path"] for f in by_name["new-task"]["touched_files"]], ["n.pas"])
             self.assertEqual(by_name["old-task"]["touched_files"], [])
 
