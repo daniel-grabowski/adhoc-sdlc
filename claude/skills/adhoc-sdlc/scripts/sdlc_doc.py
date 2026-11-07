@@ -304,6 +304,24 @@ def _read_text(path) -> str:
 _JSON_META_KEYS = ("type", "name", "title", "project", "keywords", "created", "updated", "status")
 
 
+def task_summary(data: dict) -> dict | None:
+    """Stan zadań dziennika schema 2: {schema, items, open, in_progress}. Dziennik bez pola
+    schema (tryb dawny) nie prowadzi zadań -> None."""
+    if not isinstance(data, dict) or "schema" not in data:
+        return None
+    items = []
+    for t in (data.get("tasks") or []):
+        if isinstance(t, dict):
+            items.append({"id": str(t.get("id", "")), "title": str(t.get("title", "")),
+                          "status": str(t.get("status", "")), "source": str(t.get("source", ""))})
+    return {
+        "schema": data.get("schema"),
+        "items": items,
+        "open": [t["id"] for t in items if t["status"] != "done"],
+        "in_progress": next((t["id"] for t in items if t["status"] == "in_progress"), None),
+    }
+
+
 def _extract_execute_json(path) -> dict:
     """Czyta execute-*.json (helper jest jego jedynym writerem) i mapuje na model dokumentu.
 
@@ -317,7 +335,8 @@ def _extract_execute_json(path) -> dict:
     try:
         data = json.loads(raw)
     except ValueError:
-        return {"path": str(path), "meta": {}, "sections": [], "warnings": ["invalid_json"], "touched_files": []}
+        return {"path": str(path), "meta": {}, "sections": [], "warnings": ["invalid_json"], "touched_files": [],
+                "tasks": None}
 
     meta = {k: data.get(k, "") for k in _JSON_META_KEYS}
     meta["keywords"] = _as_list(data.get("keywords"))
@@ -353,6 +372,11 @@ def _extract_execute_json(path) -> dict:
         {"heading": "Verification", "level": 2, "text": ver_text, "is_placeholder": ver_text == ""},
         {"heading": "Final Result", "level": 2, "text": final, "is_placeholder": final == ""},
     ]
+    # Syntetyczna sekcja Tasks tylko dla dziennika schema 2 (dawny dziennik bez zmian kształtu).
+    tasks = task_summary(data)
+    if tasks is not None:
+        task_text = "\n".join(f"- [{t['id']}] ({t['status']}) {t['title']}" for t in tasks["items"])
+        sections.append({"heading": "Tasks", "level": 2, "text": task_text, "is_placeholder": task_text == ""})
 
     seen, touched = set(), []
     for e in entries:
@@ -362,7 +386,8 @@ def _extract_execute_json(path) -> dict:
                 seen.add(p)
                 touched.append({"path": p, "change": (f.get("change", "") if isinstance(f, dict) else "")})
 
-    return {"path": str(path), "meta": meta, "sections": sections, "warnings": [], "touched_files": touched}
+    return {"path": str(path), "meta": meta, "sections": sections, "warnings": [], "touched_files": touched,
+            "tasks": tasks}
 
 
 def extract_document(path) -> dict:
@@ -447,6 +472,7 @@ def load_records(root) -> tuple[list[dict], dict]:
             "extracts": [],
             "touched_files": doc.get("touched_files", []),
             "_sections_full": doc["sections"],
+            "_tasks": doc.get("tasks"),
         })
     return records, skipped
 
@@ -635,6 +661,16 @@ def _pack_history(pack, records, query, budget, max_items, today_iso) -> dict:
     return pack
 
 
+def _resume_tasks(records: list[dict], name: str) -> dict | None:
+    """Stan zadań najświeższego dziennika schema 2 sesji `name` (wznowienie bez natywnej listy
+    zadań musi znać postęp). Brak dziennika albo dziennik dawny -> None."""
+    journals = [r for r in records if r["type"] == "execute" and r["name"] == name and r.get("_tasks")]
+    if not journals:
+        return None
+    latest = max(journals, key=lambda r: (r.get("updated") or "", r["path"]))
+    return {"execute": latest["path"], **latest["_tasks"]}
+
+
 def _pack_resume(pack, records, query, budget, include_history, history_angle, today_iso) -> dict:
     handoffs = [r for r in records if r["type"] == "handoff"
                 and _in_scope(r, query["project"], None, today_iso)]
@@ -644,6 +680,7 @@ def _pack_resume(pack, records, query, budget, include_history, history_angle, t
 
     name = query["name"]
     used_chars = 0
+    pack["tasks"] = None
     if not name:
         related = handoffs[:budget["max_handoffs"]]
         for rec in related:
@@ -670,6 +707,7 @@ def _pack_resume(pack, records, query, budget, include_history, history_angle, t
             pack["related"] = [_public_record(r) for r in related]
         pack["stats"] = {"matched": len(handoffs), "included": 1 if primary else 0,
                          "omitted": 0}
+        pack["tasks"] = _resume_tasks(records, name)
         if primary is None:
             pack["warnings"].append("not_found")
 

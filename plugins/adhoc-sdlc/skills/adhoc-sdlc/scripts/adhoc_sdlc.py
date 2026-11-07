@@ -45,6 +45,16 @@ PROJECT_RE = re.compile(r"^[a-z0-9._-]+$")
 # Wzorzec nazwy pliku dziennika: <kind>-<data[-czas]>-<name>.md
 FILENAME_RE = re.compile(r"^(plan|execute|handoff)-(\d{4}-\d{2}-\d{2}(?:-\d{6})?)-(.+)\.(?:md|json)$")
 
+# Lista zadań wykonania (dziennik schema 2). Plan definiuje zadania w sekcji ## Tasks
+# (punkty `- [T1] tytuł`), stan prowadzi wyłącznie helper w polu tasks dziennika.
+# Dziennik bez pola schema to tryb dawny: bez zadań i bez ich walidacji.
+JOURNAL_SCHEMA = 2
+VALID_TASK_STATUS = ("in_progress", "done")
+TASK_ID_RE = re.compile(r"^T[1-9][0-9]*$")
+# Punkt listy bez wcięcia; wcięte podpunkty i proza sekcji nie są zadaniami.
+TASK_BULLET_RE = re.compile(r"^[-*]\s")
+TASK_LINE_RE = re.compile(r"^[-*]\s+\[(T[1-9][0-9]*)\]\s+(\S.*)$")
+
 
 class ContractError(Exception):
     """Naruszenie kontraktu wejścia. Mapuje na exit 2 + komunikat ERROR/EXPECTED/EXAMPLE."""
@@ -297,6 +307,10 @@ TODO
 
 TODO
 
+## Tasks
+
+TODO
+
 ## Test Plan
 
 TODO
@@ -406,8 +420,10 @@ def make_entry(note: str, files: list[dict], phase: str) -> dict:
     return entry
 
 
-def build_execute_obj(meta: dict, plan_path: Path, first_entry: dict | None) -> dict:
+def build_execute_obj(meta: dict, plan_path: Path, first_entry: dict | None,
+                      tasks: list[dict] | None = None) -> dict:
     return {
+        "schema": JOURNAL_SCHEMA,
         "type": "execute",
         "name": meta["name"],
         "title": meta["title"],
@@ -422,6 +438,7 @@ def build_execute_obj(meta: dict, plan_path: Path, first_entry: dict | None) -> 
         "decisions": [],
         "verification": [],
         "final_result": None,
+        "tasks": list(tasks or []),
     }
 
 
@@ -437,6 +454,166 @@ def _plan_prompt(plan_path: Path) -> str:
     return sec["text"] if sec and not sec["is_placeholder"] else ""
 
 
+def _plan_tasks(plan_path: Path) -> list[dict]:
+    """Zadania z sekcji ## Tasks planu (punkty `- [T1] tytuł`). Brak sekcji albo placeholder
+    (TODO) daje pustą listę. Punkt bez wcięcia w innym formacie albo powtórzony identyfikator
+    to odmowa: plan jest jedynym źródłem definicji zadań, więc błąd ma być widoczny od razu."""
+    try:
+        text = plan_path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    _meta, body = sdlc_doc.split_frontmatter(text)
+    sec = sdlc_doc.get_section(sdlc_doc.parse_sections(body), "Tasks")
+    if not sec or sec["is_placeholder"]:
+        return []
+    tasks: list[dict] = []
+    for line in sec["text"].splitlines():
+        if not TASK_BULLET_RE.match(line):
+            continue
+        match = TASK_LINE_RE.match(line.rstrip())
+        if not match:
+            raise ContractError(
+                f"niepoprawny punkt w ## Tasks planu {plan_path.name}: {line.strip()!r}",
+                "każdy punkt listy bez wcięcia w ## Tasks to `- [T<n>] <tytuł>`",
+                "## Tasks\n\n- [T1] Dodać pole tasks w dzienniku\n- [T2] Weryfikacja: pytest",
+            )
+        task_id, title = match.group(1), match.group(2).strip()
+        if any(t["id"] == task_id for t in tasks):
+            raise ContractError(
+                f"powtórzony identyfikator zadania w ## Tasks planu {plan_path.name}: {task_id}",
+                "unikalne identyfikatory T1..Tn",
+                "## Tasks\n\n- [T1] Krok A\n- [T2] Krok B",
+            )
+        tasks.append({"id": task_id, "title": title, "status": "pending", "source": "plan"})
+    return tasks
+
+
+def _next_task_id(tasks: list[dict]) -> str:
+    numbers = [int(t["id"][1:]) for t in tasks if TASK_ID_RE.match(str(t.get("id", "")))]
+    return f"T{max(numbers, default=0) + 1}"
+
+
+def _task_ref(task: dict) -> str:
+    return f"{task['id']} ({task.get('status', '')}): {task.get('title', '')}"
+
+
+def apply_execute_ops(obj: dict, *, name: str, note: str | None, files: list[dict], phase: str,
+                      decision: str | None, verification: str | None, command: str | None,
+                      final: str | None, status: str | None, task: str | None,
+                      task_status: str | None, task_add: list[str]) -> bool:
+    """Nakłada operacje wywołania na obiekt dziennika (w pamięci; zapis robi wołający).
+
+    Dziennik bez pola schema to tryb dawny: operacje jak przed listą zadań, flagi zadań odmowa.
+    Dziennik schema 2: kolejność task-add, wpis, weryfikacja, decyzja, task-status, final/status,
+    dzięki czemu jedno wywołanie może dodać zadanie, udokumentować je i zamknąć. Każda odmowa
+    pada przed zapisem, więc dziennik na dysku zostaje bez zmian."""
+    legacy = "schema" not in obj
+    if legacy:
+        used = [n for n, v in (("--task", task), ("--task-status", task_status), ("--task-add", task_add)) if v]
+        if used:
+            raise ContractError(
+                f"dawny dziennik (bez pola schema) nie prowadzi zadań: {', '.join(used)}",
+                "kontynuuj dawny dziennik bez flag zadań albo zacznij nowy plan i dziennik (schema 2)",
+                f'execute --name "{name}" --title "T" --append "krok"',
+            )
+    elif obj.get("schema") != JOURNAL_SCHEMA:
+        raise ContractError(
+            f"nieznana wersja schematu dziennika: {obj.get('schema')!r}",
+            f"schema {JOURNAL_SCHEMA} albo brak pola schema (tryb dawny)",
+            f'tasks --name "{name}"',
+        )
+    tasks = obj.setdefault("tasks", []) if not legacy else []
+    changed = False
+    ts = now()
+
+    for raw_title in task_add:
+        title = (raw_title or "").strip()
+        if not title:
+            raise ContractError(
+                "pusty tytuł w --task-add",
+                "niepusty tytuł zadania dopisanego spoza planu",
+                f'execute --name "{name}" --title "T" --task-add "Poprawić walidację wejścia"',
+            )
+        new_id = _next_task_id(tasks)
+        tasks.append({"id": new_id, "title": title, "status": "pending", "source": "added", "updated": ts})
+        # Zadanie spoza planu to odstępstwo: ślad w decyzjach dziennika.
+        obj.setdefault("decisions", []).append(
+            {"ts": ts, "text": f"Odstępstwo od planu: dodano zadanie {new_id}: {title}", "task": new_id})
+        changed = True
+
+    current = None
+    if task:
+        current = next((t for t in tasks if t.get("id") == task), None)
+        if current is None:
+            known = ", ".join(t.get("id", "") for t in tasks) or "brak"
+            raise ContractError(
+                f"nieznane zadanie --task {task} (zadania dziennika: {known})",
+                "identyfikator zadania z dziennika albo najpierw --task-add",
+                f'tasks --name "{name}"',
+            )
+
+    if note:
+        if not legacy and not tasks:
+            raise ContractError(
+                "dziennik schema 2 nie ma zadań; --append wymaga listy zadań",
+                "dodaj zadanie przez --task-add (plan bez ## Tasks daje pustą listę)",
+                f'execute --name "{name}" --title "T" --task-add "Krok A" --task T1 --append "start"',
+            )
+        entry = make_entry(note, files, phase)
+        if task:
+            entry["task"] = task
+        obj.setdefault("entries", []).append(entry)
+        changed = True
+    if verification:
+        record = {"ts": ts, "command": command or "", "outcome": verification}
+        if task:
+            record["task"] = task
+        obj.setdefault("verification", []).append(record)
+        changed = True
+    if decision:
+        obj.setdefault("decisions", []).append({"ts": ts, "text": decision})
+        changed = True
+
+    if task_status and current is not None:
+        if task_status == "in_progress":
+            others = [t["id"] for t in tasks if t.get("status") == "in_progress" and t.get("id") != task]
+            if others:
+                raise ContractError(
+                    f"inne zadanie jest już in_progress: {', '.join(others)}",
+                    "najwyżej jedno zadanie in_progress; najpierw zamknij bieżące (--task-status done)",
+                    f'execute --name "{name}" --title "T" --task {others[0]} --task-status done',
+                )
+        else:
+            evidence = [r for r in (obj.get("entries") or []) + (obj.get("verification") or [])
+                        if isinstance(r, dict) and r.get("task") == task]
+            if not evidence:
+                raise ContractError(
+                    f"zadanie {task} nie ma wpisu ani weryfikacji; done wymaga śladu pracy",
+                    "dodaj --append albo --verification z --task przed albo razem z --task-status done",
+                    f'execute --name "{name}" --title "T" --task {task} --append "zrobione X" --task-status done',
+                )
+        current["status"] = task_status
+        current["updated"] = ts
+        changed = True
+
+    if not legacy and (final is not None or status == "done"):
+        still_open = [t for t in tasks if t.get("status") != "done"]
+        if still_open:
+            flag = "--final" if final is not None else "--status done"
+            raise ContractError(
+                f"{flag} przy otwartych zadaniach: " + "; ".join(_task_ref(t) for t in still_open),
+                "zamknij każde zadanie (--task <ID> --task-status done) albo porzuć dziennik (--status abandoned)",
+                f'execute --name "{name}" --title "T" --task {still_open[0]["id"]} --append "zrobione" --task-status done',
+            )
+    if final is not None:
+        obj["final_result"] = final
+        changed = True
+    if status is not None:
+        obj["status"] = status
+        changed = True
+    return changed
+
+
 def dump_execute_json(obj: dict) -> str:
     return json.dumps(obj, ensure_ascii=False, indent=2) + "\n"
 
@@ -449,28 +626,15 @@ def save_execute_json(path: Path, obj: dict) -> None:
     os.replace(tmp, path)
 
 
-def update_execute_json(path: Path, *, note: str | None, files: list[dict], phase: str,
+def update_execute_json(path: Path, *, name: str, note: str | None, files: list[dict], phase: str,
                         decision: str | None, verification: str | None, command: str | None,
-                        final: str | None, status: str | None) -> None:
+                        final: str | None, status: str | None, task: str | None = None,
+                        task_status: str | None = None, task_add: list[str] | None = None) -> None:
     """Read-modify-write całego obiektu JSON. Każda obecna operacja dokłada się do dziennika."""
     obj = json.loads(path.read_text(encoding="utf-8"))
-    changed = False
-    if note:
-        obj.setdefault("entries", []).append(make_entry(note, files, phase))
-        changed = True
-    if decision:
-        obj.setdefault("decisions", []).append({"ts": now(), "text": decision})
-        changed = True
-    if verification:
-        obj.setdefault("verification", []).append(
-            {"ts": now(), "command": command or "", "outcome": verification})
-        changed = True
-    if final is not None:
-        obj["final_result"] = final
-        changed = True
-    if status is not None:
-        obj["status"] = status
-        changed = True
+    changed = apply_execute_ops(obj, name=name, note=note, files=files, phase=phase, decision=decision,
+                                verification=verification, command=command, final=final, status=status,
+                                task=task, task_status=task_status, task_add=task_add or [])
     if changed:
         obj["updated"] = now()
         save_execute_json(path, obj)
@@ -506,6 +670,39 @@ def cmd_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def validate_task_args(args: argparse.Namespace, name: str) -> tuple[str | None, str | None, list[str]]:
+    """Kontrakt flag zadań niezależny od stanu dziennika (sprawdzany przed odczytem plików)."""
+    task = (args.task or "").strip() or None
+    task_status = args.task_status
+    task_add = list(args.task_add or [])
+    if task is not None and not TASK_ID_RE.match(task):
+        raise ContractError(
+            f"niepoprawny --task: {args.task!r}",
+            "identyfikator zadania T<n> (T1, T2, ...)",
+            f'execute --name "{name}" --title "T" --task T1 --task-status in_progress',
+        )
+    if task_status is not None and task_status not in VALID_TASK_STATUS:
+        raise ContractError(
+            f"niedozwolony --task-status: {task_status!r}",
+            f"jedna z wartości: {', '.join(VALID_TASK_STATUS)}",
+            f'execute --name "{name}" --title "T" --task T1 --task-status done',
+        )
+    if task_status is not None and task is None:
+        raise ContractError(
+            "--task-status wymaga --task <ID>",
+            "wskaż zadanie, którego stan zmieniasz",
+            f'execute --name "{name}" --title "T" --task T1 --task-status in_progress',
+        )
+    note = (args.note if getattr(args, "note", None) else args.append) or None
+    if task is not None and not (note or args.verification or task_status):
+        raise ContractError(
+            "--task należy do wpisu, weryfikacji albo zmiany stanu zadania",
+            "dodaj --append/--note, --verification albo --task-status",
+            f'execute --name "{name}" --title "T" --task T1 --append "krok"',
+        )
+    return task, task_status, task_add
+
+
 def cmd_execute(args: argparse.Namespace) -> int:
     mode = "execute"
     name = require_name(args.name, mode)
@@ -528,6 +725,7 @@ def cmd_execute(args: argparse.Namespace) -> int:
             "podaj outcome weryfikacji, do którego przypisana jest komenda",
             f'execute --name "{name}" --title "T" --verification "zielone" --command "npm test"',
         )
+    task, task_status, task_add = validate_task_args(args, name)
 
     root = Path(args.root).resolve()
     path = target_dir(root)
@@ -549,15 +747,17 @@ def cmd_execute(args: argparse.Namespace) -> int:
     if executes:
         execute_path = executes[0]
         if str(execute_path).endswith(".json"):
-            update_execute_json(execute_path, note=note, files=files, phase=phase,
+            update_execute_json(execute_path, name=name, note=note, files=files, phase=phase,
                                 decision=args.decision, verification=args.verification,
-                                command=args.command, final=args.final, status=status)
+                                command=args.command, final=args.final, status=status,
+                                task=task, task_status=task_status, task_add=task_add)
         else:
             # Stary dziennik markdown: kontynuujemy go starym torem (kompatybilność),
             # ale nowych pól strukturalnych nie da się w nim zapisać - fail loud.
             extras = [n for n, v in (("--files", files), ("--phase", phase),
                                      ("--decision", args.decision), ("--verification", args.verification),
-                                     ("--final", args.final)) if v]
+                                     ("--final", args.final), ("--task", task),
+                                     ("--task-status", task_status), ("--task-add", task_add)) if v]
             if extras:
                 raise ContractError(
                     f"stary dziennik markdown nie wspiera pól: {', '.join(extras)}",
@@ -576,17 +776,45 @@ def cmd_execute(args: argparse.Namespace) -> int:
     meta = {"name": name, "title": title, "project": project, "keywords": keywords,
             "original_prompt": _plan_prompt(plans[0]),
             "created": created_at, "updated": created_at, "status": status or "in-progress"}
-    obj = build_execute_obj(meta, plans[0], make_entry(note, files, phase) if note else None)
-    if args.decision:
-        obj["decisions"].append({"ts": created_at, "text": args.decision})
-    if args.verification:
-        obj["verification"].append({"ts": created_at, "command": args.command or "", "outcome": args.verification})
-    if args.final is not None:
-        obj["final_result"] = args.final
+    # Nowy dziennik: schema 2 z zadaniami z ## Tasks planu; operacje wywołania przechodzą
+    # przez te same walidacje co kontynuacja (odmowa przed utworzeniem pliku).
+    obj = build_execute_obj(meta, plans[0], None, tasks=_plan_tasks(plans[0]))
+    apply_execute_ops(obj, name=name, note=note, files=files, phase=phase, decision=args.decision,
+                      verification=args.verification, command=args.command, final=args.final,
+                      status=status, task=task, task_status=task_status, task_add=task_add)
     write_exclusive(execute_path, dump_execute_json(obj))
     print(f"semantic_name={name}")
     print(f"plan={plans[0]}")
     print(f"execute={execute_path}")
+    return 0
+
+
+def cmd_tasks(args: argparse.Namespace) -> int:
+    """Odczyt stanu zadań dziennika (bez efektów ubocznych)."""
+    mode = "tasks"
+    name = require_name(args.name, mode)
+    fmt = validate_format(args.format)
+    path = target_dir(Path(args.root).resolve())
+    executes = find_executes(path, name) if path.is_dir() else []
+    if len(executes) != 1:
+        raise ContractError(
+            f"oczekiwano dokładnie jednego dziennika wykonania dla: {name}; znaleziono {len(executes)}",
+            "dziennik execute-*-<name>.json utworzony przez execute",
+            f'tasks --name "{name}"',
+        )
+    execute_path = executes[0]
+    data: dict = {}
+    if str(execute_path).endswith(".json"):
+        data = json.loads(execute_path.read_text(encoding="utf-8"))
+    summary = sdlc_doc.task_summary(data)
+    if fmt == "json":
+        out = {"semantic_name": name, "execute": str(execute_path),
+               "schema": data.get("schema"), "legacy": summary is None}
+        out.update(summary or {"items": [], "open": [], "in_progress": None})
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+    else:
+        for item in (summary or {}).get("items", []):
+            print("\t".join([item["id"], item["status"], item["title"]]))
     return 0
 
 
@@ -978,8 +1206,17 @@ def build_parser() -> argparse.ArgumentParser:
     execute.add_argument("--verification", help="dopisz wynik weryfikacji (outcome)")
     execute.add_argument("--command", help="komenda powiązana z --verification")
     execute.add_argument("--final", help="ustaw końcowy wynik (final_result)")
+    execute.add_argument("--task", help="identyfikator zadania (T<n>) dla wpisu, weryfikacji albo --task-status")
+    execute.add_argument("--task-status", help=f"nowy stan zadania --task: {', '.join(VALID_TASK_STATUS)}")
+    execute.add_argument("--task-add", action="append", help="dopisz zadanie spoza planu (z decyzją odstępstwa); można powtórzyć")
     execute.add_argument("--date")
     execute.set_defaults(func=cmd_execute)
+
+    tasks = sub.add_parser("tasks", help="print task state of an execution journal (json/tsv)")
+    tasks.add_argument("--root", default=str(DEFAULT_ROOT))
+    tasks.add_argument("--name")
+    tasks.add_argument("--format", default="json")
+    tasks.set_defaults(func=cmd_tasks)
 
     handoff = sub.add_parser("handoff", help="create a session handoff snapshot")
     handoff.add_argument("--root", default=str(DEFAULT_ROOT))

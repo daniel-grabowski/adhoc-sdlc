@@ -418,5 +418,103 @@ class CliPackTests(unittest.TestCase):
             self.assertEqual(len(pack["related"]), 1)
 
 
+
+def _write_execute_json(root, name, date_iso, *, tasks=None, legacy=False):
+    """Dziennik execute-*.json; legacy=True -> bez pól schema i tasks (tryb dawny)."""
+    target = os.path.join(root, "adhoc-sdlc")
+    os.makedirs(target, exist_ok=True)
+    obj = {"type": "execute", "name": name, "title": f"{name} title", "project": "", "keywords": ["rest"],
+           "original_prompt": "", "created": date_iso, "updated": date_iso, "status": "in-progress",
+           "plan": f"adhoc-sdlc/plan-x-{name}.md", "entries": [], "decisions": [], "verification": [],
+           "final_result": None}
+    if not legacy:
+        obj["schema"] = 2
+        obj["tasks"] = tasks or []
+    path = os.path.join(target, f"execute-{date_iso[:10]}-{name}.json")
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(obj, fh, ensure_ascii=False, indent=2)
+    return path
+
+
+TASKS = [
+    {"id": "T1", "title": "Pole tasks", "status": "done", "source": "plan"},
+    {"id": "T2", "title": "Walidacje", "status": "in_progress", "source": "plan"},
+    {"id": "T3", "title": "Poprawka spoza planu", "status": "pending", "source": "added"},
+]
+
+
+class TaskStatePackTests(unittest.TestCase):
+    """AC-004: pack resume i odczyt stanu pokazują zadania dziennika z ich stanem."""
+
+    def test_resume_detail_includes_journal_tasks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_doc(tmp, "handoff", "rest-state", _days_ago(1), ["rest"], "dflex-rest",
+                       "in-progress", _handoff_body("Cel.", "Kroki."))
+            path = _write_execute_json(tmp, "rest-state", _days_ago(2), tasks=TASKS)
+            pack = sdlc_doc.build_context_pack("resume", root=tmp, name="rest-state", today_iso=TODAY_ISO)
+            tasks = pack["tasks"]
+            self.assertEqual(tasks["execute"], path)
+            self.assertEqual([(t["id"], t["status"]) for t in tasks["items"]],
+                             [("T1", "done"), ("T2", "in_progress"), ("T3", "pending")])
+            self.assertEqual(tasks["open"], ["T2", "T3"])
+            self.assertEqual(tasks["in_progress"], "T2")
+
+    def test_resume_tasks_none_for_legacy_or_list_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_doc(tmp, "handoff", "rest-state", _days_ago(1), ["rest"], "dflex-rest",
+                       "in-progress", _handoff_body("Cel.", "Kroki."))
+            _write_execute_json(tmp, "rest-state", _days_ago(2), legacy=True)
+            pack = sdlc_doc.build_context_pack("resume", root=tmp, name="rest-state", today_iso=TODAY_ISO)
+            self.assertIsNone(pack["tasks"])
+            pack = sdlc_doc.build_context_pack("resume", root=tmp, today_iso=TODAY_ISO)
+            self.assertIsNone(pack["tasks"])
+
+    def test_synthetic_tasks_section_only_for_schema2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            new = sdlc_doc.extract_document(_write_execute_json(tmp, "a", _days_ago(1), tasks=TASKS))
+            sec = sdlc_doc.get_section(new["sections"], "Tasks")
+            self.assertIn("- [T2] (in_progress) Walidacje", sec["text"])
+            old = sdlc_doc.extract_document(_write_execute_json(tmp, "b", _days_ago(1), legacy=True))
+            self.assertIsNone(sdlc_doc.get_section(old["sections"], "Tasks"))
+            self.assertIsNone(old["tasks"])
+
+
+class CliTasksTests(unittest.TestCase):
+    def _run(self, *args, root):
+        return subprocess.run([sys.executable, ADHOC, "tasks", "--root", root, *args],
+                              capture_output=True, text=True)
+
+    def test_tasks_json_and_tsv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_execute_json(tmp, "rest-state", _days_ago(1), tasks=TASKS)
+            res = self._run("--name", "rest-state", root=tmp)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            out = json.loads(res.stdout)
+            self.assertEqual(out["schema"], 2)
+            self.assertFalse(out["legacy"])
+            self.assertEqual(out["open"], ["T2", "T3"])
+            self.assertEqual(out["in_progress"], "T2")
+            res = self._run("--name", "rest-state", "--format", "tsv", root=tmp)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertEqual(res.stdout.splitlines()[1], "T2\tin_progress\tWalidacje")
+
+    def test_tasks_legacy_journal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_execute_json(tmp, "old", _days_ago(1), legacy=True)
+            out = json.loads(self._run("--name", "old", root=tmp).stdout)
+            self.assertTrue(out["legacy"])
+            self.assertEqual(out["items"], [])
+
+    def test_tasks_without_journal_is_contract_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            res = self._run("--name", "nic", root=tmp)
+            self.assertEqual(res.returncode, 2)
+            self.assertIn("ERROR", res.stderr)
+
+    def test_tasks_bad_format_is_contract_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_execute_json(tmp, "rest-state", _days_ago(1), tasks=TASKS)
+            self.assertEqual(self._run("--name", "rest-state", "--format", "xml", root=tmp).returncode, 2)
+
 if __name__ == "__main__":
     unittest.main()

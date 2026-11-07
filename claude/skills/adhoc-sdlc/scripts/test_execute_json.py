@@ -37,10 +37,39 @@ def the_execute_json(tmp):
         return json.load(fh)
 
 
-def seed_plan(tmp, name, kw="modal"):
+def seed_plan(tmp, name, kw="modal", tasks=None):
+    """Plan przez CLI; `tasks` (lista linii) zastępuje placeholder sekcji ## Tasks."""
     r = run("plan", "--root", tmp, "--name", name, "--title", "T", "--keywords", kw)
     assert r.returncode == 0, r.stderr
+    if tasks is not None:
+        plan_path = next(line.split("=", 1)[1] for line in r.stdout.splitlines() if line.startswith("plan="))
+        with open(plan_path, encoding="utf-8") as fh:
+            text = fh.read()
+        assert "## Tasks\n\nTODO\n" in text
+        text = text.replace("## Tasks\n\nTODO\n", "## Tasks\n\n" + "\n".join(tasks) + "\n", 1)
+        with open(plan_path, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(text)
     return r
+
+
+ONE_TASK = ["- [T1] Krok"]
+
+
+def write_legacy_json_execute(tmp, name):
+    """Dawny dziennik JSON sprzed listy zadań: bez pól schema i tasks, status in-progress."""
+    d = adhoc_dir(tmp)
+    os.makedirs(d, exist_ok=True)
+    obj = {
+        "type": "execute", "name": name, "title": "T", "project": "", "keywords": ["modal"],
+        "original_prompt": "", "created": "2026-06-01T10:00:00+02:00", "updated": "2026-06-01T10:00:00+02:00",
+        "status": "in-progress", "plan": f"adhoc-sdlc/plan-2026-06-01-{name}.md",
+        "entries": [{"ts": "2026-06-01T10:00:00+02:00", "note": "start"}],
+        "decisions": [], "verification": [], "final_result": None,
+    }
+    path = os.path.join(d, f"execute-2026-06-01-{name}.json")
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(obj, fh, ensure_ascii=False, indent=2)
+    return path
 
 
 def write_legacy_md_execute(tmp, name, body_steps="- 2026-06-01: stary krok"):
@@ -66,7 +95,7 @@ def write_legacy_md_execute(tmp, name, body_steps="- 2026-06-01: stary krok"):
 class LifecycleTests(unittest.TestCase):
     def test_create_and_incremental_append(self):
         with tempfile.TemporaryDirectory() as tmp:
-            seed_plan(tmp, "modal fix")
+            seed_plan(tmp, "modal fix", tasks=ONE_TASK)
             r = run("execute", "--root", tmp, "--name", "modal fix", "--title", "T",
                     "--keywords", "modal", "--append", "Start", "--files", "A.pas,b.css", "--phase", "setup")
             self.assertEqual(r.returncode, 0, r.stderr)
@@ -108,7 +137,7 @@ class LifecycleTests(unittest.TestCase):
 class TouchedFilesPackTests(unittest.TestCase):
     def test_touched_files_deduped_in_pack(self):
         with tempfile.TemporaryDirectory() as tmp:
-            seed_plan(tmp, "x")
+            seed_plan(tmp, "x", tasks=ONE_TASK)
             run("execute", "--root", tmp, "--name", "x", "--title", "T", "--keywords", "modal",
                 "--append", "a", "--files", "f1.pas,f2.pas")
             run("execute", "--root", tmp, "--name", "x", "--title", "T", "--append", "b", "--files", "f2.pas,f3.pas")
@@ -118,8 +147,9 @@ class TouchedFilesPackTests(unittest.TestCase):
 
     def test_execute_extracts_from_json(self):
         with tempfile.TemporaryDirectory() as tmp:
-            seed_plan(tmp, "x")
-            run("execute", "--root", tmp, "--name", "x", "--title", "T", "--keywords", "modal", "--append", "a", "--files", "f1.pas")
+            seed_plan(tmp, "x", tasks=ONE_TASK)
+            run("execute", "--root", tmp, "--name", "x", "--title", "T", "--keywords", "modal", "--append", "a", "--files", "f1.pas",
+                "--task", "T1", "--task-status", "done")
             run("execute", "--root", tmp, "--name", "x", "--title", "T", "--decision", "decyzja D")
             run("execute", "--root", tmp, "--name", "x", "--title", "T", "--final", "wynik W", "--status", "done")
             pack = sdlc_doc.build_context_pack("history", root=tmp, keywords=["modal"], angle="m", today_iso=TODAY_ISO)
@@ -164,7 +194,7 @@ class MixedCorpusTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             # stary dziennik markdown (inna nazwa) + nowy json
             write_legacy_md_execute(tmp, "old-task")
-            seed_plan(tmp, "new task")
+            seed_plan(tmp, "new task", tasks=ONE_TASK)
             run("execute", "--root", tmp, "--name", "new task", "--title", "T", "--keywords", "modal",
                 "--append", "nowy", "--files", "n.pas")
             pack = sdlc_doc.build_context_pack("history", root=tmp, keywords=["modal"], angle="m", today_iso=TODAY_ISO)
@@ -194,6 +224,267 @@ class BackwardCompatMdTests(unittest.TestCase):
             seed_plan(tmp, "legacy")
             write_legacy_md_execute(tmp, "legacy")
             r = run("execute", "--root", tmp, "--name", "legacy", "--title", "T", "--append", "krok", "--files", "a.pas")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("markdown", r.stderr.lower())
+
+
+def execute(tmp, name, *extra):
+    return run("execute", "--root", tmp, "--name", name, "--title", "T", *extra)
+
+
+class TaskSchemaTests(unittest.TestCase):
+    """AC-001: dziennik schema 2 z zadaniami z ## Tasks planu."""
+
+    def test_new_journal_has_schema_and_plan_tasks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x", tasks=["- [T1] Dodać pole", "  - szczegół (podpunkt, nie zadanie)",
+                                       "Proza sekcji nie jest zadaniem.", "* [T2] Weryfikacja: pytest"])
+            r = execute(tmp, "x")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            obj = the_execute_json(tmp)
+            self.assertEqual(obj["schema"], 2)
+            self.assertEqual([(t["id"], t["title"], t["status"], t["source"]) for t in obj["tasks"]],
+                             [("T1", "Dodać pole", "pending", "plan"), ("T2", "Weryfikacja: pytest", "pending", "plan")])
+
+    def test_plan_template_has_tasks_placeholder_and_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x")
+            r = execute(tmp, "x")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            obj = the_execute_json(tmp)
+            self.assertEqual(obj["schema"], 2)
+            self.assertEqual(obj["tasks"], [])
+
+    def test_plan_without_tasks_section_gives_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x")
+            d = adhoc_dir(tmp)
+            plan = os.path.join(d, next(f for f in os.listdir(d) if f.startswith("plan-")))
+            with open(plan, encoding="utf-8") as fh:
+                text = fh.read().replace("## Tasks\n\nTODO\n\n", "")
+            with open(plan, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(text)
+            self.assertNotIn("## Tasks", text)
+            self.assertEqual(execute(tmp, "x").returncode, 0)
+            self.assertEqual(the_execute_json(tmp)["tasks"], [])
+
+    def test_append_without_tasks_rejected_on_create(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x")
+            r = execute(tmp, "x", "--append", "start")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("ERROR", r.stderr)
+            self.assertIn("--task-add", r.stderr)
+            # odmowa bez efektów ubocznych: dziennik nie powstał
+            self.assertFalse(any(f.startswith("execute-") for f in os.listdir(adhoc_dir(tmp))))
+
+    def test_append_without_tasks_rejected_on_existing_journal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x")
+            self.assertEqual(execute(tmp, "x").returncode, 0)
+            r = execute(tmp, "x", "--append", "krok")
+            self.assertEqual(r.returncode, 2)
+            self.assertEqual(the_execute_json(tmp)["entries"], [])
+
+    def test_task_add_unlocks_append_and_records_deviation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x")
+            execute(tmp, "x")
+            r = execute(tmp, "x", "--task-add", "Krok spoza planu", "--task", "T1", "--append", "start")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            obj = the_execute_json(tmp)
+            self.assertEqual([(t["id"], t["source"]) for t in obj["tasks"]], [("T1", "added")])
+            self.assertEqual(obj["entries"][0]["task"], "T1")
+            self.assertEqual(obj["decisions"][0]["task"], "T1")
+            self.assertIn("Odstępstwo od planu", obj["decisions"][0]["text"])
+
+    def test_task_add_numbers_after_plan_tasks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x", tasks=["- [T1] A", "- [T3] C"])
+            execute(tmp, "x", "--task-add", "D")
+            self.assertEqual([t["id"] for t in the_execute_json(tmp)["tasks"]], ["T1", "T3", "T4"])
+
+    def test_bad_task_line_in_plan_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x", tasks=["- [T1] A", "- B bez identyfikatora"])
+            r = execute(tmp, "x")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("## Tasks", r.stderr)
+
+    def test_duplicate_task_id_in_plan_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x", tasks=["- [T1] A", "- [T1] B"])
+            r = execute(tmp, "x")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("powtórzony", r.stderr)
+
+    def test_empty_task_add_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x")
+            execute(tmp, "x")
+            r = execute(tmp, "x", "--task-add", "  ")
+            self.assertEqual(r.returncode, 2)
+            self.assertEqual(the_execute_json(tmp)["tasks"], [])
+
+    def test_unknown_schema_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x", tasks=ONE_TASK)
+            execute(tmp, "x")
+            d = adhoc_dir(tmp)
+            path = os.path.join(d, next(f for f in os.listdir(d) if f.startswith("execute-")))
+            obj = the_execute_json(tmp)
+            obj["schema"] = 3
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(obj, fh)
+            r = execute(tmp, "x", "--append", "krok")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("schematu", r.stderr)
+
+
+class TaskValidationTests(unittest.TestCase):
+    """AC-002: odmowy helpera (kod 2) przy wykonaniu zadań."""
+
+    def _journal(self, tmp, tasks=("- [T1] A", "- [T2] B")):
+        seed_plan(tmp, "x", tasks=list(tasks))
+        r = execute(tmp, "x")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_happy_path_in_progress_done_final(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            self.assertEqual(execute(tmp, "x", "--task", "T1", "--task-status", "in_progress").returncode, 0)
+            self.assertEqual(execute(tmp, "x", "--task", "T1", "--append", "zrobione A", "--task-status", "done").returncode, 0)
+            self.assertEqual(execute(tmp, "x", "--task", "T2", "--verification", "zielone", "--command", "pytest",
+                                     "--task-status", "done").returncode, 0)
+            r = execute(tmp, "x", "--final", "gotowe", "--status", "done")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            obj = the_execute_json(tmp)
+            self.assertEqual([t["status"] for t in obj["tasks"]], ["done", "done"])
+            self.assertEqual(obj["verification"][0]["task"], "T2")
+            self.assertEqual(obj["status"], "done")
+
+    def test_second_in_progress_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            execute(tmp, "x", "--task", "T1", "--task-status", "in_progress")
+            r = execute(tmp, "x", "--task", "T2", "--task-status", "in_progress")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("in_progress", r.stderr)
+            self.assertEqual([t["status"] for t in the_execute_json(tmp)["tasks"]], ["in_progress", "pending"])
+
+    def test_same_task_in_progress_again_allowed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            execute(tmp, "x", "--task", "T1", "--task-status", "in_progress")
+            self.assertEqual(execute(tmp, "x", "--task", "T1", "--task-status", "in_progress").returncode, 0)
+
+    def test_done_without_entry_or_verification_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            execute(tmp, "x", "--task", "T2", "--append", "praca nad B")
+            r = execute(tmp, "x", "--task", "T1", "--task-status", "done")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("T1", r.stderr)
+            self.assertEqual(the_execute_json(tmp)["tasks"][0]["status"], "pending")
+
+    def test_untagged_entry_is_not_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            execute(tmp, "x", "--append", "wpis bez zadania")
+            self.assertEqual(execute(tmp, "x", "--task", "T1", "--task-status", "done").returncode, 2)
+
+    def test_final_with_open_tasks_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            execute(tmp, "x", "--task", "T1", "--append", "A", "--task-status", "done")
+            r = execute(tmp, "x", "--final", "gotowe")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("T2", r.stderr)
+            self.assertIsNone(the_execute_json(tmp)["final_result"])
+
+    def test_status_done_with_open_tasks_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            r = execute(tmp, "x", "--status", "done")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("--status done", r.stderr)
+            self.assertEqual(the_execute_json(tmp)["status"], "in-progress")
+
+    def test_status_done_rejected_on_create_with_open_tasks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "x", tasks=ONE_TASK)
+            self.assertEqual(execute(tmp, "x", "--status", "done").returncode, 2)
+            self.assertFalse(any(f.startswith("execute-") for f in os.listdir(adhoc_dir(tmp))))
+
+    def test_abandoned_with_open_tasks_allowed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            self.assertEqual(execute(tmp, "x", "--status", "abandoned").returncode, 0)
+            self.assertEqual(the_execute_json(tmp)["status"], "abandoned")
+
+    def test_unknown_task_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            r = execute(tmp, "x", "--task", "T9", "--append", "krok")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("T9", r.stderr)
+            self.assertEqual(the_execute_json(tmp)["entries"], [])
+
+    def test_bad_task_id_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            self.assertEqual(execute(tmp, "x", "--task", "abc", "--append", "krok").returncode, 2)
+
+    def test_bad_task_status_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            self.assertEqual(execute(tmp, "x", "--task", "T1", "--task-status", "completed").returncode, 2)
+
+    def test_task_status_without_task_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            self.assertEqual(execute(tmp, "x", "--task-status", "done").returncode, 2)
+
+    def test_task_alone_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._journal(tmp)
+            self.assertEqual(execute(tmp, "x", "--task", "T1").returncode, 2)
+
+
+class LegacyJournalTests(unittest.TestCase):
+    """AC-003: dawny dziennik (bez pola schema) działa jak przed zmianą."""
+
+    def test_legacy_append_final_status_done(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "legacy", tasks=ONE_TASK)  # zadania planu nie dotyczą dawnego dziennika
+            write_legacy_json_execute(tmp, "legacy")
+            self.assertEqual(execute(tmp, "legacy", "--append", "kolejny krok").returncode, 0)
+            self.assertEqual(execute(tmp, "legacy", "--verification", "zielone").returncode, 0)
+            r = execute(tmp, "legacy", "--final", "gotowe", "--status", "done")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            obj = the_execute_json(tmp)
+            self.assertNotIn("schema", obj)
+            self.assertNotIn("tasks", obj)
+            self.assertEqual([e["note"] for e in obj["entries"]], ["start", "kolejny krok"])
+            self.assertEqual(obj["final_result"], "gotowe")
+            self.assertEqual(obj["status"], "done")
+
+    def test_legacy_rejects_task_flags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "legacy")
+            write_legacy_json_execute(tmp, "legacy")
+            for extra in (("--task", "T1", "--append", "k"), ("--task-add", "X"),
+                          ("--task", "T1", "--task-status", "done")):
+                r = execute(tmp, "legacy", *extra)
+                self.assertEqual(r.returncode, 2, extra)
+                self.assertIn("dawny dziennik", r.stderr)
+            self.assertNotIn("tasks", the_execute_json(tmp))
+
+    def test_old_md_journal_rejects_task_flags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_plan(tmp, "legacy")
+            write_legacy_md_execute(tmp, "legacy")
+            r = execute(tmp, "legacy", "--task-add", "X")
             self.assertEqual(r.returncode, 2)
             self.assertIn("markdown", r.stderr.lower())
 
