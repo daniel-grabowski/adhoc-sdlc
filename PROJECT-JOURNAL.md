@@ -17,6 +17,7 @@ Porządki w kodzie robione na podstawie pustego wyszukiwania usuwają kod osiąg
 - `/adhoc-sdlc:exec`: brak klucza w `## Mode` oznacza OFF; przed wykonaniem pozycji rejestru ponowne sprawdzenie kluczowych dowodów (sprzeczność daje `unresolved`); wariant B po implementacji, a przed końcową autokontrolą, na plikach zapisanych w dzienniku; porządki tylko po potwierdzeniu użytkownika, przy „nie pytaj” albo poza celem planu zostają propozycjami.
 - Uzupełnienia po audycie TASK-001 i TASK-002: pierwszy odczyt stanu zadań przez `tasks --format json` (pola `legacy` i `items`) w `exec` krok 4 i w `plan` Phase 3; końcowa autokontrola i CoVe wykonania zapisują `--verification` z `--task` zadania weryfikacji; `reference.md`: pole `task` w decyzji pochodzi wyłącznie z `--task-add`.
 - `SKILL.md` i oba README skilla `adhoc-sdlc`, notatka integracji `temper`, sekcja „Invocation points” skilla `cleanup-codebase`; `tools/test_render.py` przypina tryb w plan i exec, zgodność kluczy helpera z `## Mode` i z punktami wywołania skilla; `test_config.py` sprawdza nowy klucz. Wersja 0.6.0 -> 0.7.0 w trzech manifestach, `CITATION.cff` i `docs/struktura-repozytorium.md`.
+- Główne `README.md` i `README.pl.md`: lista zadań wykonania prowadzona przez helper (bez natywnego narzędzia), tryb `cleanup-codebase` w `/adhoc-sdlc:plan` i opis przepływu z trzema bramkami opcjonalnymi.
 
 ### Czego nie zmieniono
 

@@ -46,7 +46,7 @@ Co to jest: lekki cykl SDLC dla małej, doraźnej pracy implementacyjnej.
 
 #### Dlaczego
 
-Nawet szybka poprawka ma mieć potwierdzony plan, checklistę inżynierską, opcjonalne bramy weryfikacyjne i wznawialny dziennik wykonania pod `./adhoc-sdlc`. Szczegóły w [claude/skills/adhoc-sdlc/README.pl.md](claude/skills/adhoc-sdlc/README.pl.md).
+Nawet szybka poprawka ma mieć potwierdzony plan, checklistę inżynierską, opcjonalne bramy weryfikacyjne, listę zadań wykonania zdefiniowaną w planie i walidowaną przez helper (bez natywnego narzędzia listy zadań, tak samo w Claude Code i Codex) oraz wznawialny dziennik wykonania pod `./adhoc-sdlc`. Szczegóły w [claude/skills/adhoc-sdlc/README.pl.md](claude/skills/adhoc-sdlc/README.pl.md).
 
 <p align="center">
   <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
@@ -91,11 +91,11 @@ Oparta na dowodach ocena porządków dla podanego celu i zakresu: martwy kod, r�
 
 #### Dlaczego
 
-Puste wyszukiwanie nie dowodzi, że kod jest nieużywany, więc proces, który edytuje pliki, usuwa tylko to, co uzasadniają dowody. Skill tylko ocenia: nie edytuje plików, nie wykonuje git, nie buduje i nie uruchamia testów. Dostarczany jako skill `cleanup-codebase`. Szczegóły w [claude/skills/cleanup-codebase/README.pl.md](claude/skills/cleanup-codebase/README.pl.md).
+Puste wyszukiwanie nie dowodzi, że kod jest nieużywany, więc proces, który edytuje pliki, usuwa tylko to, co uzasadniają dowody. Skill tylko ocenia: nie edytuje plików, nie wykonuje git, nie buduje i nie uruchamia testów. Dostarczany jako skill `cleanup-codebase` oraz jako opcjonalny tryb `cleanup-codebase` w `/adhoc-sdlc:plan` (domyślnie wyłączony): w planowaniu ocenia zakres planu, a zmianami planu stają się tylko werdykty `remove` i `merge`; na końcu `exec` ocenia pozostałości zmiany, które są usuwane dopiero po potwierdzeniu użytkownika. Szczegóły w [claude/skills/cleanup-codebase/README.pl.md](claude/skills/cleanup-codebase/README.pl.md).
 
 ## Jak to działa razem
 
-Trzy skille to jeden przepływ: zaplanuj zmianę, zweryfikuj fakty, na których się opiera, zahartuj strategię, a potem wykonaj z dziennikiem, który da się wznowić albo przekazać. `cove` i `temper` to bramki opcjonalne, wybierane per zadanie na liście trybów planu.
+Skille to jeden przepływ: ustal intencję, zaplanuj zmianę, zweryfikuj fakty, na których się opiera, zahartuj strategię, a potem wykonaj listę zadań planu z dziennikiem, który da się wznowić albo przekazać. `cove`, `temper` i `cleanup-codebase` to bramki opcjonalne, wybierane per zadanie na liście trybów planu.
 
 ```mermaid
 flowchart LR

@@ -42,7 +42,7 @@ None of that waits on a better model. It is configuration you can get right toda
 
 ### adhoc-sdlc
 
-What: a lightweight SDLC for small, ad hoc implementation work. Why: it keeps even quick fixes grounded in a confirmed plan, engineering checklist, optional verification gates, and a resumable execution journal under `./adhoc-sdlc`. See [claude/skills/adhoc-sdlc/README.md](claude/skills/adhoc-sdlc/README.md) for details.
+What: a lightweight SDLC for small, ad hoc implementation work. Why: it keeps even quick fixes grounded in a confirmed plan, engineering checklist, optional verification gates, an execution task list defined in the plan and validated by the helper (no native todo tool needed, the same in Claude Code and Codex), and a resumable execution journal under `./adhoc-sdlc`. See [claude/skills/adhoc-sdlc/README.md](claude/skills/adhoc-sdlc/README.md) for details.
 
 <p align="center">
   <img src="assets/adhoc-sdlc.png" alt="adhoc-sdlc" width="320">
@@ -62,11 +62,11 @@ What: strategy hardening for plans, architecture, and implementation direction. 
 
 ### Cleanup codebase
 
-What: an evidence-based cleanup assessment for a given goal and scope: dead code, equivalent implementations, unneeded dependencies, and leftovers of changes, each checked against the categories of implicit entry points and given one verdict (`remove`, `merge`, `keep`, or `unresolved`). Why: an empty search is not proof that code is unused, so the process that edits files removes only what the evidence supports. The skill only assesses: it does not edit files, run git, build, or run tests. It ships as the `cleanup-codebase` skill. See [claude/skills/cleanup-codebase/README.md](claude/skills/cleanup-codebase/README.md) for details.
+What: an evidence-based cleanup assessment for a given goal and scope: dead code, equivalent implementations, unneeded dependencies, and leftovers of changes, each checked against the categories of implicit entry points and given one verdict (`remove`, `merge`, `keep`, or `unresolved`). Why: an empty search is not proof that code is unused, so the process that edits files removes only what the evidence supports. The skill only assesses: it does not edit files, run git, build, or run tests. It ships as the `cleanup-codebase` skill and as the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan` (off by default): during planning it assesses the plan's scope and only `remove` and `merge` verdicts become plan changes; at the end of `exec` it assesses the leftovers of the change, which are cleaned up only after the user confirms. See [claude/skills/cleanup-codebase/README.md](claude/skills/cleanup-codebase/README.md) for details.
 
 ## How it fits together
 
-The three skills are one workflow: plan the change, verify the facts it rests on, harden the strategy, then execute with a journal you can resume or hand off. `cove` and `temper` are optional gates, chosen per task in the plan's mode list.
+The skills are one workflow: settle the intent, plan the change, verify the facts it rests on, harden the strategy, then execute the plan's task list with a journal you can resume or hand off. `cove`, `temper`, and `cleanup-codebase` are optional gates, chosen per task in the plan's mode list.
 
 ```mermaid
 flowchart LR
