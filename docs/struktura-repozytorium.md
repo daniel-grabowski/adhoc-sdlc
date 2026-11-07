@@ -81,10 +81,10 @@ Używane placeholdery (i ile razy występują w szablonach):
 
 | Token                | Znaczenie                                          | Wystąpień |
 |----------------------|----------------------------------------------------|-----------|
-| `{{ASK}}`            | narzędzie/forma pytania do użytkownika              | 15        |
+| `{{ASK}}`            | narzędzie/forma pytania do użytkownika              | 16        |
 | `{{ASK_NOTE}}`       | dodatkowa wskazówka do pytania (pusta dla Claude)   | 2         |
 | `{{SUBAGENT_VIA}}`   | klauzula "via ..." dla podagenta (pusta dla Codex)  | 4         |
-| `{{SKILL_VIA}}`      | klauzula wywołania skilla (`Skill` w Claude, `$<name>` w Codex) | 8 |
+| `{{SKILL_VIA}}`      | klauzula wywołania skilla (`Skill` w Claude, `$<name>` w Codex) | 11 |
 | `{{SKILL_HOME}}`     | katalog z SKILL.md/reference.md/scripts             | 26        |
 | `{{SKILL_HOME_NOTE}}`| objaśnienie ścieżki skilla (puste dla Claude)       | 1         |
 | `{{COMMANDS_HOME}}`  | katalog komend                                      | 2         |

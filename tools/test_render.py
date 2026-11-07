@@ -330,6 +330,21 @@ class RenderTests(unittest.TestCase):
             ):
                 self.assertIn(phrase, exec_, f"{runtime}: exec.md: {phrase}")
             self.assertLess(exec_.index("Cleanup of leftovers (variant B)"), exec_.index("Final self-check, ALWAYS"), runtime)
+            # Audyt #7937: kolejność zadań w wariancie B zgodna z regułą helpera (najwyżej jedno in_progress).
+            step7 = exec_.split("\n7. ")[1].split("\n8. ")[0]
+            step8 = exec_.split("\n8. ")[1].split("\n9. ")[0]
+            step10 = exec_.split("\n10. ")[1]
+            for phrase in (
+                "every implementation task is already `done` and the verification task is still `pending` (it starts only in step 8)",
+                "Record the register on the verification task while it is `pending`",
+                "add it with `--task-add \"<cleanup title>\"`, start it with `--task <Tm> --task-status in_progress`",
+                "mark it `done` before the next candidate and before step 8",
+            ):
+                self.assertIn(phrase, step7, f"{runtime}: exec.md krok 7: {phrase}")
+            self.assertLess(step7.index("--task-add"), step7.index("--task <Tm> --task-status in_progress"), runtime)
+            self.assertIn("when no other task is `in_progress`, start the verification task (`--task <Tn> --task-status in_progress`)", step8)
+            self.assertLess(step8.index("start the verification task"), step8.index("--verification \"<outcome>\" --task <Tn>"), runtime)
+            self.assertTrue(step10.startswith("Mark the verification task `done` after steps 8 and 9"), runtime)
             # Skill cleanup-codebase opisuje te same warianty co plan.md i exec.md.
             for phrase in ("`## Cleanup Register`", "default OFF", "only after the user confirms it"):
                 self.assertIn(phrase, cleanup, f"{runtime}: cleanup-codebase SKILL.md: {phrase}")
