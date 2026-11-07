@@ -20,7 +20,7 @@ status: in-progress | done | abandoned
 ---
 ```
 
-Plan and handoff are markdown with the frontmatter above. The execution journal is native JSON (`execute-*.json`): the same meta fields at top level plus `schema` (`2` for journals with a task list; absent in older journals), `plan` (path), `original_prompt` (the verbatim request, inherited from the plan's `## Original Prompt` section), `tasks` (the execution task list, see Execution tasks), `entries` (incremental records: `ts`, `note`, optional `phase`, optional `task`, a `files` list of `{path, change}`), `decisions` (optional `task`), `verification` (optional `task`) and `final_result`. Touched files are a structural element, not loose text; `history`/`resume` return them as `touched_files`.
+Plan and handoff are markdown with the frontmatter above. The execution journal is native JSON (`execute-*.json`): the same meta fields at top level plus `schema` (`2` for journals with a task list; absent in older journals), `plan` (path), `original_prompt` (the verbatim request, inherited from the plan's `## Original Prompt` section), `tasks` (the execution task list, see Execution tasks), `entries` (incremental records: `ts`, `note`, optional `phase`, optional `task`, a `files` list of `{path, change}`), `decisions` (optional `task`, set only by `--task-add`), `verification` (optional `task`) and `final_result`. Touched files are a structural element, not loose text; `history`/`resume` return them as `touched_files`.
 
 A plan may carry an optional `## Original Prompt` section (written by `plan --prompt "<verbatim request>"`): the user's own wording, stored durably so a later free-text `history` search can match it. It is additive and backward compatible; older artifacts without it stay searchable on their existing content.
 
@@ -88,7 +88,7 @@ Operations (`execute` mode):
 
 - the first call creates the file (requires an existing plan of the same name);
 - a step entry: `--append "<note>"` (alias `--note`), optionally `--phase "<label>"` and `--files a.pas,b.css` (with `--change edit|add|delete|rename`, default `edit`); files belong to the entry;
-- `--decision "<text>"` appends a decision or deviation;
+- `--decision "<text>"` appends a decision or deviation; it is never tied to a task (`--task` does not apply to it), and only the decision written by `--task-add` carries the `task` field;
 - `--verification "<outcome>"` (optionally `--command "<cmd>"`) appends a verification result;
 - `--task Tn` ties an entry (`--append`) or a verification (`--verification`) to a task, and selects the task for `--task-status`;
 - `--task Tn --task-status in_progress|done` changes a task's state;

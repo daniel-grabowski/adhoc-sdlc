@@ -34,9 +34,10 @@ KIND_PREFIXES = ("plan", "execute", "handoff")
 
 # Tryby pracy zapisywane w sekcji ## Mode planu; config dostarcza ich domyślne wartości
 # (prefill mode gate). Klucze muszą zgadzać się z kontraktem ## Mode w plan/exec.
+# cleanup-codebase (od 0.7.0) jest domyślnie OFF; config bez tego klucza też daje OFF.
 MODE_KEYS = (
     "brainstorming", "deep-code-verification", "test-execution",
-    "plan-cove", "strategy-temper", "execution-cove",
+    "plan-cove", "strategy-temper", "execution-cove", "cleanup-codebase",
 )
 CONFIG_FILENAME = "config.json"
 

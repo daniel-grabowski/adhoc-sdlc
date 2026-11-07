@@ -92,7 +92,7 @@ Out of scope (proposals): <finding> -> <why it may matter>
 ## Invocation points
 
 - On demand, with a goal and a scope.
-- In adhoc-sdlc, through the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan`: the register becomes part of the plan, and only `remove` and `merge` verdicts become plan changes that `exec` carries out and journals; `exec` also assesses the leftovers of its own change.
+- In adhoc-sdlc, through the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan` (default OFF). Variant A, in planning: the register goes into the plan's `## Cleanup Register` section, and only `remove` and `merge` verdicts become `## Key Changes` that `exec` carries out and journals, after re-checking their key evidence. Variant B, in `exec`: before the final self-check the skill assesses the leftovers of the change in the files the journal records; a candidate is carried out only after the user confirms it.
 - In FORGE, the register becomes the scope of a task and its acceptance criterion is "every candidate accounted for"; execution and verification belong to the run.
 
 The `cove` skill (invoke it as `$<name>`) can verify the claims a verdict rests on, and the `temper` skill (invoke it as `$<name>`) can check the strategy and risks of the cleanup. Neither replaces the analysis of the code.

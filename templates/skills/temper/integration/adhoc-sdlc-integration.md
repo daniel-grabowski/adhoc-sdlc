@@ -4,7 +4,7 @@ This file describes how to integrate `temper` into the existing `adhoc-sdlc` flo
 
 ## 1. Strategy Temper as a Phase 0 quality gate
 
-In `SKILL.md` and the `plan` command, section `Phase 0: mode gate`, `strategy-temper` is one of the three quality gates, alongside `Plan CoVe` and `Execution CoVe`:
+In `SKILL.md` and the `plan` command, section `Phase 0: mode gate`, `strategy-temper` is one of the four gates, alongside `Plan CoVe`, `Execution CoVe`, and the cleanup assessment (`cleanup-codebase`):
 
 ```text
 Strategy Temper.
@@ -12,7 +12,7 @@ Selected: run a focused failure-mode pass after Plan CoVe and before saving the 
 Not selected: rely on the normal planning review.
 ```
 
-The three quality gates are presented together. When the runtime's question affordance caps how many questions can be asked at once, they are packed into a single multi-select so all six modes fit, and `strategy-temper` is one item inside that gates group rather than a separate question; when the surface allows it, the modes can be asked as individual toggles. Either way the same `strategy-temper` key is recorded in `## Mode`.
+The four gates are presented together. When the runtime's question affordance caps how many questions can be asked at once, they are packed into a single multi-select (four options) so all seven modes fit, and `strategy-temper` is one item inside that gates group rather than a separate question; when the surface allows it, the modes can be asked as individual toggles. Either way the same `strategy-temper` key is recorded in `## Mode`.
 
 ## 2. Extend the Mode section written into plans
 
@@ -24,6 +24,7 @@ deep-code-verification
 test-execution
 plan-cove
 execution-cove
+cleanup-codebase
 ```
 
 Add:
@@ -43,6 +44,7 @@ test-execution: on
 plan-cove: on
 strategy-temper: on
 execution-cove: on
+cleanup-codebase: off
 ```
 
 ## 3. Run order in planning
@@ -50,7 +52,8 @@ execution-cove: on
 Recommended planning order:
 
 ```text
-Phase 1 design decisions
+Phase 1 design decisions (intention-hardening)
+  -> cleanup assessment (cleanup-codebase), if ON
   -> Plan CoVe, if ON
   -> Strategy Tempering, if ON
   -> revise plan body

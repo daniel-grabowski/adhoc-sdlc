@@ -8,6 +8,7 @@ close-the-loop. test_disk_matches_render to odpowiednik `render.py --check`: pli
 dysku muszą zgadzać się z renderem (bramka przeciw ręcznej edycji wyniku / pominięciu renderu).
 """
 
+import ast
 import json
 import unittest
 
@@ -215,7 +216,7 @@ class RenderTests(unittest.TestCase):
             self.assertIn("Operator options belong in the temper response, outside the plan file", phase1)
             mode_gate = plan.split("## Phase 1")[0]
             for name, text in (("plan.md mode gate", mode_gate), ("SKILL.md", skill)):
-                self.assertIn("`plan-cove` and `strategy-temper` are ON, the other four modes take the project defaults", text, f"{runtime}: {name}")
+                self.assertIn("`plan-cove` and `strategy-temper` are ON, the other five modes take the project defaults", text, f"{runtime}: {name}")
                 self.assertIn("request reading still runs", text, f"{runtime}: {name}")
             for name, text in (("plan.md", plan), ("SKILL.md", skill)):
                 self.assertNotIn("default every mode to OFF", text, f"{runtime}: {name}")
@@ -256,13 +257,108 @@ class RenderTests(unittest.TestCase):
                 "Out of scope (proposals):",
                 "Report a smaller install or build size only after measuring it",
                 "## Invocation points",
-                "the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan`",
+                "the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan` (default OFF)",
+                "the register goes into the plan's `## Cleanup Register` section, and only `remove` and `merge` verdicts become `## Key Changes`",
+                "a candidate is carried out only after the user confirms it",
                 "The `cove` skill" + placeholders["SKILL_VIA"] + " can verify the claims a verdict rests on",
                 "the `temper` skill" + placeholders["SKILL_VIA"] + " can check the strategy",
             ):
                 self.assertIn(phrase, out, f"{runtime}: brak frazy kontraktu: {phrase}")
             if runtime == "codex":
                 self.assertNotIn("`Skill` tool", out)
+
+    @staticmethod
+    def _helper_mode_keys() -> tuple:
+        # MODE_KEYS czytane z kodu helpera (ast), bez importu modułu z innego katalogu.
+        src = (render.REPO_ROOT / "claude/skills/adhoc-sdlc/scripts/adhoc_sdlc.py").read_text(encoding="utf-8")
+        for node in ast.parse(src).body:
+            if isinstance(node, ast.Assign) and any(getattr(t, "id", None) == "MODE_KEYS" for t in node.targets):
+                return ast.literal_eval(node.value)
+        raise AssertionError("brak MODE_KEYS w helperze")
+
+    def test_cleanup_codebase_mode_in_plan_and_exec(self):
+        # AC-010 (#7937): tryb cleanup-codebase w plan (wariant A) i exec (wariant B) zgodny z kluczami helpera i z punktami wywołania skilla.
+        keys = self._helper_mode_keys()
+        self.assertEqual(len(keys), 7)
+        self.assertEqual(keys[-1], "cleanup-codebase")
+        codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
+        for runtime, placeholders in (("claude", self.placeholders), ("codex", codex_spec["placeholders"])):
+            via = placeholders["SKILL_VIA"]
+            plan = render.render_one("commands/plan.md", placeholders, runtime)
+            exec_ = render.render_one("commands/exec.md", placeholders, runtime)
+            skill = render.render_one("skills/adhoc-sdlc/SKILL.md", placeholders, runtime)
+            cleanup = render.render_one("skills/cleanup-codebase/SKILL.md", placeholders, runtime)
+            integration = render.render_one("skills/temper/integration/adhoc-sdlc-integration.md", placeholders, runtime)
+            mode_gate = plan.split("## Phase 1")[0]
+            phase1 = plan.split("## Phase 1")[1].split("## Phase 2")[0]
+            phase2 = plan.split("## Phase 2")[1].split("## Phase 3")[0]
+            for name, text in (("plan.md mode gate", mode_gate), ("SKILL.md", skill)):
+                self.assertIn("choose the seven modes", text, f"{runtime}: {name}")
+                self.assertIn("pack the four gates into a single multi-select (four options) so all seven modes fit", text, f"{runtime}: {name}")
+                self.assertIn("Cleanup assessment (`cleanup-codebase`, default OFF)", text, f"{runtime}: {name}")
+                self.assertIn("`cleanup-codebase` is OFF unless the config turns it on", text, f"{runtime}: {name}")
+                self.assertNotIn("six modes", text, f"{runtime}: {name}")
+            # Każdy klucz helpera w zapisie Phase 0, w ## Mode planu (Phase 2) i w liście SKILL.md.
+            mode_list = skill.split("Include all seven:")[1].split("\n")[0]
+            for key in keys:
+                for name, text in (("plan.md Phase 0", mode_gate), ("plan.md Phase 2", phase2), ("SKILL.md Include all seven", mode_list)):
+                    self.assertIn("`" + key + "`", text, f"{runtime}: {name}: {key}")
+            self.assertIn("recording all seven Phase 0 modes", phase2)
+            # Wariant A: po intention-hardening, przed Plan CoVe; rejestr w planie; tylko remove/merge do Key Changes i Tasks.
+            call = "run the `cleanup-codebase` skill" + via
+            self.assertIn("If `cleanup-codebase` is ON (variant A), " + call + " after `intention-hardening` and before Plan CoVe", phase1)
+            self.assertLess(phase1.index("run the `intention-hardening` skill"), phase1.index(call), runtime)
+            self.assertLess(phase1.index(call), phase1.index("run the `cove` skill"), runtime)
+            for phrase in (
+                "Record the register in a `## Cleanup Register` section of the plan.",
+                "Only candidates with the verdict `remove` or `merge` become `## Key Changes` items (and so `## Tasks`)",
+                "`keep` and `unresolved` candidates stay in the register with their reason and are not carried out",
+                "instead of widening it yourself",
+            ):
+                self.assertIn(phrase, phase1, f"{runtime}: plan.md Phase 1: {phrase}")
+            self.assertIn("add the `## Cleanup Register` section from Phase 1", phase2)
+            # Exec: brak klucza = OFF, ponowne sprawdzenie dowodów, wariant B przed końcową autokontrolą, potwierdzenie użytkownika.
+            for phrase in (
+                "a key missing from `## Mode` is OFF too",
+                "re-check its key evidence against the current code",
+                "record the verdict as `unresolved` with the reason",
+                "`keep` and `unresolved` candidates are never carried out",
+                "Cleanup of leftovers (variant B), only when `cleanup-codebase` is ON: after the implementation and before the final self-check, run the `cleanup-codebase` skill" + via,
+                "the scope = the files recorded with `--files` in this journal's entries",
+                "is carried out only after the user confirms it",
+                "under \"don't ask\", or outside the plan's goal, the candidates stay proposals in the report and are not carried out",
+            ):
+                self.assertIn(phrase, exec_, f"{runtime}: exec.md: {phrase}")
+            self.assertLess(exec_.index("Cleanup of leftovers (variant B)"), exec_.index("Final self-check, ALWAYS"), runtime)
+            # Skill cleanup-codebase opisuje te same warianty co plan.md i exec.md.
+            for phrase in ("`## Cleanup Register`", "default OFF", "only after the user confirms it"):
+                self.assertIn(phrase, cleanup, f"{runtime}: cleanup-codebase SKILL.md: {phrase}")
+                self.assertIn(phrase, plan + exec_, f"{runtime}: plan.md/exec.md: {phrase}")
+            self.assertIn("all seven modes fit", integration)
+            self.assertIn("cleanup-codebase: off", integration)
+
+    def test_task_state_read_as_json_and_verification_tied_to_task(self):
+        # Uzupełnienia po audycie #7934/#7935: pierwszy odczyt stanu zadań przez JSON, weryfikacje z --task, --decision bez zadania.
+        codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
+        for runtime, placeholders in (("claude", self.placeholders), ("codex", codex_spec["placeholders"])):
+            plan = render.render_one("commands/plan.md", placeholders, runtime)
+            exec_ = render.render_one("commands/exec.md", placeholders, runtime)
+            reference = render.render_one("skills/adhoc-sdlc/reference.md", placeholders, runtime)
+            close_loop = plan.split("## Phase 3")[1]
+            step4 = exec_.split("\n4. ")[1].split("\n5. ")[0]
+            for name, text, legacy, empty in (
+                ("plan.md Phase 3", close_loop, "If `legacy` is `true`", "If `items` is empty"),
+                ("exec.md step 4", step4, "(`legacy: true`) refuses the task flags", "Empty `items` (a plan without `## Tasks`)"),
+            ):
+                self.assertIn("tasks --name \"<name>\" --format json", text, f"{runtime}: {name}")
+                self.assertLess(text.index(legacy), text.index(empty), f"{runtime}: {name}: dawny dziennik przed pustą listą")
+            step8 = exec_.split("\n8. ")[1].split("\n9. ")[0]
+            step9 = exec_.split("\n9. ")[1].split("\n10. ")[0]
+            self.assertIn("Final self-check, ALWAYS", step8)
+            self.assertIn("--verification \"<outcome>\" --task <Tn>", step8)
+            self.assertIn("--verification \"<CoVe outcome>\" --task <Tn>", step9)
+            self.assertIn("`decisions` (optional `task`, set only by `--task-add`)", reference)
+            self.assertIn("it is never tied to a task (`--task` does not apply to it)", reference)
 
     def test_disk_matches_render(self):
         # Odpowiednik `render.py --check`: dysk == render dla aktywnego runtime claude.

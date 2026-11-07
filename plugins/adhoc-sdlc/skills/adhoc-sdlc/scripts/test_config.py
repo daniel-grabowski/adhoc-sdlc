@@ -37,6 +37,39 @@ class LoadConfigTests(unittest.TestCase):
         modes = adhoc_sdlc.load_config(self.root)
         self.assertEqual(modes, {k: False for k in adhoc_sdlc.MODE_KEYS})
 
+    def test_cleanup_codebase_off_without_config(self):
+        # AC-010 (#7937): tryb cleanup-codebase istnieje i bez configu jest OFF.
+        self.assertIn("cleanup-codebase", adhoc_sdlc.MODE_KEYS)
+        self.assertIs(adhoc_sdlc.load_config(self.root)["cleanup-codebase"], False)
+
+    def test_cleanup_codebase_off_for_legacy_config(self):
+        # AC-010 (#7937): config sprzed 0.7.0 (sześć kluczy, bez cleanup-codebase) daje OFF, pozostałe tryby bez zmian.
+        legacy = {"brainstorming": True, "deep-code-verification": True, "test-execution": True,
+                  "plan-cove": True, "strategy-temper": True, "execution-cove": True}
+        self._write(self.project_path, {"modes": legacy})
+        modes = adhoc_sdlc.load_config(self.root)
+        self.assertIs(modes["cleanup-codebase"], False)
+        for key in legacy:
+            self.assertTrue(modes[key], key)
+
+    def test_cleanup_codebase_on_from_config(self):
+        self._write(self.project_path, {"modes": {"cleanup-codebase": True}})
+        self.assertTrue(adhoc_sdlc.load_config(self.root)["cleanup-codebase"])
+
+    def test_get_modes_cli_prints_cleanup_codebase_off(self):
+        # AC-010 (#7937): wyjście `config --get-modes` (CLI), brak configu i dawny config.
+        import contextlib
+        import io
+        for data in (None, {"modes": {"plan-cove": True}}):
+            if data is not None:
+                self._write(self.project_path, data)
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = adhoc_sdlc.main(["config", "--get-modes", "--root", str(self.root)])
+            self.assertEqual(rc, 0)
+            modes = json.loads(buf.getvalue())["modes"]
+            self.assertIs(modes["cleanup-codebase"], False, data)
+
     def test_project_overrides_default(self):
         self._write(self.project_path, {"modes": {"plan-cove": True}})
         modes = adhoc_sdlc.load_config(self.root)

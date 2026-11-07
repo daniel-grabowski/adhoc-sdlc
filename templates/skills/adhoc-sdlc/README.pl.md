@@ -63,14 +63,14 @@ flowchart LR
 
 Zaokrąglone węzły to komendy, a walec to zapis na dysku; grube krawędzie do niego piszą, kropkowana tylko czyta, a `handoff` i `resume` przerzucają most przez granicę okna kontekstu.
 
-1. `plan` działa jak prowadzona rozmowa. Najpierw pyta, jak ma pracować (brama trybów Faza 0: dialog brainstorming, głęboka weryfikacja w kodzie, uruchamianie testów, plan CoVe, hartowanie strategii, weryfikacja wykonania CoVe), potem ustala zakres, podejście, przypadki brzegowe i plan testów, i zapisuje plik planu.
-2. `exec` wczytuje listę zadań planu (`## Tasks`) do dziennika i wykonuje je po jednym; helper prowadzi stan każdego zadania, wiąże wpisy dziennika z zadaniami i nie pozwala zamknąć dziennika, dopóki jakieś zadanie jest otwarte. Nie ma tu narzędzia listy zadań zależnego od środowiska, więc przebieg jest taki sam w Claude Code i Codex. Zawsze kończy końcową autokontrolą zapisaną w dzienniku.
+1. `plan` działa jak prowadzona rozmowa. Najpierw pyta, jak ma pracować (brama trybów Faza 0: dialog brainstorming, głęboka weryfikacja w kodzie, uruchamianie testów, plan CoVe, hartowanie strategii, weryfikacja wykonania CoVe oraz opcjonalna ocena porządków `cleanup-codebase`, domyślnie wyłączona), potem ustala zakres, podejście, przypadki brzegowe i plan testów, i zapisuje plik planu.
+2. `exec` wczytuje listę zadań planu (`## Tasks`) do dziennika i wykonuje je po jednym; helper prowadzi stan każdego zadania, wiąże wpisy dziennika z zadaniami i nie pozwala zamknąć dziennika, dopóki jakieś zadanie jest otwarte. Nie ma tu narzędzia listy zadań zależnego od środowiska, więc przebieg jest taki sam w Claude Code i Codex. Przy włączonym `cleanup-codebase` przed końcową autokontrolą ocenia pozostałości swojej zmiany, a porządki wykonuje dopiero po potwierdzeniu użytkownika. Zawsze kończy końcową autokontrolą zapisaną w dzienniku.
 3. `handoff` i `resume` przenoszą stan między oknami kontekstu: jeden robi snapshot, drugi go wczytuje i rusza od następnych kroków.
 4. `history` czyta cały korpus przez helper, żeby odpowiedzieć na pytanie o wcześniejszą pracę.
 
 ## Powiązane skille
 
-Plugin dostarcza też dwie bramki, które ten przepływ może wywołać: [`cove`](../cove/README.pl.md) do Chain-of-Verification twierdzeń faktograficznych oraz [`temper`](../temper/README.pl.md) do hartowania strategii planu pod kątem trybów awarii. Oba działają samodzielnie i jako bramki jakości w `/adhoc-sdlc:plan` (plan CoVe, hartowanie strategii, weryfikacja wykonania CoVe).
+Plugin dostarcza też trzy bramki, które ten przepływ może wywołać: [`cove`](../cove/README.pl.md) do Chain-of-Verification twierdzeń faktograficznych, [`temper`](../temper/README.pl.md) do hartowania strategii planu pod kątem trybów awarii oraz [`cleanup-codebase`](../cleanup-codebase/README.pl.md) do opartej na dowodach oceny porządków. Wszystkie działają samodzielnie i jako bramki w `/adhoc-sdlc:plan` (plan CoVe, hartowanie strategii, weryfikacja wykonania CoVe, ocena porządków).
 
 ## Pliki
 

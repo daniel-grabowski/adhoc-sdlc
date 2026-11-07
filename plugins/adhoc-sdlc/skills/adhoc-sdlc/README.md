@@ -64,14 +64,14 @@ flowchart LR
 
 Rounded nodes are commands and the cylinder is the on-disk record; thick edges write to it, the dotted edge only reads it, and `handoff` and `resume` bridge the context-window boundary.
 
-1. `plan` runs as a guided conversation. It first asks how to work (the Phase 0 mode gate: brainstorming dialog, deep code verification, test execution, plan CoVe, strategy temper, and execution CoVe), then settles scope, approach, edge cases, and a test plan, and writes the plan file.
-2. `exec` loads the plan's task list (`## Tasks`) into the journal and works through it one task at a time; the helper tracks each task's state, ties journal entries to tasks, and refuses to close the journal while a task is open. There is no runtime-specific todo tool, so the flow is the same in Claude Code and Codex. It always ends with a final self-check recorded in the journal.
+1. `plan` runs as a guided conversation. It first asks how to work (the Phase 0 mode gate: brainstorming dialog, deep code verification, test execution, plan CoVe, strategy temper, execution CoVe, and the optional cleanup assessment, `cleanup-codebase`, OFF by default), then settles scope, approach, edge cases, and a test plan, and writes the plan file.
+2. `exec` loads the plan's task list (`## Tasks`) into the journal and works through it one task at a time; the helper tracks each task's state, ties journal entries to tasks, and refuses to close the journal while a task is open. There is no runtime-specific todo tool, so the flow is the same in Claude Code and Codex. With `cleanup-codebase` ON it assesses the leftovers of its change before the final self-check and carries out a cleanup only after the user confirms it. It always ends with a final self-check recorded in the journal.
 3. `handoff` and `resume` carry state across context windows: one snapshots, the other reloads and picks up from the next steps.
 4. `history` reads the whole corpus through the helper to answer a question about past work.
 
 ## Related skills
 
-The plugin also ships two gates this workflow can call: [`cove`](../cove/README.md) for Chain-of-Verification of factual claims, and [`temper`](../temper/README.md) for hardening a plan's strategy against failure modes. Both are available on their own and as quality gates inside `/adhoc-sdlc:plan` (plan CoVe, strategy temper, execution CoVe).
+The plugin also ships three gates this workflow can call: [`cove`](../cove/README.md) for Chain-of-Verification of factual claims, [`temper`](../temper/README.md) for hardening a plan's strategy against failure modes, and [`cleanup-codebase`](../cleanup-codebase/README.md) for an evidence-based cleanup assessment. All are available on their own and as gates inside `/adhoc-sdlc:plan` (plan CoVe, strategy temper, execution CoVe, cleanup assessment).
 
 ## Files
 

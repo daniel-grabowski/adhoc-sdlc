@@ -195,7 +195,7 @@ daje poprawną ścieżkę do `assets/`).
 
 ```
 plugins/adhoc-sdlc/
-├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.6.0)
+├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.7.0)
 └── skills/
     ├── adhoc-sdlc/             SKILL.md, reference.md, README.md, README.pl.md, commands/, scripts/ (generowane + helper)
     ├── cove/                   SKILL.md, README.md, README.pl.md, agents/openai.yaml (generowane)
@@ -248,7 +248,7 @@ różne mechanizmy dla dwóch różnych rodzajów treści.
 | `.claude-plugin/marketplace.json` | Claude Code             | `./claude`             |
 | `.agents/plugins/marketplace.json`| Codex / Antigravity     | `./plugins/adhoc-sdlc` |
 
-`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.6.0`). To pliki,
+`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.7.0`). To pliki,
 które środowisko czyta, żeby wiedzieć, skąd zainstalować plugin. Instalacja i
 aktualizacja idą z GitHuba (`codex plugin marketplace add daniel-grabowski/adhoc-sdlc`,
 `/plugin marketplace add ...`), nie z lokalnego checkoutu.

@@ -1,5 +1,31 @@
 # Dziennik projektu adhoc-sdlc
 
+## 2026-11-07 - Wydanie 0.7.0: skill `cleanup-codebase` i opcjonalny tryb `cleanup-codebase` w planie i wykonaniu
+
+Status: przygotowane w worktree zadania (commit bez push; scalenie i push wykonuje operator)
+Zakres: workspace FORGE adhoc-sdlc-tasks-cleanup [#7932](https://rm.dflex.pl/issues/7932), zadania TASK-003 [#7936](https://rm.dflex.pl/issues/7936) (skill) i TASK-004 [#7937](https://rm.dflex.pl/issues/7937) (tryb, wydanie).
+
+### Przyczyna
+
+Porządki w kodzie robione na podstawie pustego wyszukiwania usuwają kod osiągany ścieżkami, których wyszukiwanie nie pokazuje. Ocena porządków ma być opcją procesu adhoc, wołaną świadomie, a nie stałym krokiem.
+
+### Co się zmieniło
+
+- Skill `cleanup-codebase` (TASK-003): tylko ocenia (bez edycji plików, git, buildu i testów), sprawdza każdego kandydata względem kategorii niejawnych punktów wejścia i zwraca rejestr z werdyktami `remove`, `merge`, `keep`, `unresolved`; kategoria niesprawdzalna daje `unresolved`.
+- Helper: `MODE_KEYS` ma siódmy klucz `cleanup-codebase`, domyślnie OFF; `config --get-modes` zwraca `false` bez configu i dla configu sprzed 0.7.0 (bez tego klucza).
+- `/adhoc-sdlc:plan`: bramka trybów ma siedem trybów, ocena porządków to czwarta opcja multi-selectu bramek, przy „nie pytaj” pięć trybów bierze domyślne z configu. Wariant A w Phase 1 po `intention-hardening`, a przed CoVe: rejestr w sekcji `## Cleanup Register`, tylko `remove` i `merge` trafiają do `## Key Changes` i `## Tasks`. `## Mode` zapisuje siedem kluczy.
+- `/adhoc-sdlc:exec`: brak klucza w `## Mode` oznacza OFF; przed wykonaniem pozycji rejestru ponowne sprawdzenie kluczowych dowodów (sprzeczność daje `unresolved`); wariant B po implementacji, a przed końcową autokontrolą, na plikach zapisanych w dzienniku; porządki tylko po potwierdzeniu użytkownika, przy „nie pytaj” albo poza celem planu zostają propozycjami.
+- Uzupełnienia po audycie TASK-001 i TASK-002: pierwszy odczyt stanu zadań przez `tasks --format json` (pola `legacy` i `items`) w `exec` krok 4 i w `plan` Phase 3; końcowa autokontrola i CoVe wykonania zapisują `--verification` z `--task` zadania weryfikacji; `reference.md`: pole `task` w decyzji pochodzi wyłącznie z `--task-add`.
+- `SKILL.md` i oba README skilla `adhoc-sdlc`, notatka integracji `temper`, sekcja „Invocation points” skilla `cleanup-codebase`; `tools/test_render.py` przypina tryb w plan i exec, zgodność kluczy helpera z `## Mode` i z punktami wywołania skilla; `test_config.py` sprawdza nowy klucz. Wersja 0.6.0 -> 0.7.0 w trzech manifestach, `CITATION.cff` i `docs/struktura-repozytorium.md`.
+
+### Czego nie zmieniono
+
+- FORGE (`/forge init` i dokumentacja forge) nadal opisuje sześć trybów adhoc; podpięcie po pilocie skilla, poza tym wydaniem.
+
+### Weryfikacja
+
+- `python3 tools/render.py --check`, `pytest` (generator i obie kopie helpera), `claude plugin validate ./claude` i `.`: dowody w przebiegach FORGE zadań [#7936](https://rm.dflex.pl/issues/7936) i [#7937](https://rm.dflex.pl/issues/7937).
+
 ## 2026-11-07 - Wydanie 0.6.0: lista zadań wykonania w planie i w helperze, bez natywnej listy zadań
 
 Status: przygotowane w worktree zadania (commit bez push; scalenie i push wykonuje operator)
@@ -19,7 +45,7 @@ Szablony `plan`, `exec` i `SKILL.md` wymuszały natywną listę zadań przez pla
 
 ### Czego nie zmieniono
 
-- Komendy `resume`, `handoff` i `history` (stan zadań przy wznowieniu opisuje `reference.md`, sekcja Resume); skill `codebase-cleanup` i tryb `cleanup-assessment` należą do wydania 0.7.0.
+- Komendy `resume`, `handoff` i `history` (stan zadań przy wznowieniu opisuje `reference.md`, sekcja Resume); skill `cleanup-codebase` i tryb `cleanup-codebase` należą do wydania 0.7.0.
 
 ### Weryfikacja
 
