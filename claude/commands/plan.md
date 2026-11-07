@@ -7,9 +7,9 @@ argument-hint: "--name \"desc\" --title \"title\" [--project P] [--keywords a,b]
 
 # /adhoc-sdlc:plan
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/SKILL.md` (Read tool): sections "Plan file", "Language", "Commands", "Native todo list". For the file contract see `${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/reference.md` (Helper, Files).
+Read `${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/SKILL.md` (Read tool): sections "Plan file", "Language", "Commands", "Execution tasks". For the file contract see `${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/reference.md` (Helper, Files).
 
-Interactive command: it settles the real design decisions with the user, saves the plan file, and finally closes the loop into execution (native task list + optional `exec` run). The file is ONLY a plan; implementation belongs to `exec`, but the plan can launch it right away.
+Interactive command: it settles the real design decisions with the user, saves the plan file, and finally closes the loop into execution (optional `exec` run that tracks the plan's `## Tasks` through the helper). The file is ONLY a plan; implementation belongs to `exec`, but the plan can launch it right away.
 
 Match the user's language for all output (questions, reports, plan prose). Keep the semantic name and filenames ASCII (the helper normalizes them).
 
@@ -35,7 +35,7 @@ After a brief read of the prompt and before planning, ask the user to choose the
 4. Quality gates (multi-select, any combination):
    - Plan CoVe. Selected: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. Not selected: rely on the normal planning review.
    - Strategy Temper. Selected: after Plan CoVe and before saving the plan, run a focused failure-mode pass on the strategy (edge cases, partial failure, retries/idempotency, migration/existing state, integration boundaries, verification gaps, reversibility, security/data safety, architecture responsibility leaks). Not selected: rely on the normal planning review and the required final self-check.
-   - Execution CoVe. Selected: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. Not selected: rely on tests plus the required final self-check.
+   - Execution CoVe. Selected: before closing execution as done, verify the final report against the diff, journal entries, task completion (`tasks`), and actual verification commands. Not selected: rely on tests plus the required final self-check.
 
 If the user has already said "don't ask" in this session, do not block: the Phase 1 request reading still runs, `plan-cove` and `strategy-temper` are ON, the other four modes take the project defaults read above (`config --get-modes`), and you list the assumed modes explicitly (always a final self-check + journal).
 
@@ -66,7 +66,16 @@ If `strategy-temper` is ON, run the `temper` skill (via the `Skill` tool; skills
      --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>] [--prompt "<verbatim request>"]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE` from stderr and fix the call (e.g. unique name, allowed status/keywords/project); do not create the file by hand.
-3. Read the returned `plan=...` path and fill the body sections (`## Summary`, `## Key Changes`, `## Test Plan`, `## Assumptions`) with `Edit`, incorporating the Phase 1 decisions and any `plan-cove` revisions. Then add a `## Mode` section recording the Phase 0 toggles (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, `execution-cove`, plus any defaults assumed under "don't ask"). When `strategy-temper` is ON and there are risks worth recording, also add the optional `## Tempered Risks` and `## Accepted Risks` sections; temper's Operator options stay in its response, not in the file. Do NOT touch the frontmatter block.
+3. Read the returned `plan=...` path and fill the body sections (`## Summary`, `## Key Changes`, `## Tasks`, `## Test Plan`, `## Assumptions`) with `Edit`, incorporating the Phase 1 decisions and any `plan-cove` revisions. Then add a `## Mode` section recording the Phase 0 toggles (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, `execution-cove`, plus any defaults assumed under "don't ask"). When `strategy-temper` is ON and there are risks worth recording, also add the optional `## Tempered Risks` and `## Accepted Risks` sections; temper's Operator options stay in its response, not in the file. Do NOT touch the frontmatter block.
+4. Write `## Tasks` as the execution task list: one task per Key Change plus one verification task (the Test Plan steps and the final self-check), phrased as concrete actions. Each task is an unindented bullet in exactly this form, with unique ids `T1`, `T2`, ... in order:
+   ```markdown
+   ## Tasks
+
+   - [T1] <first key change as an action>
+   - [T2] <second key change as an action>
+   - [T3] Verification: <tests and final self-check>
+   ```
+   Indented sub-bullets and prose inside the section are ignored. A numbered list (`1. ...`) is not read as tasks at all, and any other unindented bullet (for example `- T1 title` or `- [x] title`) or a repeated id makes the helper refuse to create the journal (exit 2). The plan is the definition only: task state lives in the execution journal, so do not tick or edit `## Tasks` during execution.
 
 ## Phase 3: close the loop
 
@@ -74,10 +83,10 @@ After saving the plan, ALWAYS close the loop with two points: (1) add/change any
 
 1. "Add or change anything in the plan?" If yes, apply with `Edit` on the body sections and show the change.
 2. "Run execution now?":
-   - **YES** -> move into execution (like `/adhoc-sdlc:exec`):
-     1. create the journal with the SAME `--name` as the plan (this is how `exec` continues this very session, not a new one): `python3 ${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute --name "<name>" --title "<title>"`,
-     2. FORCE the native task list (`TaskCreate`/`TaskUpdate`) seeded from `Key Changes` + a verification step. This is MANDATORY before the first code change. Time pressure or a "skip the list / just do it" request does NOT lift it: without the native list, do not start implementation,
-     3. execute per the plan; append each significant step incrementally with `execute --append "..." --files <touched files>`; keep exactly one list item `in_progress`, mark it `completed` right after it is done.
+   - **YES** -> move into execution (like `/adhoc-sdlc:exec`, see `${CLAUDE_PLUGIN_ROOT}/commands/exec.md` for the full task rules):
+     1. create the journal with the SAME `--name` as the plan (this is how `exec` continues this very session, not a new one): `python3 ${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py execute --name "<name>" --title "<title>"`. The helper loads the plan's `## Tasks` into the journal (`schema: 2`) as `pending` tasks,
+     2. read the task list from the helper: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc/scripts/adhoc_sdlc.py tasks --name "<name>" --format tsv`. If it is empty (a plan without `## Tasks`), add the tasks with `execute --name "<name>" --title "<title>" --task-add "<task title>"` (repeatable) before the first entry; the helper refuses `--append` until the list has a task. The helper's list is the only task list: there is no separate native list to keep. Time pressure or a "skip the list / just do it" request does NOT lift this: no code change before the journal has its tasks,
+     3. execute per the plan, task by task (every `execute` call carries `--name` and `--title`): start a task with `execute --name "<name>" --title "<title>" --task T1 --task-status in_progress` (exactly one task `in_progress` at a time), append each significant step with `execute --name "<name>" --title "<title>" --task T1 --append "..." --files <touched files>`, and mark it done right after it is finished with `--task T1 --task-status done` (the helper refuses `done` without an entry or verification for that task). Close the journal only after every task is `done`.
    - **NO** -> show the plan path and suggest `/adhoc-sdlc:exec --name <name>` for later.
 
 ## Output

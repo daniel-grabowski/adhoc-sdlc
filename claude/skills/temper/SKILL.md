@@ -36,7 +36,7 @@ Plan draft
   -> Temper: pressure-test the strategy against failure modes
   -> Save/execute plan through adhoc-sdlc
   -> Review/tests: verify implementation behavior
-  -> Execution CoVe: verify the final report against diff, journal, todos, and command output
+  -> Execution CoVe: verify the final report against diff, journal, journal tasks, and command output
 ```
 
 Use the tools for different jobs:

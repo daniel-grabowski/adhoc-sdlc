@@ -64,7 +64,7 @@ flowchart LR
 Zaokrąglone węzły to komendy, a walec to zapis na dysku; grube krawędzie do niego piszą, kropkowana tylko czyta, a `handoff` i `resume` przerzucają most przez granicę okna kontekstu.
 
 1. `plan` działa jak prowadzona rozmowa. Najpierw pyta, jak ma pracować (brama trybów Faza 0: dialog brainstorming, głęboka weryfikacja w kodzie, uruchamianie testów, plan CoVe, hartowanie strategii, weryfikacja wykonania CoVe), potem ustala zakres, podejście, przypadki brzegowe i plan testów, i zapisuje plik planu.
-2. `exec` zasiewa natywną listę zadań z planu, przechodzi przez nią i dopisuje wpis do dziennika po każdym istotnym kroku. Zawsze kończy końcową autokontrolą zapisaną w dzienniku.
+2. `exec` wczytuje listę zadań planu (`## Tasks`) do dziennika i wykonuje je po jednym; helper prowadzi stan każdego zadania, wiąże wpisy dziennika z zadaniami i nie pozwala zamknąć dziennika, dopóki jakieś zadanie jest otwarte. Nie ma tu narzędzia listy zadań zależnego od środowiska, więc przebieg jest taki sam w Claude Code i Codex. Zawsze kończy końcową autokontrolą zapisaną w dzienniku.
 3. `handoff` i `resume` przenoszą stan między oknami kontekstu: jeden robi snapshot, drugi go wczytuje i rusza od następnych kroków.
 4. `history` czyta cały korpus przez helper, żeby odpowiedzieć na pytanie o wcześniejszą pracę.
 
@@ -87,7 +87,7 @@ Plany i dzienniki trafiają do `./adhoc-sdlc/` w bieżącym projekcie, nie tutaj
 
 ## Helper
 
-`scripts/adhoc_sdlc.py` to jedyny zapisujący pliki `adhoc-sdlc/`. Wpisy w dzienniku zmieniają się tylko przez jego flagi (`--append`, `--decision`, `--verification`, `--final`), nigdy przez ręczną edycję pliku JSON. Przy `history`, `resume` i `handoff` ten sam helper (tryb `pack`) jest jedynym czytającym: wyszukuje, parsuje i budżetuje kontekst, a agent pracuje na zwróconej paczce, zamiast skanować pliki wprost.
+`scripts/adhoc_sdlc.py` to jedyny zapisujący pliki `adhoc-sdlc/`. Wpisy w dzienniku zmieniają się tylko przez jego flagi (`--append`, `--decision`, `--verification`, `--final`, a dla zadań `--task`, `--task-status`, `--task-add`), nigdy przez ręczną edycję pliku JSON; `tasks --name <nazwa>` wypisuje stan zadań. Przy `history`, `resume` i `handoff` ten sam helper (tryb `pack`) jest jedynym czytającym: wyszukuje, parsuje i budżetuje kontekst, a agent pracuje na zwróconej paczce, zamiast skanować pliki wprost.
 
 ## Język
 

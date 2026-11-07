@@ -80,14 +80,13 @@ Używane placeholdery (i ile razy występują w szablonach):
 
 | Token                | Znaczenie                                          | Wystąpień |
 |----------------------|----------------------------------------------------|-----------|
-| `{{ASK}}`            | narzędzie/forma pytania do użytkownika              | 12        |
+| `{{ASK}}`            | narzędzie/forma pytania do użytkownika              | 15        |
 | `{{ASK_NOTE}}`       | dodatkowa wskazówka do pytania (pusta dla Claude)   | 2         |
-| `{{TODO}}`           | narzędzie listy zadań                               | 3         |
 | `{{SUBAGENT_VIA}}`   | klauzula "via ..." dla podagenta (pusta dla Codex)  | 4         |
-| `{{SKILL_VIA}}`      | klauzula wywołania skilla (`Skill` w Claude, `$<name>` w Codex) | 3 |
-| `{{SKILL_HOME}}`     | katalog z SKILL.md/reference.md/scripts             | 22        |
+| `{{SKILL_VIA}}`      | klauzula wywołania skilla (`Skill` w Claude, `$<name>` w Codex) | 6 |
+| `{{SKILL_HOME}}`     | katalog z SKILL.md/reference.md/scripts             | 26        |
 | `{{SKILL_HOME_NOTE}}`| objaśnienie ścieżki skilla (puste dla Claude)       | 1         |
-| `{{COMMANDS_HOME}}`  | katalog komend                                      | 1         |
+| `{{COMMANDS_HOME}}`  | katalog komend                                      | 2         |
 | `{{ASSETS}}`         | prefiks ścieżki do katalogu assets (per runtime)    | 2         |
 
 Placeholdery rozdzielono celowo: `SKILL_HOME` (katalog skilla) i `COMMANDS_HOME`
@@ -99,6 +98,12 @@ w Claude narzędzie `Skill` z nazwą `adhoc-sdlc:<name>` dla skilli pluginu, w C
 `$<name>` (hipoteza oparta na jedynym dowodzie, `$cove` w `cove/agents/openai.yaml`). `ASSETS` to prefiks ścieżki do katalogu
 `assets/`, różny per runtime (Claude trzy poziomy w górę, Codex cztery), bo README
 skilli leżą na różnej głębokości względem korzenia repo.
+
+Lista zadań wykonania nie ma placeholdera (od wydania 0.6.0): plan definiuje zadania
+w sekcji `## Tasks` (punkty `- [T1] <tytuł>`), a ich stan prowadzi helper w dzienniku
+`execute-*.json` (`schema: 2`, flagi `--task`, `--task-status`, `--task-add`, komenda
+`tasks`), tak samo w Claude Code i Codex. Szablony nie odwołują się do natywnego
+narzędzia listy zadań żadnego runtime'u.
 
 Szablony edytujesz ręcznie. To jedyne miejsce, gdzie zmieniasz treść promptów.
 
@@ -112,10 +117,10 @@ Każdy runtime ma jeden plik JSON z polami:
 - `files` - lista par `[ścieżka_szablonu, ścieżka_wyjściowa]`.
 
 Przykład (`runtimes/claude.json`): `{{ASK}}` -> `` `AskUserQuestion` ``,
-`{{TODO}}` -> `` `TaskCreate`/`TaskUpdate` ``, `{{SKILL_HOME}}` ->
+`{{SKILL_HOME}}` ->
 `${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc`. `files` kieruje render do `claude/...`.
 W `runtimes/codex.json` te same tokeny mapują się na frazy opisowe
-(`a structured question`, `your runtime's native task-tracking tool`),
+(`a structured question`),
 `{{SKILL_HOME}}` -> `<skill-dir>`, a `files` kieruje render do
 `plugins/adhoc-sdlc/...`.
 
@@ -188,7 +193,7 @@ daje poprawną ścieżkę do `assets/`).
 
 ```
 plugins/adhoc-sdlc/
-├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.5.0)
+├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.6.0)
 └── skills/
     ├── adhoc-sdlc/             SKILL.md, reference.md, README.md, README.pl.md, commands/, scripts/ (generowane + helper)
     ├── cove/                   SKILL.md, README.md, README.pl.md, agents/openai.yaml (generowane)
@@ -240,7 +245,7 @@ różne mechanizmy dla dwóch różnych rodzajów treści.
 | `.claude-plugin/marketplace.json` | Claude Code             | `./claude`             |
 | `.agents/plugins/marketplace.json`| Codex / Antigravity     | `./plugins/adhoc-sdlc` |
 
-`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.5.0`). To pliki,
+`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.6.0`). To pliki,
 które środowisko czyta, żeby wiedzieć, skąd zainstalować plugin. Instalacja i
 aktualizacja idą z GitHuba (`codex plugin marketplace add daniel-grabowski/adhoc-sdlc`,
 `/plugin marketplace add ...`), nie z lokalnego checkoutu.

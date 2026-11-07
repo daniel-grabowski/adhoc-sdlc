@@ -65,7 +65,7 @@ flowchart LR
 Rounded nodes are commands and the cylinder is the on-disk record; thick edges write to it, the dotted edge only reads it, and `handoff` and `resume` bridge the context-window boundary.
 
 1. `plan` runs as a guided conversation. It first asks how to work (the Phase 0 mode gate: brainstorming dialog, deep code verification, test execution, plan CoVe, strategy temper, and execution CoVe), then settles scope, approach, edge cases, and a test plan, and writes the plan file.
-2. `exec` seeds a native todo list from the plan, works through it, and appends a journal entry for each significant step. It always ends with a final self-check recorded in the journal.
+2. `exec` loads the plan's task list (`## Tasks`) into the journal and works through it one task at a time; the helper tracks each task's state, ties journal entries to tasks, and refuses to close the journal while a task is open. There is no runtime-specific todo tool, so the flow is the same in Claude Code and Codex. It always ends with a final self-check recorded in the journal.
 3. `handoff` and `resume` carry state across context windows: one snapshots, the other reloads and picks up from the next steps.
 4. `history` reads the whole corpus through the helper to answer a question about past work.
 
@@ -88,7 +88,7 @@ Plans and journals are written to `./adhoc-sdlc/` inside the current project, no
 
 ## The helper
 
-`scripts/adhoc_sdlc.py` is the only writer of the `adhoc-sdlc/` files. Journal entries change only through its flags (`--append`, `--decision`, `--verification`, `--final`), never by editing the JSON by hand. For `history`, `resume`, and `handoff`, the same helper (`pack` mode) is the only reader: it discovers, parses, and budgets the context, and the agent works from the pack it returns instead of scanning the files directly.
+`scripts/adhoc_sdlc.py` is the only writer of the `adhoc-sdlc/` files. Journal entries change only through its flags (`--append`, `--decision`, `--verification`, `--final`, and for tasks `--task`, `--task-status`, `--task-add`), never by editing the JSON by hand; `tasks --name <name>` prints the task state. For `history`, `resume`, and `handoff`, the same helper (`pack` mode) is the only reader: it discovers, parses, and budgets the context, and the agent works from the pack it returns instead of scanning the files directly.
 
 ## Language
 

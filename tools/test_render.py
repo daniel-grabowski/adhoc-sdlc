@@ -32,9 +32,47 @@ class RenderTests(unittest.TestCase):
     def test_substitutes_explicit_tool_names(self):
         out = self._render_plan()
         self.assertIn("`AskUserQuestion`", out)
-        self.assertIn("`TaskCreate`/`TaskUpdate`", out)
         self.assertIn("`Agent` tool", out)
         self.assertIn("${CLAUDE_PLUGIN_ROOT}", out)
+
+    def test_task_list_through_helper_not_native_tool(self):
+        # AC-005/AC-006 (#7935, DEC-001, DEC-004): lista zadań w planie (## Tasks) i w helperze, bez natywnego narzędzia.
+        codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
+        for runtime, placeholders in (("claude", self.placeholders), ("codex", codex_spec["placeholders"])):
+            self.assertNotIn("TODO", placeholders, f"{runtime}: klucz TODO w runtimes")
+            plan = render.render_one("commands/plan.md", placeholders, runtime)
+            exec_ = render.render_one("commands/exec.md", placeholders, runtime)
+            skill = render.render_one("skills/adhoc-sdlc/SKILL.md", placeholders, runtime)
+            reference = render.render_one("skills/adhoc-sdlc/reference.md", placeholders, runtime)
+            phase2 = plan.split("## Phase 2")[1].split("## Phase 3")[0]
+            close_loop = plan.split("## Phase 3")[1]
+            for phrase in ("Write `## Tasks` as the execution task list", "- [T1] <first key change as an action>", "A numbered list (`1. ...`) is not read as tasks"):
+                self.assertIn(phrase, phase2, f"{runtime}: plan.md Phase 2: {phrase}")
+            for phrase in ("adhoc_sdlc.py tasks --name", "--task-add", "--task T1 --task-status in_progress", "--task-status done", "Close the journal only after every task is `done`"):
+                self.assertIn(phrase, close_loop, f"{runtime}: plan.md Phase 3: {phrase}")
+            for phrase in (
+                "adhoc_sdlc.py tasks --name",
+                "--task-add \"<task title>\"",
+                "--task T1 --task-status in_progress",
+                "Exactly one task is `in_progress` at a time",
+                "--task <Tn> --append",
+                "Reopening a `done` task",
+                "the journal status is `in-progress|done|abandoned`",
+                "the task status is `in_progress|done`",
+                "Close the journal only after every task is `done`",
+            ):
+                self.assertIn(phrase, exec_, f"{runtime}: exec.md: {phrase}")
+            self.assertIn("## Execution tasks", skill)
+            self.assertNotIn("## Native todo list", skill)
+            self.assertIn("## Execution tasks", reference)
+            self.assertIn("`tasks --name <name> [--format json|tsv]`", reference)
+            for name, text in (("plan.md", plan), ("exec.md", exec_), ("SKILL.md", skill), ("reference.md", reference)):
+                for banned in ("TaskCreate", "TaskUpdate", "native todo", "native task list"):
+                    self.assertNotIn(banned, text, f"{runtime}: {name}: {banned}")
+        # Źródła: placeholder listy zadań nie wraca w żadnym szablonie.
+        for path in render.TEMPLATES_DIR.rglob("*"):
+            if path.is_file():
+                self.assertNotIn("{{TODO}}", path.read_text(encoding="utf-8"), str(path))
 
     def test_regression_mode_gate_and_close_loop_explicit(self):
         # Bug 70d56b1: mode gate i close-the-loop straciły jawne AskUserQuestion.

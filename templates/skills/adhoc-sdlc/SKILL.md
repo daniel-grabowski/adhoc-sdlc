@@ -41,27 +41,29 @@ The skill exposes sub-commands invoked with a colon. Files live in `{{COMMANDS_H
 ## Lifecycle
 
 1. Discuss and confirm the plan.
-2. Create only the plan file.
-3. When implementation starts, create the execution journal AND a native todo list, both seeded from the plan's key changes and test-plan steps. Seeding the list is mandatory before the first code change.
-4. During work, keep both in sync (see Native todo list); append journal entries incrementally via the helper.
-5. At the end, mark the final todos completed, then update verification and final status.
+2. Create only the plan file; its `## Tasks` section defines the execution tasks.
+3. When implementation starts, create the execution journal; the helper loads the plan's tasks into it. The journal must have its tasks before the first code change (for a plan without `## Tasks`, add them with `--task-add`).
+4. During work, run the tasks one at a time through the helper (see Execution tasks) and append journal entries incrementally, each tied to its task.
+5. At the end, mark the last tasks `done`, record verification, then close the journal with the final result and status.
 
 Do not create `execute-*` as a placeholder when only saving a plan. See `reference.md` for the helper and journal operations.
 
-## Native todo list
+## Execution tasks
 
-The native todo list ({{TODO}}) is the live progress view; the journal (`execute-*`) is the durable, resumable record. Maintain both.
+The plan defines the tasks; the journal (`execute-*`) holds their state, and only the helper changes it. There is no native task-tracking tool in this workflow: the helper's list is the live progress view and the durable, resumable record at once, the same in every runtime.
 
-- Seed it at execution start: one item per plan key change plus one for verification/testing. Phrase items as concrete actions.
-- Keep exactly one item `in_progress`; mark it `completed` the moment it is done, before the next. Do not batch.
-- Append the matching journal entry as you finish each task or phase (`execute --append "<note>" --files <touched files>`).
-- If the plan changes mid-flight, adjust the todos and note the deviation in the journal.
-- Every `completed` todo maps to at least one journal entry, so a session can resume from `execute-*` alone (the todo list does not persist).
-- For a plan-only save (no implementation yet), do not create a todo list.
+- Define the tasks in the plan's `## Tasks` section, one unindented bullet per task in exactly this form: `- [T1] <title>`, `- [T2] <title>`, ... One task per key change plus one verification task, phrased as concrete actions. A numbered list is not read as tasks, and any other unindented bullet or a repeated id makes the helper refuse to create the journal (exit 2).
+- At execution start, the helper loads the tasks into the journal as `pending`. Read their state with `tasks --name <name> [--format json|tsv]`.
+- Keep exactly one task `in_progress` (`execute ... --task Tn --task-status in_progress`); mark it `done` (`--task-status done`) the moment it is finished, before the next. Do not batch.
+- Tie the work to the task: entries and verifications carry `--task Tn`. The helper refuses `done` for a task with no such entry or verification.
+- If the plan changes mid-flight, add the task with `--task-add "<task title>"`; the helper records the deviation as a decision. Do not edit `## Tasks` in the plan during execution.
+- The helper refuses `--final` and `--status done` while any task is open, so the journal closes only after every task is `done` (or is abandoned with `--status abandoned`).
+- Task status (`in_progress|done`, starting as `pending`) and journal status (`in-progress|done|abandoned`) are separate vocabularies.
+- For a plan-only save (no implementation yet), do not create the journal.
 
 ## Plan file
 
-Write the confirmed plan into `plan-*` with: title, summary, key changes, test plan, assumptions. Run the plan command as a guided conversation, not a form. Optionally pass `--prompt "<verbatim request>"` to persist the user's original wording in an `## Original Prompt` section; it is durable context and the main bridge that lets later free-text `history` searches (often Polish) find an English-tagged plan.
+Write the confirmed plan into `plan-*` with: title, summary, key changes, tasks (`## Tasks`, see Execution tasks), test plan, assumptions. Run the plan command as a guided conversation, not a form. Optionally pass `--prompt "<verbatim request>"` to persist the user's original wording in an `## Original Prompt` section; it is durable context and the main bridge that lets later free-text `history` searches (often Polish) find an English-tagged plan.
 
 ### Engineering checklist
 
@@ -88,7 +90,7 @@ After a brief read of the prompt and before planning, ask the user to choose the
 4. Quality gates (multi-select, any combination):
    - Plan CoVe. Selected: before saving the plan, verify the draft plan's factual claims and assumptions with CoVe-style independent questions. Not selected: rely on the normal planning review.
    - Strategy Temper. Selected: after Plan CoVe and before saving the plan, run a focused failure-mode pass on the strategy (edge cases, partial failure, retries/idempotency, migration/existing state, integration boundaries, verification gaps, reversibility, security/data safety, architecture responsibility leaks). Not selected: rely on the normal planning review and the required final self-check.
-   - Execution CoVe. Selected: before closing execution as done, verify the final report against the diff, journal entries, todo completion, and actual verification commands. Not selected: rely on tests plus the required final self-check.
+   - Execution CoVe. Selected: before closing execution as done, verify the final report against the diff, journal entries, task completion (`tasks`), and actual verification commands. Not selected: rely on tests plus the required final self-check.
 
 Record the chosen modes in a `## Mode` section of the plan file; that section is the contract `exec` reads. Include all six: `brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, and `execution-cove` (the last three derived from the quality-gates multi-select). If the user has said "don't ask" (or Phase 0 is skipped), the request reading still runs, `plan-cove` and `strategy-temper` are ON, the other four modes take the project defaults (`config --get-modes`), and you list the assumed modes explicitly (always a final self-check + journal).
 
@@ -96,7 +98,7 @@ Record the chosen modes in a `## Mode` section of the plan file; that section is
 
 Before writing the file, run the `intention-hardening` skill{{SKILL_VIA}} on the request (always, also under "don't ask"); it returns the goal, the interpretations, and the decision anchors (scope, variants, edge cases, test strategy). Record the goal and success criterion in the plan's Summary, the interpretations in Assumptions, and the verbatim request in Original Prompt (`--prompt`). Then ask about the open decisions. Think for the user: propose resolutions with a recommendation, verify assumptions in code and data sources instead of guessing, and call out risks and edge cases proactively. Never assume silently. If the user says "don't ask", record the chosen assumptions visibly instead of hiding them.
 
-After writing the file, close the loop: offer to add or change anything, then offer to run execution now. Running execution makes seeding the native task list mandatory before any code change.
+After writing the file, close the loop: offer to add or change anything, then offer to run execution now. Running execution makes the journal's task list mandatory before any code change.
 
 ## Read-side authority
 

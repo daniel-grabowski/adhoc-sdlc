@@ -1,11 +1,10 @@
 {
   "runtime": "codex",
   "active": true,
-  "description": "Codex / Codex-plugin tool bindings for adhoc-sdlc prompt templates. Codex names no dedicated question/subagent tool in its prose (speak in actions), so ASK/TODO render as descriptive phrases and the subagent via-clause is empty. SKILL_VIA renders `$<name>` after the only evidence in the repo (`$cove` in skills/cove/agents/openai.yaml); the plugin-skill invocation syntax is not yet confirmed. Paths resolve against the installed skill dir (<skill-dir>). Output tree is the Codex plugin: plugins/adhoc-sdlc/.",
+  "description": "Codex / Codex-plugin tool bindings for adhoc-sdlc prompt templates. Codex names no dedicated question/subagent tool in its prose (speak in actions), so ASK renders as a descriptive phrase and the subagent via-clause is empty. SKILL_VIA renders `$<name>` after the only evidence in the repo (`$cove` in skills/cove/agents/openai.yaml); the plugin-skill invocation syntax is not yet confirmed. Paths resolve against the installed skill dir (<skill-dir>). Output tree is the Codex plugin: plugins/adhoc-sdlc/.",
   "placeholders": {
     "ASK": "a structured question",
     "ASK_NOTE": " Use a native choice UI when the surface provides one, otherwise plain numbered options; do not imply that the plugin provides its own custom form UI.",
-    "TODO": "your runtime's native task-tracking tool",
     "SUBAGENT_VIA": "",
     "SKILL_VIA": " (invoke it as `$<name>`)",
     "SKILL_HOME": "<skill-dir>",

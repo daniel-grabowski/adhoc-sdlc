@@ -20,11 +20,11 @@ status: in-progress | done | abandoned
 ---
 ```
 
-Plan and handoff are markdown with the frontmatter above. The execution journal is native JSON (`execute-*.json`): the same meta fields at top level plus `plan` (path), `original_prompt` (the verbatim request, inherited from the plan's `## Original Prompt` section), `entries` (incremental records: `ts`, `note`, optional `phase`, a `files` list of `{path, change}`), `decisions`, `verification` and `final_result`. Touched files are a structural element, not loose text; `history`/`resume` return them as `touched_files`.
+Plan and handoff are markdown with the frontmatter above. The execution journal is native JSON (`execute-*.json`): the same meta fields at top level plus `schema` (`2` for journals with a task list; absent in older journals), `plan` (path), `original_prompt` (the verbatim request, inherited from the plan's `## Original Prompt` section), `tasks` (the execution task list, see Execution tasks), `entries` (incremental records: `ts`, `note`, optional `phase`, optional `task`, a `files` list of `{path, change}`), `decisions` (optional `task`), `verification` (optional `task`) and `final_result`. Touched files are a structural element, not loose text; `history`/`resume` return them as `touched_files`.
 
 A plan may carry an optional `## Original Prompt` section (written by `plan --prompt "<verbatim request>"`): the user's own wording, stored durably so a later free-text `history` search can match it. It is additive and backward compatible; older artifacts without it stay searchable on their existing content.
 
-Only the helper creates files under `adhoc-sdlc/` (the single source of truth for names, frontmatter and JSON). Do not write them by hand with `Write`. You may fill the markdown body sections (plan/handoff) with `Edit`, but `execute-*.json` changes only through the helper (`execute --append/--decision/--verification/--final`), never by manual `Edit`/`Write`. The helper is a hard contract guard: bad input gives exit 2 plus `ERROR/EXPECTED/EXAMPLE` on stderr, with zero side effects. After every call, check the exit code and fix the call per the hints when it is non-zero.
+Only the helper creates files under `adhoc-sdlc/` (the single source of truth for names, frontmatter and JSON). Do not write them by hand with `Write`. You may fill the markdown body sections (plan/handoff) with `Edit`, but `execute-*.json` changes only through the helper (`execute --append/--decision/--verification/--final/--task-status/--task-add`), never by manual `Edit`/`Write`. The helper is a hard contract guard: bad input gives exit 2 plus `ERROR/EXPECTED/EXAMPLE` on stderr, with zero side effects. After every call, check the exit code and fix the call per the hints when it is non-zero.
 
 ## Files
 
@@ -60,8 +60,15 @@ Start or append execution:
 python3 <skill-dir>/scripts/adhoc_sdlc.py execute \
   --name "operator panel start stop good button" \
   --title "Operator panel fixes: Start/Stop and Good" \
-  --append "Implemented the Start/Stop button" \
+  --task T1 --append "Implemented the Start/Stop button" \
   --files "OperatorPanel.pas,OperatorPanel.dfm" --phase "implementation"
+```
+
+Read the task state (no side effects):
+
+```bash
+python3 <skill-dir>/scripts/adhoc_sdlc.py tasks \
+  --name "operator panel start stop good button" --format tsv
 ```
 
 The helper:
@@ -70,7 +77,7 @@ The helper:
 - normalizes the semantic name to ASCII lowercase kebab-case;
 - creates only `plan-*` in `plan` mode;
 - requires an existing plan before `execute` mode;
-- creates `execute-*` only at execution start, and appends timestamped entries if it already exists;
+- creates `execute-*` only at execution start (with `schema: 2` and the tasks from the plan's `## Tasks`), and appends timestamped entries if it already exists;
 - refuses ambiguous or duplicate semantic names.
 
 ## Execute journal (JSON)
@@ -83,11 +90,34 @@ Operations (`execute` mode):
 - a step entry: `--append "<note>"` (alias `--note`), optionally `--phase "<label>"` and `--files a.pas,b.css` (with `--change edit|add|delete|rename`, default `edit`); files belong to the entry;
 - `--decision "<text>"` appends a decision or deviation;
 - `--verification "<outcome>"` (optionally `--command "<cmd>"`) appends a verification result;
-- `--final "<text>" --status done` closes the journal.
+- `--task Tn` ties an entry (`--append`) or a verification (`--verification`) to a task, and selects the task for `--task-status`;
+- `--task Tn --task-status in_progress|done` changes a task's state;
+- `--task-add "<task title>"` (repeatable) adds task `T<max+1>` (`pending`, source `added`) and a decision `Odstępstwo od planu: dodano zadanie Tn: <title>` tied to it;
+- `--final "<text>" --status done` closes the journal; `--status abandoned` closes it without finishing.
+
+Every call needs `--name` and `--title`. Operations in one call run in a fixed order: task-add, entry, verification, decision, task-status, final/status. For example `--task T1 --append "done the change" --task-status done`, or `--task-add "Fix the edge case" --task T3 --append "started"`.
 
 Every operation updates `updated`. Touched files from `entries[].files` are aggregated and deduplicated into `touched_files` on the read side. If execution is interrupted, the JSON must be enough for another agent to resume safely.
 
 Legacy `execute-*.md` journals (pre-JSON) are still read by `history`/`resume` and can be continued with `--append`; the helper will not write the new structural fields (`--files` etc.) into markdown (fail loud), so such a journal is best closed and replaced with a new one.
+
+## Execution tasks
+
+The plan's `## Tasks` section defines the tasks; the journal field `tasks` holds their state. Format in the plan: one unindented bullet per task, `- [T1] <title>` (also `* [T1] <title>`), ids `T<n>` unique. Indented sub-bullets and prose in the section are ignored; a numbered list is not read as tasks. Any other unindented bullet or a repeated id is refused when the journal is created (exit 2). No section, or the `TODO` placeholder, gives an empty list.
+
+Journal field: `tasks` is a list of `{id, title, status, source}`; `status` is `pending`, `in_progress` or `done`; `source` is `plan` or `added`. Task status (`in_progress`, underscore) and journal status (`in-progress|done|abandoned`, hyphen) are separate vocabularies.
+
+Validation (exit 2, `ERROR/EXPECTED/EXAMPLE`, nothing written):
+
+- a second task `in_progress` (setting the same task `in_progress` again is allowed, also to reopen a `done` task);
+- `done` for a task with no entry or verification carrying `--task` for it;
+- `--final` or `--status done` while any task is not `done` (the message lists the open tasks); `--status abandoned` is allowed;
+- `--append` on a schema 2 journal without tasks (also when creating the journal) until `--task-add`;
+- an unknown task, `--task` outside `T<n>`, `--task-status` outside `in_progress|done`, `--task-status` without `--task`, `--task` with no entry, verification or status change, an empty `--task-add` title.
+
+Read the state with `tasks --name <name> [--format json|tsv]` (no side effects). `json`: `semantic_name`, `execute`, `schema`, `legacy`, `items` (`{id, title, status, source}`), `open` (ids not `done`), `in_progress` (id or null). `tsv`: one `id<TAB>status<TAB>title` line per task.
+
+Backward compatibility: a JSON journal without the `schema` field (created before task lists) keeps the old behavior: `--append`, `--verification`, `--final` and `--status done` work as before, and the task flags are refused. Such journals are not migrated.
 
 ## Handoff
 
@@ -98,7 +128,7 @@ A snapshot of session state for a new context window. Created by the helper (`ha
 Resume from one of up to 4 most recent sessions, in two steps:
 
 1. `pack --intent resume --limit 4 --format json` returns candidates in `related` (metadata). The agent presents a choice via a structured question (label = `updated` + `title`, description = project + keywords) plus an optional "include related history" choice.
-2. After the choice: `pack --intent resume --name <chosen> [--include-history --history-angle "..."]` returns `primary` with `extracts` (Goal, Next Steps, What Worked/Didn't). The agent continues from Next Steps using only the pack, without `Read`-ing the file.
+2. After the choice: `pack --intent resume --name <chosen> [--include-history --history-angle "..."]` returns `primary` with `extracts` (Goal, Next Steps, What Worked/Didn't) and a top-level `tasks` field: the task state of the session's newest schema 2 journal (`{execute, schema, items, open, in_progress}`; null for the list step, without a journal, or for an older journal). The agent continues from Next Steps and the open tasks using only the pack, without `Read`-ing the file.
 
 No candidates (`stats.matched=0` / `warnings:["no_candidates"]`) -> "no session to resume". Read-side authority applies (see `SKILL.md`).
 

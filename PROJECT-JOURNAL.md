@@ -1,5 +1,30 @@
 # Dziennik projektu adhoc-sdlc
 
+## 2026-11-07 - Wydanie 0.6.0: lista zadań wykonania w planie i w helperze, bez natywnej listy zadań
+
+Status: przygotowane w worktree zadania (commit bez push; scalenie i push wykonuje operator)
+Zakres: workspace FORGE adhoc-sdlc-tasks-cleanup [#7932](https://rm.dflex.pl/issues/7932), zadania TASK-001 [#7934](https://rm.dflex.pl/issues/7934) (helper) i TASK-002 [#7935](https://rm.dflex.pl/issues/7935) (szablony, wydanie).
+
+### Przyczyna
+
+Szablony `plan`, `exec` i `SKILL.md` wymuszały natywną listę zadań przez placeholder `{{TODO}}`, który w Claude Code wskazywał `TaskCreate`/`TaskUpdate`, a w Codex tylko ogólnik. Lista nie przetrwała przerwy w sesji, nikt nie sprawdzał, czy zadania naprawdę wykonano, a mechanika różniła się między środowiskami.
+
+### Co się zmieniło
+
+- Helper (TASK-001): nowy dziennik `execute-*.json` ma `schema: 2` i pole `tasks` wczytane z sekcji `## Tasks` planu (`- [T1] <tytuł>`); flagi `--task`, `--task-status in_progress|done`, `--task-add`, komenda `tasks --name <n> [--format json|tsv]`, pole `tasks` w `pack --intent resume`. Odmowy kodem 2: drugie zadanie `in_progress`, `done` bez wpisu albo weryfikacji z tym zadaniem, `--final` i `--status done` przy otwartych zadaniach, `--append` bez zadań. Dziennik bez pola `schema` działa jak dawniej.
+- `/adhoc-sdlc:plan`: Phase 2 zapisuje `## Tasks` (zadanie na każdą kluczową zmianę i zadanie weryfikacji, dosłowny format punktu), Phase 3 zakłada dziennik i prowadzi zadania przez helper zamiast natywnej listy.
+- `/adhoc-sdlc:exec`: zadania z helpera, jedno `in_progress`, wpisy z `--task`, `--task-add` dla planu bez `## Tasks`, ponowne otwarcie zadania `done` z nowym wpisem, rozróżnienie stanu dziennika (`in-progress|done|abandoned`) i stanu zadania (`in_progress|done`), zamknięcie dziennika dopiero po domknięciu zadań.
+- `SKILL.md` (Lifecycle i nowa sekcja Execution tasks zamiast Native todo list), `reference.md` (pola i operacje dziennika, sekcja Execution tasks, komenda `tasks`, pole `tasks` w resume), README skilla (EN i PL), `temper` SKILL.md.
+- Usunięto placeholder `{{TODO}}` z szablonów i klucz `TODO` z `runtimes/claude.json`, `codex.json` i `antigravity.json`; `tools/test_render.py` sprawdza nową mechanikę w obu runtime'ach. Wersja 0.5.0 -> 0.6.0 w trzech manifestach i `CITATION.cff` (było 0.4.0).
+
+### Czego nie zmieniono
+
+- Komendy `resume`, `handoff` i `history` (stan zadań przy wznowieniu opisuje `reference.md`, sekcja Resume); skill `codebase-cleanup` i tryb `cleanup-assessment` należą do wydania 0.7.0.
+
+### Weryfikacja
+
+- `python3 tools/render.py --check`, `pytest` (generator i obie kopie helpera), `claude plugin validate ./claude` i `.`: dowody w przebiegach FORGE zadań [#7934](https://rm.dflex.pl/issues/7934) i [#7935](https://rm.dflex.pl/issues/7935).
+
 ## 2026-10-22 - Wydanie 0.5.0: bramka zamiaru w planie, „nie pytaj” zostawia CoVe i Temper
 
 Status: wydane (scalenie origin/main, push)

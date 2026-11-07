@@ -5,7 +5,6 @@
   "placeholders": {
     "ASK": "`AskUserQuestion`",
     "ASK_NOTE": "",
-    "TODO": "`TaskCreate`/`TaskUpdate`",
     "SUBAGENT_VIA": " (via the `Agent` tool, `subagent_type: general-purpose`)",
     "SKILL_VIA": " (via the `Skill` tool; skills shipped in this plugin are named `adhoc-sdlc:<name>`)",
     "SKILL_HOME": "${CLAUDE_PLUGIN_ROOT}/skills/adhoc-sdlc",

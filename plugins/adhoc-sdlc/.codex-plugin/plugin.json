@@ -1,6 +1,6 @@
 {
   "name": "adhoc-sdlc",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "What: Ad Hoc SDLC workflows for Codex: adhoc-sdlc planning journals plus CoVe fact verification. Why: keep small AI coding tasks planned, verified, resumable, and safe to hand off.",
   "author": {
     "name": "Daniel Grabowski",
