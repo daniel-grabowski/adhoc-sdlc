@@ -33,6 +33,9 @@
     ["skills/temper/integration/adhoc-sdlc-integration.md", "plugins/adhoc-sdlc/skills/temper/integration/adhoc-sdlc-integration.md"],
     ["skills/intention-hardening/SKILL.md", "plugins/adhoc-sdlc/skills/intention-hardening/SKILL.md"],
     ["skills/intention-hardening/README.md", "plugins/adhoc-sdlc/skills/intention-hardening/README.md"],
-    ["skills/intention-hardening/README.pl.md", "plugins/adhoc-sdlc/skills/intention-hardening/README.pl.md"]
+    ["skills/intention-hardening/README.pl.md", "plugins/adhoc-sdlc/skills/intention-hardening/README.pl.md"],
+    ["skills/cleanup-codebase/SKILL.md", "plugins/adhoc-sdlc/skills/cleanup-codebase/SKILL.md"],
+    ["skills/cleanup-codebase/README.md", "plugins/adhoc-sdlc/skills/cleanup-codebase/README.md"],
+    ["skills/cleanup-codebase/README.pl.md", "plugins/adhoc-sdlc/skills/cleanup-codebase/README.pl.md"]
   ]
 }

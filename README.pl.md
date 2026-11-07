@@ -4,7 +4,7 @@
 
 ## Co to jest
 
-`adhoc-sdlc` to mały zestaw SDLC dla agentów programujących AI. Dostarcza cztery skille: `adhoc-sdlc` do lekkiej pracy implementacyjnej z trwałym planem i dziennikiem wykonania, `intention-hardening` do ustalenia, o co naprawdę prosi użytkownik, zanim powstanie plan, `cove` do Chain-of-Verification przed wypuszczeniem twierdzeń faktograficznych do użytkownika oraz `temper` do hartowania strategii planu pod kątem trybów awarii przed wykonaniem.
+`adhoc-sdlc` to mały zestaw SDLC dla agentów programujących AI. Dostarcza pięć skilli: `adhoc-sdlc` do lekkiej pracy implementacyjnej z trwałym planem i dziennikiem wykonania, `intention-hardening` do ustalenia, o co naprawdę prosi użytkownik, zanim powstanie plan, `cove` do Chain-of-Verification przed wypuszczeniem twierdzeń faktograficznych do użytkownika, `temper` do hartowania strategii planu pod kątem trybów awarii przed wykonaniem oraz `cleanup-codebase` do opartej na dowodach oceny, co w kodzie można bezpiecznie uporządkować.
 
 ## Dlaczego
 
@@ -83,6 +83,16 @@ Hartowanie strategii planu, architektury i kierunku implementacji.
 
 Uruchamia skoncentrowany przebieg trybów awarii po weryfikacji faktów, a przed wykonaniem, żeby luki zostały zamknięte albo świadomie zaakceptowane, zanim staną się kodem. Dostarczany jako skill `temper` oraz jako bramka `strategy-temper` w `/adhoc-sdlc:plan`. Szczegóły w [claude/skills/temper/README.pl.md](claude/skills/temper/README.pl.md).
 
+### Cleanup codebase
+
+#### Po co?
+
+Oparta na dowodach ocena porządków dla podanego celu i zakresu: martwy kod, równoważne implementacje, zbędne zależności i pozostałości zmian, każdy kandydat sprawdzony pod kątem kategorii niejawnych punktów wejścia i z jednym werdyktem (`remove`, `merge`, `keep` albo `unresolved`).
+
+#### Dlaczego
+
+Puste wyszukiwanie nie dowodzi, że kod jest nieużywany, więc proces, który edytuje pliki, usuwa tylko to, co uzasadniają dowody. Skill tylko ocenia: nie edytuje plików, nie wykonuje git, nie buduje i nie uruchamia testów. Dostarczany jako skill `cleanup-codebase`. Szczegóły w [claude/skills/cleanup-codebase/README.pl.md](claude/skills/cleanup-codebase/README.pl.md).
+
 ## Jak to działa razem
 
 Trzy skille to jeden przepływ: zaplanuj zmianę, zweryfikuj fakty, na których się opiera, zahartuj strategię, a potem wykonaj z dziennikiem, który da się wznowić albo przekazać. `cove` i `temper` to bramki opcjonalne, wybierane per zadanie na liście trybów planu.
@@ -124,19 +134,21 @@ Jeden katalog na środowisko agenta, każdy spakowany w natywnym formacie tego �
 ```
 .claude-plugin/marketplace.json   wpis marketplace Claude Code
 .agents/plugins/marketplace.json  wpis marketplace Codex
-claude/                           plugin Claude Code: adhoc-sdlc + intention-hardening + cove + temper
+claude/                           plugin Claude Code: adhoc-sdlc + intention-hardening + cove + temper + cleanup-codebase
   .claude-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/intention-hardening/
   skills/cove/
   skills/temper/
+  skills/cleanup-codebase/
   commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
-plugins/adhoc-sdlc/            plugin Codex: adhoc-sdlc + intention-hardening + cove + temper
+plugins/adhoc-sdlc/            plugin Codex: adhoc-sdlc + intention-hardening + cove + temper + cleanup-codebase
   .codex-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/intention-hardening/
   skills/cove/
   skills/temper/
+  skills/cleanup-codebase/
 antigravity/                      plany: format rozszerzenia do ustalenia
 ```
 

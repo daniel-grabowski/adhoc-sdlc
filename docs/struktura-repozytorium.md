@@ -9,7 +9,7 @@ edytować prompty skilla albo dodawać nowy runtime.
 
 Repozytorium dystrybuuje skill `adhoc-sdlc` (lekki cykl SDLC: plan + wznawialny
 dziennik wykonania) oraz skille pomocnicze `intention-hardening` (utwardzanie
-zamiaru przed planem), `cove` (weryfikacja faktów) i `temper` (hartowanie strategii) do kilku środowisk agentów AI: Claude Code, Codex,
+zamiaru przed planem), `cove` (weryfikacja faktów), `temper` (hartowanie strategii) i `cleanup-codebase` (ocena porządków w kodzie) do kilku środowisk agentów AI: Claude Code, Codex,
 Antigravity (Gemini). Każde środowisko nazywa swoje narzędzia inaczej (np.
 pytanie do użytkownika to `AskUserQuestion` w Claude Code, a w Codex opisowo
 "a structured question" z natywnym UI wyboru), więc ten sam prompt musi istnieć w
@@ -73,7 +73,8 @@ templates/
     ├── adhoc-sdlc/          SKILL.md, reference.md, README.md, README.pl.md
     ├── cove/                SKILL.md, README.md, README.pl.md, agents/openai.yaml (metadane Codex)
     ├── temper/              SKILL.md, README.md, README.pl.md, examples/, integration/
-    └── intention-hardening/ SKILL.md, README.md, README.pl.md
+    ├── intention-hardening/ SKILL.md, README.md, README.pl.md
+    └── cleanup-codebase/    SKILL.md, README.md, README.pl.md
 ```
 
 Używane placeholdery (i ile razy występują w szablonach):
@@ -83,7 +84,7 @@ Używane placeholdery (i ile razy występują w szablonach):
 | `{{ASK}}`            | narzędzie/forma pytania do użytkownika              | 15        |
 | `{{ASK_NOTE}}`       | dodatkowa wskazówka do pytania (pusta dla Claude)   | 2         |
 | `{{SUBAGENT_VIA}}`   | klauzula "via ..." dla podagenta (pusta dla Codex)  | 4         |
-| `{{SKILL_VIA}}`      | klauzula wywołania skilla (`Skill` w Claude, `$<name>` w Codex) | 6 |
+| `{{SKILL_VIA}}`      | klauzula wywołania skilla (`Skill` w Claude, `$<name>` w Codex) | 8 |
 | `{{SKILL_HOME}}`     | katalog z SKILL.md/reference.md/scripts             | 26        |
 | `{{SKILL_HOME_NOTE}}`| objaśnienie ścieżki skilla (puste dla Claude)       | 1         |
 | `{{COMMANDS_HOME}}`  | katalog komend                                      | 2         |
@@ -181,7 +182,8 @@ claude/
     ├── adhoc-sdlc/                SKILL.md, reference.md, README.md, README.pl.md (generowane); scripts/
     ├── cove/                      SKILL.md, README.md, README.pl.md (generowane)
     ├── temper/                    SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
-    └── intention-hardening/       SKILL.md, README.md, README.pl.md (generowane)
+    ├── intention-hardening/       SKILL.md, README.md, README.pl.md (generowane)
+    └── cleanup-codebase/          SKILL.md, README.md, README.pl.md (generowane)
 ```
 
 Komendy leżą w roocie pluginu (`commands/`), bo Claude Code tak je odkrywa.
@@ -198,7 +200,8 @@ plugins/adhoc-sdlc/
     ├── adhoc-sdlc/             SKILL.md, reference.md, README.md, README.pl.md, commands/, scripts/ (generowane + helper)
     ├── cove/                   SKILL.md, README.md, README.pl.md, agents/openai.yaml (generowane)
     ├── temper/                 SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
-    └── intention-hardening/    SKILL.md, README.md, README.pl.md (generowane)
+    ├── intention-hardening/    SKILL.md, README.md, README.pl.md (generowane)
+    └── cleanup-codebase/       SKILL.md, README.md, README.pl.md (generowane)
 ```
 
 Komendy są zagnieżdżone w skillu (`skills/adhoc-sdlc/commands/`), inaczej niż w
@@ -273,7 +276,7 @@ trafiają plany i dzienniki konkretnych zadań prowadzonych przez skill.
 ## 9. Stan obecny i dług
 
 - Generator produkuje oba realne warianty: `claude/` i `plugins/adhoc-sdlc/`
-  (oba `active=true`), wraz ze skillami `intention-hardening`, `cove` i `temper`, ich README (EN+PL) oraz
+  (oba `active=true`), wraz ze skillami `intention-hardening`, `cove`, `temper` i `cleanup-codebase`, ich README (EN+PL) oraz
   metadanymi Codex `cove/agents/openai.yaml`. Brak już ręcznie utrzymywanej prozy
   dystrybucyjnej i brak legacy wariantu `codex/`.
 - `antigravity.json` to wciąż szkielet (`active=false`) z placeholderami do

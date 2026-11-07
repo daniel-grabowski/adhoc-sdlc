@@ -4,7 +4,7 @@
 
 ## What
 
-`adhoc-sdlc` is a small SDLC toolkit for AI coding agents. It packages four reusable skills: `adhoc-sdlc` for lightweight implementation work with a durable plan and execution journal, `intention-hardening` for settling what the user actually asked for before a plan is written, `cove` for Chain-of-Verification before factual claims reach a user, and `temper` for hardening a plan's strategy against failure modes before execution.
+`adhoc-sdlc` is a small SDLC toolkit for AI coding agents. It packages five reusable skills: `adhoc-sdlc` for lightweight implementation work with a durable plan and execution journal, `intention-hardening` for settling what the user actually asked for before a plan is written, `cove` for Chain-of-Verification before factual claims reach a user, `temper` for hardening a plan's strategy against failure modes before execution, and `cleanup-codebase` for an evidence-based assessment of what code can be cleaned up safely.
 
 ## Why
 
@@ -60,6 +60,10 @@ What: Chain-of-Verification for factual work. Why: it forces drafts through inde
 
 What: strategy hardening for plans, architecture, and implementation direction. Why: it runs a focused failure-mode pass after factual verification and before execution, so loopholes are fixed or explicitly accepted before they become code. It ships as the `temper` skill and as the `strategy-temper` gate inside `/adhoc-sdlc:plan`. See [claude/skills/temper/README.md](claude/skills/temper/README.md) for details.
 
+### Cleanup codebase
+
+What: an evidence-based cleanup assessment for a given goal and scope: dead code, equivalent implementations, unneeded dependencies, and leftovers of changes, each checked against the categories of implicit entry points and given one verdict (`remove`, `merge`, `keep`, or `unresolved`). Why: an empty search is not proof that code is unused, so the process that edits files removes only what the evidence supports. The skill only assesses: it does not edit files, run git, build, or run tests. It ships as the `cleanup-codebase` skill. See [claude/skills/cleanup-codebase/README.md](claude/skills/cleanup-codebase/README.md) for details.
+
 ## How it fits together
 
 The three skills are one workflow: plan the change, verify the facts it rests on, harden the strategy, then execute with a journal you can resume or hand off. `cove` and `temper` are optional gates, chosen per task in the plan's mode list.
@@ -101,19 +105,21 @@ One directory per agent runtime, each packaged in that runtime's native format. 
 ```
 .claude-plugin/marketplace.json   Claude Code marketplace entry
 .agents/plugins/marketplace.json  Codex marketplace entry
-claude/                           Claude Code plugin: adhoc-sdlc + intention-hardening + cove + temper
+claude/                           Claude Code plugin: adhoc-sdlc + intention-hardening + cove + temper + cleanup-codebase
   .claude-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/intention-hardening/
   skills/cove/
   skills/temper/
+  skills/cleanup-codebase/
   commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
-plugins/adhoc-sdlc/            Codex plugin: adhoc-sdlc + intention-hardening + cove + temper
+plugins/adhoc-sdlc/            Codex plugin: adhoc-sdlc + intention-hardening + cove + temper + cleanup-codebase
   .codex-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/intention-hardening/
   skills/cove/
   skills/temper/
+  skills/cleanup-codebase/
 antigravity/                      roadmap: extension format to be confirmed
 ```
 

@@ -32,6 +32,9 @@
     ["skills/temper/integration/adhoc-sdlc-integration.md", "claude/skills/temper/integration/adhoc-sdlc-integration.md"],
     ["skills/intention-hardening/SKILL.md", "claude/skills/intention-hardening/SKILL.md"],
     ["skills/intention-hardening/README.md", "claude/skills/intention-hardening/README.md"],
-    ["skills/intention-hardening/README.pl.md", "claude/skills/intention-hardening/README.pl.md"]
+    ["skills/intention-hardening/README.pl.md", "claude/skills/intention-hardening/README.pl.md"],
+    ["skills/cleanup-codebase/SKILL.md", "claude/skills/cleanup-codebase/SKILL.md"],
+    ["skills/cleanup-codebase/README.md", "claude/skills/cleanup-codebase/README.md"],
+    ["skills/cleanup-codebase/README.pl.md", "claude/skills/cleanup-codebase/README.pl.md"]
   ]
 }

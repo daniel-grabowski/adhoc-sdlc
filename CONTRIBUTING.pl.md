@@ -2,7 +2,7 @@
 
 *[English](CONTRIBUTING.md) · Polski*
 
-Repozytorium jest jedynym źródłem prawdy dla pluginu `adhoc-sdlc` oraz skilli `adhoc-sdlc`, `cove` i `temper`. Edytuj tutaj, testuj, potem publikuj. Nie edytuj zainstalowanych kopii w `~/.claude` ani `~/.codex` i nie kopiuj ich z powrotem; to rozdziela źródło i pozwala wariantom się rozjechać.
+Repozytorium jest jedynym źródłem prawdy dla pluginu `adhoc-sdlc` oraz skilli `adhoc-sdlc`, `intention-hardening`, `cove`, `temper` i `cleanup-codebase`. Edytuj tutaj, testuj, potem publikuj. Nie edytuj zainstalowanych kopii w `~/.claude` ani `~/.codex` i nie kopiuj ich z powrotem; to rozdziela źródło i pozwala wariantom się rozjechać.
 
 ## Środowiska
 

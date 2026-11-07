@@ -224,6 +224,46 @@ class RenderTests(unittest.TestCase):
         for path in render.TEMPLATES_DIR.rglob("*.md"):
             self.assertNotIn("default every mode to OFF", path.read_text(encoding="utf-8"), str(path))
 
+    def test_cleanup_codebase_contract(self):
+        # AC-008 (#7936): skill tylko ocenia, cztery werdykty, unresolved przy niesprawdzalnej kategorii, format rejestru; render dla obu runtime'ów.
+        codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
+        for runtime, spec_files, placeholders, prefix in (
+            ("claude", self.files, self.placeholders, "claude/"),
+            ("codex", codex_spec["files"], codex_spec["placeholders"], "plugins/adhoc-sdlc/"),
+        ):
+            outputs = [o for t, o in spec_files if t.startswith("skills/cleanup-codebase/")]
+            self.assertEqual(sorted(outputs), sorted(prefix + "skills/cleanup-codebase/" + n for n in ("SKILL.md", "README.md", "README.pl.md")), runtime)
+            out = render.render_one("skills/cleanup-codebase/SKILL.md", placeholders, runtime)
+            for phrase in (
+                "name: cleanup-codebase",
+                "It assesses only: it does not edit files, does not run git, does not build, and does not run tests.",
+                "The skill is stack-agnostic.",
+                "return that as a blocker (`scope undefined`) and stop. Never widen the scope yourself.",
+                "No search hits and green tests are never on their own evidence that a candidate is unneeded.",
+                "- dynamic calls and reflection",
+                "- registrations",
+                "- references by name in data, resources, and configuration",
+                "- generated code",
+                "- public API",
+                "- `remove`: every category is checked",
+                "- `merge`: equivalent implementations of one responsibility",
+                "- `keep`: the evidence shows the candidate is used or required.",
+                "- `unresolved`: the evidence is incomplete or contradictory.",
+                "A category that cannot be checked gives the verdict `unresolved` with the reason, never `remove`.",
+                "Return the register to the caller, without writing anything.",
+                "Assessment date: YYYY-MM-DD",
+                "| Location | Verdict | Evidence per category | Risk | Reach |",
+                "Out of scope (proposals):",
+                "Report a smaller install or build size only after measuring it",
+                "## Invocation points",
+                "the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan`",
+                "The `cove` skill" + placeholders["SKILL_VIA"] + " can verify the claims a verdict rests on",
+                "the `temper` skill" + placeholders["SKILL_VIA"] + " can check the strategy",
+            ):
+                self.assertIn(phrase, out, f"{runtime}: brak frazy kontraktu: {phrase}")
+            if runtime == "codex":
+                self.assertNotIn("`Skill` tool", out)
+
     def test_disk_matches_render(self):
         # Odpowiednik `render.py --check`: dysk == render dla aktywnego runtime claude.
         for template_rel, output_rel in self.files:
