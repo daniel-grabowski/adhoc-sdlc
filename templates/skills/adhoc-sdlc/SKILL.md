@@ -56,6 +56,7 @@ The plan defines the tasks; the journal (`execute-*`) holds their state, and onl
 - At execution start, the helper loads the tasks into the journal as `pending`. Read their state with `tasks --name <name> [--format json|tsv]`.
 - Keep exactly one task `in_progress` (`execute ... --task Tn --task-status in_progress`); mark it `done` (`--task-status done`) the moment it is finished, before the next. Do not batch.
 - Tie the work to the task: entries and verifications carry `--task Tn`. The helper refuses `done` for a task with no such entry or verification.
+- A task that carries out an item of a `cleanup-codebase` report names its ID and ends with `(ref: <report>#<ID>)`; the helper keeps the reference in the task, so the journal records what was done and which report item it came from.
 - If the plan changes mid-flight, add the task with `--task-add "<task title>"`; the helper records the deviation as a decision. Do not edit `## Tasks` in the plan during execution.
 - The helper refuses `--final` and `--status done` while any task is open, so the journal closes only after every task is `done` (or is abandoned with `--status abandoned`).
 - Task status (`in_progress|done`, starting as `pending`) and journal status (`in-progress|done|abandoned`) are separate vocabularies.
@@ -63,7 +64,7 @@ The plan defines the tasks; the journal (`execute-*`) holds their state, and onl
 
 ## Plan file
 
-Write the confirmed plan into `plan-*` with: title, summary, key changes, tasks (`## Tasks`, see Execution tasks), test plan, assumptions. Run the plan command as a guided conversation, not a form. Optionally pass `--prompt "<verbatim request>"` to persist the user's original wording in an `## Original Prompt` section; it is durable context and the main bridge that lets later free-text `history` searches (often Polish) find an English-tagged plan.
+Write the confirmed plan into `plan-*` with: title, summary, key changes, tasks (`## Tasks`, see Execution tasks), test plan, assumptions. Run the plan command as a guided conversation, not a form. To carry out items of a `cleanup-codebase` report, plan with `--from-report <report> --ids R1,M1`: the operator's review of the items comes first, only `remove` and `merge` verdicts after the review enter the plan, and the helper records the report and its SHA-256 in `## Source` (`plan --source-report`), which `exec` checks before the first change. Optionally pass `--prompt "<verbatim request>"` to persist the user's original wording in an `## Original Prompt` section; it is durable context and the main bridge that lets later free-text `history` searches (often Polish) find an English-tagged plan.
 
 ### Engineering checklist
 

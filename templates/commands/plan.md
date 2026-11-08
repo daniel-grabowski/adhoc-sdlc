@@ -1,7 +1,7 @@
 ---
 description: "adhoc-sdlc plan: interactive planning, save to file, and close the loop into execution"
 allowed-tools: All
-argument-hint: "--name \"desc\" --title \"title\" [--project P] [--keywords a,b]"
+argument-hint: "--name \"desc\" --title \"title\" [--project P] [--keywords a,b] [--from-report <report> --ids R1,M1]"
 ---
 
 # /adhoc-sdlc:plan
@@ -20,7 +20,20 @@ From `$ARGUMENTS` extract:
 - `--name "..."` short session/task description (the helper normalizes it to a semantic name),
 - `--title "..."` human title,
 - `--project P` optional project/area token (`[a-z0-9._-]`),
-- `--keywords a,b,c` optional keywords (`[a-z0-9-]` tokens).
+- `--keywords a,b,c` optional keywords (`[a-z0-9-]` tokens),
+- `--from-report <report>` with `--ids <ID,...>` optional: build the plan from a `cleanup-codebase` report (see "Plan from a cleanup report").
+
+## Plan from a cleanup report
+
+With `--from-report`, the plan carries out items of a `cleanup-codebase` report (IDs with the prefixes R `remove`, M `merge`, K `keep`, U `unresolved`). The report is a proposal, not a final verdict, so a review of its items comes first and is mandatory:
+
+1. Read the operator's review: the decision and the notes stored for each ID in the report's artifact data, or the decisions written in the Markdown report, or given in this conversation. For an item the operator wants to change and that has no decision yet, ask (confirm, reject, or discuss); discuss the items marked "discuss" before planning.
+2. The operator's knowledge is evidence and can change a verdict (for example "R1 -> keep: used by customer X", "U2 -> remove: module withdrawn in version Y"). Record every such decision with the ID, the new verdict, the reason, and the source `operator`. IDs never change; an item the operator adds gets the next number in its section. A remark that changes the scope or the goal of the analysis means a new assessment, not a patched report.
+3. Only items whose verdict after the review is `remove` or `merge` enter the plan: R and M items the operator confirmed, and K or U items only with a recorded operator decision. Refuse an ID that is neither in the report nor in the review's decisions, and say why for a K or U item without a decision.
+4. Under "don't ask" nothing from the report enters the plan, because a confirmation cannot be assumed: report the items as proposals and stop.
+5. The claims behind the report's verdicts were already verified by the `cove` skill, so Plan CoVe does not verify them again; it checks the rest of the plan.
+
+In Phase 2 pass `--source-report <report>` to the helper (it writes `## Source` with the report path and its SHA-256), add to `## Source` the assessment date, the scope, and the review decisions, and write one task per selected ID (see step 4 of Phase 2).
 
 ## Phase 0: mode gate
 
@@ -45,7 +58,7 @@ Record the chosen modes (`brainstorming`, `deep-code-verification`, `test-execut
 
 Before saving the plan, run the `intention-hardening` skill{{SKILL_VIA}} on the request; it always reads the request, also under "don't ask". It returns the goal and success criterion, the load-bearing terms with their source, the interpretations (every narrowing or widening named), the question asked or the assumptions made, and the decision anchors (scope, variants, edge cases, test strategy). Record that result in the existing plan sections: the goal and success criterion in `## Summary`, the interpretations and assumptions in `## Assumptions`, and the user's verbatim request in `## Original Prompt` through the helper's `--prompt` flag (Phase 2).
 
-If `cleanup-codebase` is ON (variant A), run the `cleanup-codebase` skill{{SKILL_VIA}} after `intention-hardening` and before Plan CoVe, with the plan's goal and its scope (the files and modules the Key Changes will touch); the skill only assesses and returns a candidate register. When the skill returns `scope undefined`, settle the scope with the user (or record the assumed scope under "don't ask") instead of widening it yourself. Record the register in a `## Cleanup Register` section of the plan. Only candidates with the verdict `remove` or `merge` become `## Key Changes` items (and so `## Tasks`); `keep` and `unresolved` candidates stay in the register with their reason and are not carried out. Proposals outside the scope stay in the register as proposals, not plan changes.
+If `cleanup-codebase` is ON (variant A), run the `cleanup-codebase` skill{{SKILL_VIA}} after `intention-hardening` and before Plan CoVe, with the plan's goal and its scope (the files and modules the Key Changes will touch); the skill only assesses and returns a candidate register. When the skill returns `scope undefined`, settle the scope with the user (or record the assumed scope under "don't ask") instead of widening it yourself. Record the register, with its sections and IDs, in a `## Cleanup Register` section of the plan. Only candidates with the verdict `remove` or `merge` become `## Key Changes` items (and so `## Tasks`); `keep` and `unresolved` candidates stay in the register with their reason and are not carried out. Proposals outside the scope stay in the register as proposals, not plan changes.
 
 Use the `SKILL.md` Engineering checklist as a light filter while making these decisions. Apply KISS, YAGNI, DRY with judgment, local conventions first, separation of concerns, cohesion over cleverness, explicit contracts, testability, security/data safety, and evidence-based performance. Put only task-relevant consequences into `## Key Changes` or `## Assumptions`; do not create a checklist report unless the user asks for one.
 
@@ -53,7 +66,7 @@ Think for the user: propose resolutions with a recommendation, verify assumption
 
 Do not assume decisions silently. If the user explicitly says "don't ask / just do it", do NOT block them with questions, but LIST the adopted resolutions as explicit assumptions (open to veto); never hide them only in the file. Adopted decisions go into the plan sections (Assumptions / Key Changes).
 
-If `plan-cove` is ON, run the `cove` skill{{SKILL_VIA}} on the draft plan before saving the plan body: treat the draft as provisional, verify its factual claims and assumptions against the source of truth for the task, and revise the plan so unverified claims move to `## Assumptions` or are explicitly caveated.
+If `plan-cove` is ON, run the `cove` skill{{SKILL_VIA}} on the draft plan before saving the plan body: treat the draft as provisional, verify its factual claims and assumptions against the source of truth for the task, and revise the plan so unverified claims move to `## Assumptions` or are explicitly caveated. The `## Cleanup Register` and the items of a `--from-report` plan already carry a `cove` result from `cleanup-codebase`, so Plan CoVe does not verify them again.
 
 If `strategy-temper` is ON, run the `temper` skill{{SKILL_VIA}} on the draft plan after Plan CoVe and before saving the plan body, using its adhoc-sdlc plan output:
 - When risks are worth recording, add `## Tempered Risks` and `## Accepted Risks` sections to the plan body (`condition -> fix` / `condition -> why acceptable`); the fixes must already be incorporated into the plan, not left as a detached TODO.
@@ -65,7 +78,7 @@ If `strategy-temper` is ON, run the `temper` skill{{SKILL_VIA}} on the draft pla
 1. Create the plan file with the helper:
    ```bash
    python3 {{SKILL_HOME}}/scripts/adhoc_sdlc.py plan \
-     --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>] [--prompt "<verbatim request>"]
+     --name "<name>" --title "<title>" [--project <P>] [--keywords <a,b>] [--prompt "<verbatim request>"] [--source-report <report>]
    ```
 2. CHECK the exit code. On non-zero, read `ERROR/EXPECTED/EXAMPLE` from stderr and fix the call (e.g. unique name, allowed status/keywords/project); do not create the file by hand.
 3. Read the returned `plan=...` path and fill the body sections (`## Summary`, `## Key Changes`, `## Tasks`, `## Test Plan`, `## Assumptions`) with `Edit`, incorporating the Phase 1 decisions and any `plan-cove` revisions. Then add a `## Mode` section recording all seven Phase 0 modes (`brainstorming`, `deep-code-verification`, `test-execution`, `plan-cove`, `strategy-temper`, `execution-cove`, `cleanup-codebase`, including any defaults assumed under "don't ask"). When `cleanup-codebase` is ON, also add the `## Cleanup Register` section from Phase 1. When `strategy-temper` is ON and there are risks worth recording, also add the optional `## Tempered Risks` and `## Accepted Risks` sections; temper's Operator options stay in its response, not in the file. Do NOT touch the frontmatter block.
@@ -77,6 +90,8 @@ If `strategy-temper` is ON, run the `temper` skill{{SKILL_VIA}} on the draft pla
    - [T2] <second key change as an action>
    - [T3] Verification: <tests and final self-check>
    ```
+   A task that carries out a cleanup item names its ID and ends with a reference to the item: `- [T1] R1: <action> (ref: <report path>#R1)` for a `--from-report` plan, or `(ref: <plan path>#R1)` for an item of this plan's `## Cleanup Register`. The helper stores the reference in the task's `ref` field, so the journal shows which report item each task came from.
+
    Indented sub-bullets and prose inside the section are ignored. A numbered list (`1. ...`) is not read as tasks at all, and any other unindented bullet (for example `- T1 title` or `- [x] title`) or a repeated id makes the helper refuse to create the journal (exit 2). The plan is the definition only: task state lives in the execution journal, so do not tick or edit `## Tasks` during execution.
 
 ## Phase 3: close the loop

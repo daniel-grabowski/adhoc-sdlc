@@ -312,8 +312,11 @@ def task_summary(data: dict) -> dict | None:
     items = []
     for t in (data.get("tasks") or []):
         if isinstance(t, dict):
-            items.append({"id": str(t.get("id", "")), "title": str(t.get("title", "")),
-                          "status": str(t.get("status", "")), "source": str(t.get("source", ""))})
+            item = {"id": str(t.get("id", "")), "title": str(t.get("title", "")),
+                    "status": str(t.get("status", "")), "source": str(t.get("source", ""))}
+            if t.get("ref"):
+                item["ref"] = str(t["ref"])
+            items.append(item)
     return {
         "schema": data.get("schema"),
         "items": items,

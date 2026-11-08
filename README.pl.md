@@ -87,11 +87,13 @@ Uruchamia skoncentrowany przebieg trybów awarii po weryfikacji faktów, a przed
 
 #### Po co?
 
-Oparta na dowodach ocena porządków dla podanego celu i zakresu: martwy kod, równoważne implementacje, zbędne zależności i pozostałości zmian, każdy kandydat sprawdzony pod kątem kategorii niejawnych punktów wejścia i z jednym werdyktem (`remove`, `merge`, `keep` albo `unresolved`).
+Oparta na dowodach ocena porządków dla podanego celu i zakresu: martwy kod, równoważne implementacje, zbędne zależności i pozostałości zmian, każdy kandydat sprawdzony pod kątem kategorii niejawnych punktów wejścia, z jednym werdyktem i stałym identyfikatorem (`remove` R1, `merge` M1, `keep` K1, `unresolved` U1).
 
 #### Dlaczego
 
-Puste wyszukiwanie nie dowodzi, że kod jest nieużywany, więc proces, który edytuje pliki, usuwa tylko to, co uzasadniają dowody. Skill tylko ocenia: nie edytuje plików, nie wykonuje git, nie buduje i nie uruchamia testów. Dostarczany jako skill `cleanup-codebase` oraz jako opcjonalny tryb `cleanup-codebase` w `/adhoc-sdlc:plan` (domyślnie wyłączony): w planowaniu ocenia zakres planu, a zmianami planu stają się tylko werdykty `remove` i `merge`; na końcu `exec` ocenia pozostałości zmiany, które są usuwane dopiero po potwierdzeniu użytkownika. Szczegóły w [claude/skills/cleanup-codebase/README.pl.md](claude/skills/cleanup-codebase/README.pl.md).
+Puste wyszukiwanie nie dowodzi, że kod jest nieużywany, a **sprzątanie kodu bez analizy faktograficznej jest wielokrotnie droższe niż weryfikacja**: usunięcie czegoś, co działało przez niewidoczny punkt wejścia, kosztuje awarię, diagnozę i przywracanie. Dlatego skill dzieli zakres na obszary i zleca weryfikację twierdzeń stojących za każdym werdyktem skillowi `cove`, dla każdego kandydata; bez tej weryfikacji nie ma werdyktu `remove` ani `merge`.
+
+Skill tylko ocenia: nie zmienia kodu projektu, nie wykonuje git, nie buduje i nie uruchamia testów; jedynym skutkiem jest raport. W Claude Code raport jest domyślnie interaktywnym artefaktem, który służy też jako formularz przeglądu (opis, wyjaśnienie, przyciski opcji z zaznaczoną rekomendacją, uwagi, autozapis), więc agent odczytuje decyzje operatora dla każdego ID wprost z niego; w Codexie jest plikiem Markdown. Pętlę domyka adhoc-sdlc: przegląd operatora (jego wiedza może odwrócić werdykt) -> `/adhoc-sdlc:plan --from-report <raport> --ids R1,M1` (plan zapisuje skrót SHA-256 raportu i odwołanie `ref` każdego zadania do jego ID) -> `exec` (kontrola skrótu, ponowne sprawdzenie każdej pozycji) -> dziennik, który pokazuje, co wykonano i z której pozycji raportu. Skill działa też jako opcjonalny tryb `cleanup-codebase` w `/adhoc-sdlc:plan` (domyślnie wyłączony): w planowaniu ocenia zakres planu, a na końcu `exec` pozostałości zmiany, które są usuwane dopiero po potwierdzeniu użytkownika. Szczegóły w [claude/skills/cleanup-codebase/README.pl.md](claude/skills/cleanup-codebase/README.pl.md).
 
 ## Jak to działa razem
 
@@ -101,6 +103,7 @@ Skille to jeden przepływ: ustal intencję, zaplanuj zmianę, zweryfikuj fakty, 
 flowchart LR
     plan(["adhoc-sdlc:plan"]) -.->|opcjonalnie| cove{{"cove (weryfikacja faktów)"}}
     plan -.->|opcjonalnie| temper{{"temper (hartowanie strategii)"}}
+    cleanup{{"cleanup-codebase (raport zweryfikowany przez cove)"}} -.->|"przegląd operatora, --from-report"| plan
     plan --> exec(["adhoc-sdlc:exec"])
     exec -.->|opcjonalnie| ecove{{"weryfikacja wykonania"}}
     ecove ==> disk[("plan + dziennik<br/>na dysku")]
@@ -113,11 +116,11 @@ flowchart LR
     classDef gate fill:#fff3cd,stroke:#b8860b,color:#3d2f00
     classDef store fill:#eceff1,stroke:#37474f,color:#1c2833
     class plan,exec,handoff,history cmd
-    class cove,temper,ecove gate
+    class cove,temper,ecove,cleanup gate
     class disk store
 ```
 
-Znaczenie niosą kształty: zaokrąglony to komenda, sześciokąt to opcjonalna bramka (`cove` i `temper` przed zapisem planu, `cove` wykonania przed zamknięciem wykonania), a walec to zapis na dysku. Krawędzie ciągłe to główny przepływ, kropkowane to opcjonalne albo tylko do odczytu, a grube zapisują plan i dziennik, które przeżywają reset kontekstu. Ten most budują `handoff` i `resume`.
+Znaczenie niosą kształty: zaokrąglony to komenda, sześciokąt to opcjonalna bramka (`cove` i `temper` przed zapisem planu, `cove` wykonania przed zamknięciem wykonania oraz przejrzany raport `cleanup-codebase` jako wejście planu), a walec to zapis na dysku. Krawędzie ciągłe to główny przepływ, kropkowane to opcjonalne albo tylko do odczytu, a grube zapisują plan i dziennik, które przeżywają reset kontekstu. Ten most budują `handoff` i `resume`.
 
 ## Podstawa badawcza
 

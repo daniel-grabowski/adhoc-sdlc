@@ -1,8 +1,32 @@
 # Dziennik projektu adhoc-sdlc
 
+## 2026-11-08 - Wydanie 0.8.0: raport `cleanup-codebase` z ID i weryfikacją `cove`, artefakt decyzji, pętla raport -> plan -> exec -> dziennik
+
+Status: przygotowane na gałęzi `release/0.8.0`
+Zakres: lokalny plan operatora poza repozytorium (po temper i uwagach operatora), wykonany przez adhoc-sdlc; plan i dziennik wykonania leżą w lokalnym, nieśledzonym korpusie `adhoc-sdlc/`.
+
+### Przyczyna
+
+Rejestr z 0.7.0 trafiał tylko do wołającego, bez identyfikatorów i bez trwałego śladu, z której pozycji oceny pochodzi późniejsza zmiana. Werdykty opierały się na dowodach zbieranych pod gotową hipotezę, a `cove` był tylko opcją. Operator potrzebował raportu, który da się przejrzeć, skomentować i wskazywać krótkimi ID, oraz pętli, w której jego decyzje stają się wejściem planu i wykonania.
+
+### Co się zmieniło
+
+- Skill `cleanup-codebase`: zasada „sprzątanie bez analizy faktograficznej jest wielokrotnie droższe niż weryfikacja”; podział zakresu na obszary; szkic werdyktu i twierdzenia dla każdego kandydata; obowiązkowe wywołanie skilla `cove` dla twierdzeń wszystkich kandydatów (grupowanie po obszarze, bez próbkowania); mapowanie CONSISTENT/INCONSISTENT/INCONCLUSIVE na werdykt; brak `cove` zatrzymuje ocenę. Raport: legenda, sekcje R/M/K/U (prefiksy z angielskich werdyktów, niezależne od języka), numeracja od 1 w sekcji, ID trwałe przy zmianie werdyktu, jedno ID na grupę `merge`, dowody bez wartości konfiguracji i sekretów, wcześniejsze raporty wykluczone z oceny.
+- Dostarczenie przez nowy placeholder `REPORT_DELIVERY`: Claude Code domyślnie interaktywny artefakt (opis, wyjaśnienie, przyciski opcji z zaznaczoną rekomendacją, pole uwag, autozapis w danych artefaktu, odczyt decyzji przez agenta), Markdown na życzenie albo przy braku narzędzia; Codex plik Markdown (bez nadpisywania, nieśledzony). W wywołaniach z procesu (plan, exec, FORGE) bez osobnego pliku.
+- Helper: `plan --source-report <raport>` zapisuje `## Source` ze ścieżką i skrótem SHA-256; zadanie w `## Tasks` i w `--task-add` może kończyć się `(ref: <raport>#<ID>)` (pole `ref`; pole `source` nadal oznacza pochodzenie zadania); nowy dziennik przejmuje `source_report`; `tasks --format json` zwraca `ref` i `source_report` (`sha256_now`, `match`). Zgodność wstecz: plany bez `## Source` i zadania bez `ref` działają jak dotąd. Testy: `test_source_report.py` (7).
+- `/adhoc-sdlc:plan --from-report <raport> --ids R1,M1`: obowiązkowy przegląd pozycji, wiedza operatora jako dowód (decyzje ze źródłem `operator`, ID bez zmian), do planu tylko werdykty `remove`/`merge` po przeglądzie, K/U tylko z decyzją operatora, przy „nie pytaj” nic z raportu; Plan CoVe nie weryfikuje ponownie pozycji z wynikiem `cove`.
+- `/adhoc-sdlc:exec`: kontrola `source_report.match` przed pierwszą zmianą; ponowne sprawdzenie każdego zadania z `ref` („już wykonane” albo „unresolved” zamiast zmiany na ślepo); ID w każdym wpisie; wariant B z ID i `ref` do rejestru dziennika.
+- `tools/test_render.py`: kontrakt nowego skilla, różne dostarczenie w Claude i Codex, pętla raport -> plan -> exec, zgodność wzorca `ref` z helperem; usunięte przypięcia starych fraz.
+- Dokumentacja PL i EN: główne README (zasada kosztu, `cove`, artefakt decyzji, pętla, diagram), README skilli `cleanup-codebase` i `adhoc-sdlc`, `SKILL.md` i `reference.md` adhoc-sdlc, `docs/struktura-repozytorium.md` (placeholder, pola helpera). Wersja 0.7.0 -> 0.8.0 w trzech manifestach, `CITATION.cff` i docs.
+
+### Czego nie zmieniono
+
+- Algorytm wyszukiwania kandydatów, automatyczne wykonywanie porządków, FORGE (`forge:done`, init).
+- Działanie interaktywnego artefaktu i pliku Markdown w żywych sesjach Claude Code i Codexa nie jest sprawdzone testem szablonu; potwierdzi je ręczna próba po wydaniu.
+
 ## 2026-11-07 - Wydanie 0.7.0: skill `cleanup-codebase` i opcjonalny tryb `cleanup-codebase` w planie i wykonaniu
 
-Status: przygotowane w worktree zadania (commit bez push; scalenie i push wykonuje operator)
+Status: wydane 2026-11-08 (`main` d273d81, push na GitHub)
 Zakres: workspace FORGE adhoc-sdlc-tasks-cleanup [#7932](https://rm.dflex.pl/issues/7932), zadania TASK-003 [#7936](https://rm.dflex.pl/issues/7936) (skill) i TASK-004 [#7937](https://rm.dflex.pl/issues/7937) (tryb, wydanie).
 
 ### Przyczyna

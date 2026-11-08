@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -55,6 +56,11 @@ TASK_ID_RE = re.compile(r"^T[1-9][0-9]*$")
 # Punkt listy bez wcięcia; wcięte podpunkty i proza sekcji nie są zadaniami.
 TASK_BULLET_RE = re.compile(r"^[-*]\s")
 TASK_LINE_RE = re.compile(r"^[-*]\s+\[(T[1-9][0-9]*)\]\s+(\S.*)$")
+# Odwołanie zadania do pozycji raportu cleanup-codebase: `(ref: <ścieżka>#<ID>)` na końcu tytułu,
+# ID z prefiksem kanonicznego werdyktu (R remove, M merge, K keep, U unresolved).
+TASK_REF_RE = re.compile(r"\s*\(ref:\s*([^()\s]+#[RMKU][1-9][0-9]*)\)\s*$")
+SOURCE_REPORT_RE = re.compile(r"^-\s+report:\s+(\S.*)$")
+SOURCE_SHA_RE = re.compile(r"^-\s+sha256:\s+([0-9a-f]{64})$")
 
 
 class ContractError(Exception):
@@ -296,15 +302,19 @@ def update_frontmatter_field(text: str, key: str, value: str) -> str:
 
 # --- Szablony body ------------------------------------------------------------
 
-def plan_body(prompt: str = "") -> str:
+def plan_body(prompt: str = "", source: dict | None = None) -> str:
     # Sekcja ## Original Prompt jest additywna: trwały, dosłowny zapis zlecenia (most PL<->EN
     # dla FTS). Bez --prompt szablon zostaje jak dawniej (wsteczna zgodność).
     op = f"## Original Prompt\n\n{prompt.strip()}\n\n" if prompt.strip() else ""
+    # Sekcja ## Source (plan z raportu cleanup-codebase): ścieżkę i skrót zapisuje helper,
+    # dalszą prozę (data oceny, zakres, decyzje przeglądu) dopisuje agent.
+    src = (f"## Source\n\n- report: {source['path']}\n- sha256: {source['sha256']}\n\n"
+           if source else "")
     return f"""## Summary
 
 TODO
 
-{op}## Key Changes
+{op}{src}## Key Changes
 
 TODO
 
@@ -422,8 +432,8 @@ def make_entry(note: str, files: list[dict], phase: str) -> dict:
 
 
 def build_execute_obj(meta: dict, plan_path: Path, first_entry: dict | None,
-                      tasks: list[dict] | None = None) -> dict:
-    return {
+                      tasks: list[dict] | None = None, source_report: dict | None = None) -> dict:
+    obj = {
         "schema": JOURNAL_SCHEMA,
         "type": "execute",
         "name": meta["name"],
@@ -441,6 +451,9 @@ def build_execute_obj(meta: dict, plan_path: Path, first_entry: dict | None,
         "final_result": None,
         "tasks": list(tasks or []),
     }
+    if source_report:
+        obj["source_report"] = dict(source_report)
+    return obj
 
 
 def _plan_prompt(plan_path: Path) -> str:
@@ -485,8 +498,88 @@ def _plan_tasks(plan_path: Path) -> list[dict]:
                 "unikalne identyfikatory T1..Tn",
                 "## Tasks\n\n- [T1] Krok A\n- [T2] Krok B",
             )
-        tasks.append({"id": task_id, "title": title, "status": "pending", "source": "plan"})
+        tasks.append(_new_task(task_id, title, "plan"))
     return tasks
+
+
+def _split_ref(title: str) -> tuple[str, str | None]:
+    """Oddziela końcowe `(ref: <ścieżka>#<ID>)` od tytułu zadania; bez odwołania ref to None."""
+    match = TASK_REF_RE.search(title)
+    if not match:
+        return title.strip(), None
+    return title[:match.start()].strip(), match.group(1)
+
+
+def _new_task(task_id: str, raw_title: str, origin: str) -> dict:
+    title, ref = _split_ref(raw_title)
+    task = {"id": task_id, "title": title, "status": "pending", "source": origin}
+    if ref:
+        task["ref"] = ref
+    return task
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _source_report_arg(raw: str | None, root: Path) -> dict | None:
+    """Plik raportu dla plan --source-report: musi istnieć; ścieżka względem katalogu projektu
+    (root), gdy plik leży w nim, inaczej bezwzględna; skrót SHA-256 z chwili planowania."""
+    if raw is None:
+        return None
+    candidate = Path(raw.strip()).expanduser() if raw.strip() else None
+    if candidate is not None and not candidate.is_absolute():
+        candidate = (Path.cwd() / candidate)
+    if candidate is None or not candidate.is_file():
+        raise ContractError(
+            f"--source-report nie wskazuje istniejącego pliku: {raw!r}",
+            "ścieżka do pliku raportu cleanup-codebase (Markdown albo eksport artefaktu)",
+            'plan --name "x" --title "T" --source-report research/cleanup-api-2026-11-08-1200.md',
+        )
+    candidate = candidate.resolve()
+    try:
+        shown = candidate.relative_to(root).as_posix()
+    except ValueError:
+        shown = candidate.as_posix()
+    return {"path": shown, "sha256": _sha256_file(candidate)}
+
+
+def _plan_source(plan_path: Path) -> dict | None:
+    """Odczyt `## Source` planu zapisanego przez helper: {path, sha256} albo None."""
+    try:
+        text = plan_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    _meta, body = sdlc_doc.split_frontmatter(text)
+    sec = sdlc_doc.get_section(sdlc_doc.parse_sections(body), "Source")
+    if not sec or sec["is_placeholder"]:
+        return None
+    path = sha = None
+    for line in sec["text"].splitlines():
+        line = line.strip()
+        m = SOURCE_REPORT_RE.match(line)
+        if m and path is None:
+            path = m.group(1).strip()
+        m = SOURCE_SHA_RE.match(line)
+        if m and sha is None:
+            sha = m.group(1)
+    return {"path": path, "sha256": sha} if path and sha else None
+
+
+def source_report_state(source: dict | None, root: Path) -> dict | None:
+    """Zgodność raportu źródłowego z chwilą planowania: skrót teraz i match (plik brakujący: None/False)."""
+    if not isinstance(source, dict) or not source.get("path"):
+        return None
+    path = Path(source["path"])
+    if not path.is_absolute():
+        path = root / path
+    now_sha = _sha256_file(path) if path.is_file() else None
+    return {"path": source["path"], "sha256": source.get("sha256"), "sha256_now": now_sha,
+            "match": bool(now_sha) and now_sha == source.get("sha256")}
 
 
 def _next_task_id(tasks: list[dict]) -> str:
@@ -536,7 +629,9 @@ def apply_execute_ops(obj: dict, *, name: str, note: str | None, files: list[dic
                 f'execute --name "{name}" --title "T" --task-add "Poprawić walidację wejścia"',
             )
         new_id = _next_task_id(tasks)
-        tasks.append({"id": new_id, "title": title, "status": "pending", "source": "added", "updated": ts})
+        added = _new_task(new_id, title, "added")
+        added["updated"] = ts
+        tasks.append(added)
         # Zadanie spoza planu to odstępstwo: ślad w decyzjach dziennika.
         obj.setdefault("decisions", []).append(
             {"ts": ts, "text": f"Odstępstwo od planu: dodano zadanie {new_id}: {title}", "task": new_id})
@@ -662,10 +757,11 @@ def cmd_plan(args: argparse.Namespace) -> int:
     created_at = now()
     date_value = args.date or today()
     prompt = (getattr(args, "prompt", None) or "").strip()
+    source = _source_report_arg(getattr(args, "source_report", None), root)
     plan_path = path / f"plan-{date_value}-{name}.md"
     meta = {"type": "plan", "name": name, "title": title, "project": project,
             "keywords": keywords, "created": created_at, "updated": created_at, "status": status}
-    write_exclusive(plan_path, build_frontmatter(meta) + plan_body(prompt))
+    write_exclusive(plan_path, build_frontmatter(meta) + plan_body(prompt, source))
     print(f"semantic_name={name}")
     print(f"plan={plan_path}")
     return 0
@@ -779,7 +875,8 @@ def cmd_execute(args: argparse.Namespace) -> int:
             "created": created_at, "updated": created_at, "status": status or "in-progress"}
     # Nowy dziennik: schema 2 z zadaniami z ## Tasks planu; operacje wywołania przechodzą
     # przez te same walidacje co kontynuacja (odmowa przed utworzeniem pliku).
-    obj = build_execute_obj(meta, plans[0], None, tasks=_plan_tasks(plans[0]))
+    obj = build_execute_obj(meta, plans[0], None, tasks=_plan_tasks(plans[0]),
+                            source_report=_plan_source(plans[0]))
     apply_execute_ops(obj, name=name, note=note, files=files, phase=phase, decision=args.decision,
                       verification=args.verification, command=args.command, final=args.final,
                       status=status, task=task, task_status=task_status, task_add=task_add)
@@ -812,6 +909,7 @@ def cmd_tasks(args: argparse.Namespace) -> int:
         out = {"semantic_name": name, "execute": str(execute_path),
                "schema": data.get("schema"), "legacy": summary is None}
         out.update(summary or {"items": [], "open": [], "in_progress": None})
+        out["source_report"] = source_report_state(data.get("source_report"), Path(args.root).resolve())
         print(json.dumps(out, ensure_ascii=False, indent=2))
     else:
         for item in (summary or {}).get("items", []):
@@ -1189,6 +1287,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--status")
     plan.add_argument("--date")
     plan.add_argument("--prompt", help="dosłowny oryginalny prompt zlecenia (sekcja ## Original Prompt)")
+    plan.add_argument("--source-report", help="raport cleanup-codebase, z którego powstaje plan (sekcja ## Source ze skrótem SHA-256)")
     plan.set_defaults(func=cmd_plan)
 
     execute = sub.add_parser("execute", help="create or append an execution journal (JSON)")

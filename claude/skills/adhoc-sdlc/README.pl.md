@@ -38,7 +38,7 @@ Pomiń go, gdy praca należy już do formalnego przepływu issue z własnym źr�
 
 | Komenda | Rola |
 |---------|------|
-| `/adhoc-sdlc:plan` | ustal decyzje projektowe i zapisz potwierdzony plan |
+| `/adhoc-sdlc:plan` | ustal decyzje projektowe i zapisz potwierdzony plan; z `--from-report <raport> --ids R1,M1` zbuduj go z przejrzanych pozycji raportu `cleanup-codebase` |
 | `/adhoc-sdlc:exec` | wykonaj plan i prowadź dziennik wykonania |
 | `/adhoc-sdlc:handoff` | zrób snapshot stanu sesji przed przełączeniem kontekstu |
 | `/adhoc-sdlc:resume` | wczytaj jedną z ostatnich sesji i kontynuuj |
@@ -65,7 +65,7 @@ flowchart LR
 Zaokrąglone węzły to komendy, a walec to zapis na dysku; grube krawędzie do niego piszą, kropkowana tylko czyta, a `handoff` i `resume` przerzucają most przez granicę okna kontekstu.
 
 1. `plan` działa jak prowadzona rozmowa. Najpierw pyta, jak ma pracować (brama trybów Faza 0: dialog brainstorming, głęboka weryfikacja w kodzie, uruchamianie testów, plan CoVe, hartowanie strategii, weryfikacja wykonania CoVe oraz opcjonalna ocena porządków `cleanup-codebase`, domyślnie wyłączona), potem ustala zakres, podejście, przypadki brzegowe i plan testów, i zapisuje plik planu.
-2. `exec` wczytuje listę zadań planu (`## Tasks`) do dziennika i wykonuje je po jednym; helper prowadzi stan każdego zadania, wiąże wpisy dziennika z zadaniami i nie pozwala zamknąć dziennika, dopóki jakieś zadanie jest otwarte. Nie ma tu narzędzia listy zadań zależnego od środowiska, więc przebieg jest taki sam w Claude Code i Codex. Przy włączonym `cleanup-codebase` przed końcową autokontrolą ocenia pozostałości swojej zmiany, a porządki wykonuje dopiero po potwierdzeniu użytkownika. Zawsze kończy końcową autokontrolą zapisaną w dzienniku.
+2. `exec` wczytuje listę zadań planu (`## Tasks`) do dziennika i wykonuje je po jednym; helper prowadzi stan każdego zadania, wiąże wpisy dziennika z zadaniami i nie pozwala zamknąć dziennika, dopóki jakieś zadanie jest otwarte. Nie ma tu narzędzia listy zadań zależnego od środowiska, więc przebieg jest taki sam w Claude Code i Codex. Przy włączonym `cleanup-codebase` przed końcową autokontrolą ocenia pozostałości swojej zmiany, a porządki wykonuje dopiero po potwierdzeniu użytkownika. Przy planie zbudowanym z raportu porządków najpierw sprawdza, czy raport nie zmienił się od planowania (SHA-256 w sekcji `## Source` planu), sprawdza każdą pozycję ponownie na bieżącym kodzie i zapisuje w dzienniku, co wykonano i z której pozycji raportu (`ref`, np. `R1`) to pochodzi. Zawsze kończy końcową autokontrolą zapisaną w dzienniku.
 3. `handoff` i `resume` przenoszą stan między oknami kontekstu: jeden robi snapshot, drugi go wczytuje i rusza od następnych kroków.
 4. `history` czyta cały korpus przez helper, żeby odpowiedzieć na pytanie o wcześniejszą pracę.
 
@@ -88,7 +88,7 @@ Plany i dzienniki trafiają do `./adhoc-sdlc/` w bieżącym projekcie, nie tutaj
 
 ## Helper
 
-`scripts/adhoc_sdlc.py` to jedyny zapisujący pliki `adhoc-sdlc/`. Wpisy w dzienniku zmieniają się tylko przez jego flagi (`--append`, `--decision`, `--verification`, `--final`, a dla zadań `--task`, `--task-status`, `--task-add`), nigdy przez ręczną edycję pliku JSON; `tasks --name <nazwa>` wypisuje stan zadań. Przy `history`, `resume` i `handoff` ten sam helper (tryb `pack`) jest jedynym czytającym: wyszukuje, parsuje i budżetuje kontekst, a agent pracuje na zwróconej paczce, zamiast skanować pliki wprost.
+`scripts/adhoc_sdlc.py` to jedyny zapisujący pliki `adhoc-sdlc/`. Wpisy w dzienniku zmieniają się tylko przez jego flagi (`--append`, `--decision`, `--verification`, `--final`, a dla zadań `--task`, `--task-status`, `--task-add`), nigdy przez ręczną edycję pliku JSON; `tasks --name <nazwa>` (domyślny format JSON) wypisuje stan zadań, w tym odwołanie każdego zadania do pozycji raportu (`ref`) i zgodność raportu źródłowego z jego skrótem (`source_report.match`). `plan --source-report <raport>` zapisuje raport i jego skrót w planie. Przy `history`, `resume` i `handoff` ten sam helper (tryb `pack`) jest jedynym czytającym: wyszukuje, parsuje i budżetuje kontekst, a agent pracuje na zwróconej paczce, zamiast skanować pliki wprost.
 
 ## Język
 

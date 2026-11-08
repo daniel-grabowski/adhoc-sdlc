@@ -1,26 +1,28 @@
 ---
 name: cleanup-codebase
-description: "What: evidence-based cleanup assessment for a given goal and scope: finds dead code, equivalent implementations, unneeded dependencies, and leftovers of changes, checks each candidate against the categories of implicit entry points, and returns a candidate register with the verdicts remove, merge, keep, or unresolved. Why: use it before cleaning up code, so the process that edits files (an adhoc-sdlc exec or a FORGE run) removes only what the evidence supports; the skill itself only assesses. Trigger phrases: cleanup codebase, cleanup assessment, dead code, unused code, duplicates, porządki w kodzie, martwy kod, ocena porządków."
+description: "What: evidence-based cleanup assessment for a given goal and scope: splits the scope into areas, finds dead code, equivalent implementations, unneeded dependencies, and leftovers of changes, verifies the claims behind every verdict with the cove skill, and delivers a report with sections remove (R), merge (M), keep (K), and unresolved (U) and stable item IDs, ready for the operator's review and for /adhoc-sdlc:plan --from-report. Why: cleaning up code without fact verification costs far more than verifying first; the skill only assesses and leaves the changes to the process that edits files (adhoc-sdlc exec or a FORGE run). Trigger phrases: cleanup codebase, cleanup assessment, dead code, unused code, duplicates, porządki w kodzie, martwy kod, ocena porządków."
 ---
 
 # Cleanup Codebase
 
 ## What
 
-`cleanup-codebase` assesses what can be cleaned up safely in a given scope and returns a candidate register with a verdict for every candidate. It assesses only: it does not edit files, does not run git, does not build, and does not run tests. The process that leads the work applies the changes under its own verification rules: `exec` in adhoc-sdlc, or the builder in a FORGE run.
+`cleanup-codebase` assesses what can be cleaned up safely in a given scope and delivers a report with a verdict and a stable ID for every candidate. It assesses only: it does not change the project's code or configuration, does not run git, does not build, and does not run tests. Its only effect is the report itself (see Delivery). The process that leads the work applies the changes under its own verification rules: `exec` in adhoc-sdlc, or the builder in a FORGE run.
 
 The skill is stack-agnostic. Knowledge of a concrete stack (registration mechanisms, resource files, generated code, build configuration) comes from the project's rules and skills, not from this skill.
 
 ## Why
 
-Unused implementations, duplicated logic, unneeded dependencies, and leftovers of earlier changes make code harder to understand, raise the cost of the next change, and load the agent's context. Removing them on the strength of an empty search is risky: code can be reached through paths no search shows. The goal is a lower maintenance cost and easier navigation, not the number of deleted lines.
+Unused implementations, duplicated logic, unneeded dependencies, and leftovers of earlier changes make code harder to understand, raise the cost of the next change, and load the agent's context. Removing them on the strength of an empty search is risky: code can be reached through paths no search shows.
+
+Cleaning up without fact verification costs far more than the verification: removing something that worked through an invisible entry point costs an outage, a diagnosis, and a restore, while verification costs only agent time. That is why every verdict rests on claims checked by the `cove` skill, and the cost of that check is accepted. The goal is a lower maintenance cost and easier navigation, not the number of deleted lines.
 
 ## Input
 
 - Goal: why the cleanup is wanted (for example: leftovers of the current task, a module before a rewrite, dependency diet).
 - Scope: files, modules, an area, or the change of a task (the files it touched).
 
-When the scope is not given, or does not name a bounded area, return that as a blocker (`scope undefined`) and stop. Never widen the scope yourself. A finding outside the agreed scope is a proposal for further work, not a candidate.
+When the scope is not given, or does not name a bounded area, return that as a blocker (`scope undefined`) and stop. Never widen the scope yourself. A finding outside the agreed scope is a proposal for further work, not a candidate. Earlier cleanup reports (`cleanup-*` files) are never candidates.
 
 ## What it assesses
 
@@ -33,65 +35,84 @@ Out of scope: wider architecture changes, behavior changes, replacing a library 
 
 ## Process
 
-### 1. Scope and entry points
+### 1. Scope, areas, and entry points
 
-Establish the scope, its contracts, its entry points, and the supported configurations (build variants, platforms, feature flags) before looking for candidates.
+Establish the scope, its contracts, its entry points, and the supported configurations (build variants, platforms, feature flags). Split a larger scope into areas (a module, a package, the change of a task) so that each area can be assessed and verified on its own.
 
 ### 2. Candidates
 
-Search the scope for candidates in the four groups above. Record each with its location (path and line, symbol, or dependency name).
+Search each area for candidates in the four groups above. Record each with its location (path and line, symbol, or dependency name). Equivalent implementations form one candidate per merge group, listing every location of the group.
 
-### 3. Evidence per candidate
+### 3. Draft verdict and claims
 
-For every candidate collect evidence: repository search, reachability, use by tests, and use by configuration. For equivalent implementations also record the differences in behavior.
+For every candidate write a draft verdict and the claims it rests on, one claim per check: repository search, reachability, use by tests, use by configuration, and each category of implicit entry points:
 
-No search hits and green tests are never on their own evidence that a candidate is unneeded. Check every candidate against each category of implicit entry points:
-
-- dynamic calls and reflection (lookup by name, RTTI, `eval`, dependency injection by type);
-- registrations (plugin, factory, route, command, or event registration; module initialization sections);
+- dynamic calls and reflection (lookup by name, runtime type information, `eval`, dependency injection by type);
+- registrations (plugin, factory, route, command, or event registration; module or package initialization code);
 - references by name in data, resources, and configuration (database rows, form and resource files, JSON and XML, scripts);
 - generated code (code generators, templates, build steps that produce or consume the symbol);
 - public API (exported symbols, packages, endpoints, or files other repositories or customers may use).
 
-How to check a category in this stack follows from the project's rules and skills. Record for each category what was checked and how, or why it could not be checked.
+A claim names what it asserts, for example "`X` is not referenced by name in configuration or data files". For equivalent implementations also state the differences in behavior. How to check a category in this stack follows from the project's rules and skills.
 
-### 4. Verdict
+### 4. Verification with cove
 
-Give every candidate exactly one verdict. The tokens are canonical in English; describe them in the user's language.
+Run the `cove` skill{{SKILL_VIA}} on the claims of every candidate: no candidate and no claim is skipped or sampled. Calls may be grouped per area, but a group covers all claims of its candidates. `cove` plans its own open verification questions, answers them from the sources independently of the draft, and returns CONSISTENT, INCONSISTENT, or INCONCLUSIVE for each claim. No search hits and green tests are never on their own evidence that a candidate is unneeded.
 
-- `remove`: every category is checked and the evidence shows the candidate is not used.
-- `merge`: equivalent implementations of one responsibility; the differences in behavior are recorded and merging adds no unjustified dependency.
-- `keep`: the evidence shows the candidate is used or required.
-- `unresolved`: the evidence is incomplete or contradictory.
+When `cove` is not available (the skill is missing or the call fails), stop with an explicit message. With the operator's consent the assessment may continue, but every candidate then gets `keep` or `unresolved`: no `remove` or `merge` verdict is given without a `cove` result. Never assess silently without verification.
 
-A category that cannot be checked gives the verdict `unresolved` with the reason, never `remove`.
+### 5. Verdict
 
-The assessment ends when every candidate in the agreed scope has a verdict.
+Give every candidate exactly one verdict from the `cove` result. The tokens are canonical in English; describe them in the user's language.
 
-## Register
+- `remove`: every claim is CONSISTENT and the evidence shows the candidate is not used.
+- `merge`: equivalent implementations of one responsibility; every claim is CONSISTENT, the differences in behavior are recorded, and merging adds no unjustified dependency.
+- `keep`: a claim is INCONSISTENT and the evidence shows the candidate is used or required.
+- `unresolved`: a claim is INCONCLUSIVE, or a category cannot be checked; state the reason. Never `remove` in that case.
 
-Return the register to the caller, without writing anything. State the assessment date and the scope at the top, then one row per candidate:
+No `remove` or `merge` verdict exists without a `cove` result. The assessment ends when every candidate in the agreed scope has a verdict.
+
+## Report
+
+The report states the assessment date, the goal, the exact scope and its limits, a legend of the ID prefixes, and then four sections in a fixed order:
+
+| Section | Verdict | IDs |
+|---------|---------|-----|
+| Remove | `remove` | R1, R2, ... |
+| Merge | `merge` | M1, M2, ... |
+| Keep | `keep` | K1, K2, ... |
+| Unresolved | `unresolved` | U1, U2, ... |
+
+- The prefix comes from the canonical English verdict and never changes with the language of the report or the conversation; the prefix with its number is the full ID ("R1 and M1" are two different candidates).
+- Numbering starts at 1 in every section. A section without candidates stays in the report with "No candidates" (in the user's language); no empty rows or placeholder items.
+- IDs are fixed when the report is created. A later change of a verdict (the operator's decision, or a re-check of the evidence in `exec`) keeps the ID and its place in the report and is recorded as a decision with that ID ("R1 -> unresolved: <reason>"). Do not renumber and do not move items between sections; an item the operator adds gets the next number in its section.
+
+Each section is a table:
 
 ```markdown
-Assessment date: YYYY-MM-DD
-Goal: <goal>
-Scope: <files, modules, area, or the task's change>
-
-| Location | Verdict | Evidence per category | Risk | Reach |
-|----------|---------|-----------------------|------|-------|
-| path:line or symbol | remove/merge/keep/unresolved | search: ...; reachability: ...; tests: ...; configuration: ...; dynamic calls: ...; registrations: ...; references by name: ...; generated code: ...; public API: ... | low/medium/high: why | files: N; dependencies: ... |
-
-Out of scope (proposals): <finding> -> <why it may matter>
+| ID | Location | Verdict | Evidence (cove questions, answers with source, result) | Risk | Reach |
+|----|----------|---------|--------------------------------------------------------|------|-------|
+| R1 | path:line or symbol | remove | registrations: "Which code registers X by name?" -> none, grep of src and config (CONSISTENT); ... | low/medium/high: why | files: N; dependencies: ... |
 ```
 
-- Evidence per category names the source of each check (a file and line, a command and its result, a rule of the project); a category that could not be checked says so with the reason.
+- Evidence names the source of each answer (a file and line, a command and its result, a rule of the project) and never quotes configuration values, passwords, tokens, or host addresses: the report is passed on and may be published.
 - Reach is the estimated extent of the change: files and dependencies it touches.
 - Report a smaller install or build size only after measuring it; never estimate it.
+- Out of scope (proposals): `<finding> -> <why it may matter>`, after the four sections.
+
+## Delivery
+
+{{REPORT_DELIVERY}}
+
+Choosing an option or delivering the report is never consent to remove or merge code: execution goes through a plan and `exec`.
 
 ## Invocation points
 
-- On demand, with a goal and a scope.
-- In adhoc-sdlc, through the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan` (default OFF). Variant A, in planning: the register goes into the plan's `## Cleanup Register` section, and only `remove` and `merge` verdicts become `## Key Changes` that `exec` carries out and journals, after re-checking their key evidence. Variant B, in `exec`: before the final self-check the skill assesses the leftovers of the change in the files the journal records; a candidate is carried out only after the user confirms it.
-- In FORGE, the register becomes the scope of a task and its acceptance criterion is "every candidate accounted for"; execution and verification belong to the run.
+- On demand, with a goal and a scope: the report is delivered as described in Delivery.
+- In adhoc-sdlc, after review: the operator confirms, rejects, or discusses each item; the operator's knowledge is evidence and can change a verdict (recorded with the ID, the new verdict, the reason, and the source `operator`). `/adhoc-sdlc:plan --from-report <report> --ids R1,M1` then builds a plan whose tasks carry the IDs with a `ref` to the report, and `exec` journals what was done and which report item it came from.
+- In adhoc-sdlc, through the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan` (default OFF). Variant A, in planning: the register with IDs goes into the plan's `## Cleanup Register` section, and only `remove` and `merge` verdicts become `## Key Changes` and `## Tasks` that `exec` carries out and journals, after re-checking their key evidence. Variant B, in `exec`: before the final self-check the skill assesses the leftovers of the change in the files the journal records; the register goes into the journal, and a candidate is carried out only after the user confirms it.
+- In FORGE, the register goes to the caller (the task description or a note), never as a file in the repository; the register becomes the scope of a task and its acceptance criterion is "every candidate accounted for"; execution and verification belong to the run.
 
-The `cove` skill{{SKILL_VIA}} can verify the claims a verdict rests on, and the `temper` skill{{SKILL_VIA}} can check the strategy and risks of the cleanup. Neither replaces the analysis of the code.
+When the skill is called by a process (plan, exec, FORGE), the register goes into that process's artifact with the same sections, IDs, and evidence; the skill creates no separate file and does not ask about the delivery form.
+
+The `temper` skill{{SKILL_VIA}} can check the strategy and risks of the cleanup. Neither `cove` nor `temper` replaces the analysis of the code.

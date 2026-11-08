@@ -20,7 +20,7 @@ status: in-progress | done | abandoned
 ---
 ```
 
-Plan and handoff are markdown with the frontmatter above. The execution journal is native JSON (`execute-*.json`): the same meta fields at top level plus `schema` (`2` for journals with a task list; absent in older journals), `plan` (path), `original_prompt` (the verbatim request, inherited from the plan's `## Original Prompt` section), `tasks` (the execution task list, see Execution tasks), `entries` (incremental records: `ts`, `note`, optional `phase`, optional `task`, a `files` list of `{path, change}`), `decisions` (optional `task`, set only by `--task-add`), `verification` (optional `task`) and `final_result`. Touched files are a structural element, not loose text; `history`/`resume` return them as `touched_files`.
+Plan and handoff are markdown with the frontmatter above. The execution journal is native JSON (`execute-*.json`): the same meta fields at top level plus `schema` (`2` for journals with a task list; absent in older journals), `plan` (path), `original_prompt` (the verbatim request, inherited from the plan's `## Original Prompt` section), `tasks` (the execution task list, see Execution tasks), `source_report` (only for a plan built from a cleanup report: `{path, sha256}` copied from the plan's `## Source`), `entries` (incremental records: `ts`, `note`, optional `phase`, optional `task`, a `files` list of `{path, change}`), `decisions` (optional `task`, set only by `--task-add`), `verification` (optional `task`) and `final_result`. Touched files are a structural element, not loose text; `history`/`resume` return them as `touched_files`.
 
 A plan may carry an optional `## Original Prompt` section (written by `plan --prompt "<verbatim request>"`): the user's own wording, stored durably so a later free-text `history` search can match it. It is additive and backward compatible; older artifacts without it stay searchable on their existing content.
 
@@ -53,6 +53,8 @@ python3 <skill-dir>/scripts/adhoc_sdlc.py plan \
 ```
 
 `--prompt` is optional; when given, the verbatim text is stored in an `## Original Prompt` section of the plan and inherited into the journal's `original_prompt` field, so `history` can recall the session from the user's own wording.
+
+`--source-report <report>` (optional) marks a plan built from a `cleanup-codebase` report: the file must exist (otherwise exit 2 and no plan), and the helper writes a `## Source` section with `- report: <path relative to the project root, or absolute when the report lies outside it>` and `- sha256: <hash of the report at planning time>`. The agent adds the assessment date, the scope, and the review decisions below those two lines; the helper reads only those two lines.
 
 Start or append execution:
 
@@ -105,7 +107,7 @@ Legacy `execute-*.md` journals (pre-JSON) are still read by `history`/`resume` a
 
 The plan's `## Tasks` section defines the tasks; the journal field `tasks` holds their state. Format in the plan: one unindented bullet per task, `- [T1] <title>` (also `* [T1] <title>`), ids `T<n>` unique. Indented sub-bullets and prose in the section are ignored; a numbered list is not read as tasks. Any other unindented bullet or a repeated id is refused when the journal is created (exit 2). No section, or the `TODO` placeholder, gives an empty list.
 
-Journal field: `tasks` is a list of `{id, title, status, source}`; `status` is `pending`, `in_progress` or `done`; `source` is `plan` or `added`. Task status (`in_progress`, underscore) and journal status (`in-progress|done|abandoned`, hyphen) are separate vocabularies.
+Journal field: `tasks` is a list of `{id, title, status, source}` with an optional `ref`; `status` is `pending`, `in_progress` or `done`; `source` is the origin, `plan` or `added`. A task title in `## Tasks` or in `--task-add` may end with a reference to a cleanup report item, `(ref: <path>#<ID>)` with an ID `R<n>`, `M<n>`, `K<n>` or `U<n>`; the helper moves it from the title to the `ref` field (any other parenthesis stays in the title). Task status (`in_progress`, underscore) and journal status (`in-progress|done|abandoned`, hyphen) are separate vocabularies.
 
 Validation (exit 2, `ERROR/EXPECTED/EXAMPLE`, nothing written):
 
@@ -115,7 +117,7 @@ Validation (exit 2, `ERROR/EXPECTED/EXAMPLE`, nothing written):
 - `--append` on a schema 2 journal without tasks (also when creating the journal) until `--task-add`;
 - an unknown task, `--task` outside `T<n>`, `--task-status` outside `in_progress|done`, `--task-status` without `--task`, `--task` with no entry, verification or status change, an empty `--task-add` title.
 
-Read the state with `tasks --name <name> [--format json|tsv]` (no side effects). `json`: `semantic_name`, `execute`, `schema`, `legacy`, `items` (`{id, title, status, source}`), `open` (ids not `done`), `in_progress` (id or null). `tsv`: one `id<TAB>status<TAB>title` line per task.
+Read the state with `tasks --name <name> [--format json|tsv]` (no side effects). `json`: `semantic_name`, `execute`, `schema`, `legacy`, `items` (`{id, title, status, source}`, plus `ref` when set), `open` (ids not `done`), `in_progress` (id or null), `source_report` (`null`, or `{path, sha256, sha256_now, match}`: `match` is `false` when the report changed after planning or is missing, then `sha256_now` is the current hash or `null`). `tsv`: one `id<TAB>status<TAB>title` line per task.
 
 Backward compatibility: a JSON journal without the `schema` field (created before task lists) keeps the old behavior: `--append`, `--verification`, `--final` and `--status done` work as before, and the task flags are refused. Such journals are not migrated.
 

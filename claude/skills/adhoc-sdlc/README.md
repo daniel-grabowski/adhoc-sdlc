@@ -38,7 +38,7 @@ Skip it when the work already belongs to a formal issue workflow that has its ow
 
 | Command | Role |
 |---------|------|
-| `/adhoc-sdlc:plan` | settle the design decisions and save a confirmed plan |
+| `/adhoc-sdlc:plan` | settle the design decisions and save a confirmed plan; with `--from-report <report> --ids R1,M1` build it from reviewed items of a `cleanup-codebase` report |
 | `/adhoc-sdlc:exec` | run the plan and keep the execution journal |
 | `/adhoc-sdlc:handoff` | snapshot session state before a context switch |
 | `/adhoc-sdlc:resume` | reload one of the recent sessions and continue |
@@ -65,7 +65,7 @@ flowchart LR
 Rounded nodes are commands and the cylinder is the on-disk record; thick edges write to it, the dotted edge only reads it, and `handoff` and `resume` bridge the context-window boundary.
 
 1. `plan` runs as a guided conversation. It first asks how to work (the Phase 0 mode gate: brainstorming dialog, deep code verification, test execution, plan CoVe, strategy temper, execution CoVe, and the optional cleanup assessment, `cleanup-codebase`, OFF by default), then settles scope, approach, edge cases, and a test plan, and writes the plan file.
-2. `exec` loads the plan's task list (`## Tasks`) into the journal and works through it one task at a time; the helper tracks each task's state, ties journal entries to tasks, and refuses to close the journal while a task is open. There is no runtime-specific todo tool, so the flow is the same in Claude Code and Codex. With `cleanup-codebase` ON it assesses the leftovers of its change before the final self-check and carries out a cleanup only after the user confirms it. It always ends with a final self-check recorded in the journal.
+2. `exec` loads the plan's task list (`## Tasks`) into the journal and works through it one task at a time; the helper tracks each task's state, ties journal entries to tasks, and refuses to close the journal while a task is open. There is no runtime-specific todo tool, so the flow is the same in Claude Code and Codex. With `cleanup-codebase` ON it assesses the leftovers of its change before the final self-check and carries out a cleanup only after the user confirms it. For a plan built from a cleanup report it first checks that the report has not changed since planning (SHA-256 in the plan's `## Source`), re-checks each item against the current code, and records in the journal what was done and which report item (`ref`, for example `R1`) it came from. It always ends with a final self-check recorded in the journal.
 3. `handoff` and `resume` carry state across context windows: one snapshots, the other reloads and picks up from the next steps.
 4. `history` reads the whole corpus through the helper to answer a question about past work.
 
@@ -88,7 +88,7 @@ Plans and journals are written to `./adhoc-sdlc/` inside the current project, no
 
 ## The helper
 
-`scripts/adhoc_sdlc.py` is the only writer of the `adhoc-sdlc/` files. Journal entries change only through its flags (`--append`, `--decision`, `--verification`, `--final`, and for tasks `--task`, `--task-status`, `--task-add`), never by editing the JSON by hand; `tasks --name <name>` prints the task state. For `history`, `resume`, and `handoff`, the same helper (`pack` mode) is the only reader: it discovers, parses, and budgets the context, and the agent works from the pack it returns instead of scanning the files directly.
+`scripts/adhoc_sdlc.py` is the only writer of the `adhoc-sdlc/` files. Journal entries change only through its flags (`--append`, `--decision`, `--verification`, `--final`, and for tasks `--task`, `--task-status`, `--task-add`), never by editing the JSON by hand; `tasks --name <name>` (JSON, the default format) prints the task state, including each task's report reference (`ref`) and whether the source report still matches its hash (`source_report.match`). `plan --source-report <report>` records the report and its hash in the plan. For `history`, `resume`, and `handoff`, the same helper (`pack` mode) is the only reader: it discovers, parses, and budgets the context, and the agent works from the pack it returns instead of scanning the files directly.
 
 ## Language
 

@@ -237,7 +237,7 @@ class RenderTests(unittest.TestCase):
             out = render.render_one("skills/cleanup-codebase/SKILL.md", placeholders, runtime)
             for phrase in (
                 "name: cleanup-codebase",
-                "It assesses only: it does not edit files, does not run git, does not build, and does not run tests.",
+                "It assesses only: it does not change the project's code or configuration, does not run git, does not build, and does not run tests. Its only effect is the report itself",
                 "The skill is stack-agnostic.",
                 "return that as a blocker (`scope undefined`) and stop. Never widen the scope yourself.",
                 "No search hits and green tests are never on their own evidence that a candidate is unneeded.",
@@ -246,26 +246,56 @@ class RenderTests(unittest.TestCase):
                 "- references by name in data, resources, and configuration",
                 "- generated code",
                 "- public API",
-                "- `remove`: every category is checked",
-                "- `merge`: equivalent implementations of one responsibility",
-                "- `keep`: the evidence shows the candidate is used or required.",
-                "- `unresolved`: the evidence is incomplete or contradictory.",
-                "A category that cannot be checked gives the verdict `unresolved` with the reason, never `remove`.",
-                "Return the register to the caller, without writing anything.",
-                "Assessment date: YYYY-MM-DD",
-                "| Location | Verdict | Evidence per category | Risk | Reach |",
+                "- `remove`: every claim is CONSISTENT",
+                "- `merge`: equivalent implementations of one responsibility; every claim is CONSISTENT",
+                "- `keep`: a claim is INCONSISTENT",
+                "- `unresolved`: a claim is INCONCLUSIVE, or a category cannot be checked; state the reason. Never `remove` in that case.",
+                "No `remove` or `merge` verdict exists without a `cove` result.",
+                "Cleaning up without fact verification costs far more than the verification",
+                "Run the `cove` skill" + placeholders["SKILL_VIA"] + " on the claims of every candidate: no candidate and no claim is skipped or sampled.",
+                "When `cove` is not available (the skill is missing or the call fails), stop with an explicit message",
+                "| Remove | `remove` | R1, R2, ... |",
+                "| Merge | `merge` | M1, M2, ... |",
+                "| Keep | `keep` | K1, K2, ... |",
+                "| Unresolved | `unresolved` | U1, U2, ... |",
+                "never changes with the language of the report or the conversation",
+                "Numbering starts at 1 in every section.",
+                "A later change of a verdict",
+                "keeps the ID and its place in the report",
+                "Equivalent implementations form one candidate per merge group",
+                "| ID | Location | Verdict | Evidence (cove questions, answers with source, result) | Risk | Reach |",
+                "never quotes configuration values, passwords, tokens, or host addresses",
+                "Earlier cleanup reports (`cleanup-*` files) are never candidates.",
+                "## Delivery",
+                "Choosing an option or delivering the report is never consent to remove or merge code",
+                "the skill creates no separate file and does not ask about the delivery form",
+                "`/adhoc-sdlc:plan --from-report <report> --ids R1,M1`",
                 "Out of scope (proposals):",
                 "Report a smaller install or build size only after measuring it",
                 "## Invocation points",
                 "the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan` (default OFF)",
-                "the register goes into the plan's `## Cleanup Register` section, and only `remove` and `merge` verdicts become `## Key Changes`",
+                "the register with IDs goes into the plan's `## Cleanup Register` section, and only `remove` and `merge` verdicts become `## Key Changes` and `## Tasks`",
                 "a candidate is carried out only after the user confirms it",
-                "The `cove` skill" + placeholders["SKILL_VIA"] + " can verify the claims a verdict rests on",
-                "the `temper` skill" + placeholders["SKILL_VIA"] + " can check the strategy",
+                "The `temper` skill" + placeholders["SKILL_VIA"] + " can check the strategy",
             ):
                 self.assertIn(phrase, out, f"{runtime}: brak frazy kontraktu: {phrase}")
-            if runtime == "codex":
+            for old in ("without writing anything", "does not edit files", "RTTI", "initialization sections"):
+                self.assertNotIn(old, out, f"{runtime}: stara fraza: {old}")
+            # Dostarczenie różni się runtime'em: Claude interaktywny artefakt, Codex plik Markdown.
+            self.assertIn(placeholders["REPORT_DELIVERY"], out, runtime)
+            if runtime == "claude":
+                for phrase in ("the default delivery is an interactive artifact, without asking about the form",
+                               "radio buttons with the recommended option preselected", "a notes field",
+                               "saves automatically into the artifact's data store, without a save button",
+                               "read the decision and the notes of every ID directly from the stored data",
+                               "Never claim an artifact was created without calling the tool."):
+                    self.assertIn(phrase, out, f"claude: dostarczenie: {phrase}")
+            else:
                 self.assertNotIn("`Skill` tool", out)
+                self.assertNotIn("interactive artifact", out)
+                for phrase in ("deliver the report as a Markdown file", "does not overwrite an existing report",
+                               "never claim a file that does not exist", "do not add it to git"):
+                    self.assertIn(phrase, out, f"codex: dostarczenie: {phrase}")
 
     @staticmethod
     def _helper_mode_keys() -> tuple:
@@ -310,7 +340,7 @@ class RenderTests(unittest.TestCase):
             self.assertLess(phase1.index("run the `intention-hardening` skill"), phase1.index(call), runtime)
             self.assertLess(phase1.index(call), phase1.index("run the `cove` skill"), runtime)
             for phrase in (
-                "Record the register in a `## Cleanup Register` section of the plan.",
+                "Record the register, with its sections and IDs, in a `## Cleanup Register` section of the plan.",
                 "Only candidates with the verdict `remove` or `merge` become `## Key Changes` items (and so `## Tasks`)",
                 "`keep` and `unresolved` candidates stay in the register with their reason and are not carried out",
                 "instead of widening it yourself",
@@ -320,9 +350,9 @@ class RenderTests(unittest.TestCase):
             # Exec: brak klucza = OFF, ponowne sprawdzenie dowodów, wariant B przed końcową autokontrolą, potwierdzenie użytkownika.
             for phrase in (
                 "a key missing from `## Mode` is OFF too",
-                "re-check its key evidence against the current code",
-                "record the verdict as `unresolved` with the reason",
-                "`keep` and `unresolved` candidates are never carried out",
+                "re-check the item's key evidence against the current code",
+                "record `--decision \"<ID> -> unresolved: <reason>\"`",
+                "`keep` and `unresolved` items are never carried out without a recorded operator decision",
                 "Cleanup of leftovers (variant B), only when `cleanup-codebase` is ON: after the implementation and before the final self-check, run the `cleanup-codebase` skill" + via,
                 "the scope = the files recorded with `--files` in this journal's entries",
                 "is carried out only after the user confirms it",
@@ -337,7 +367,7 @@ class RenderTests(unittest.TestCase):
             for phrase in (
                 "every implementation task is already `done` and the verification task is still `pending` (it starts only in step 8)",
                 "Record the register on the verification task while it is `pending`",
-                "add it with `--task-add \"<cleanup title>\"`, start it with `--task <Tm> --task-status in_progress`",
+                "add it with `--task-add \"<ID>: <cleanup title> (ref: <journal path>#<ID>)\"`, start it with `--task <Tm> --task-status in_progress`",
                 "mark it `done` before the next candidate and before step 8",
             ):
                 self.assertIn(phrase, step7, f"{runtime}: exec.md krok 7: {phrase}")
@@ -351,6 +381,47 @@ class RenderTests(unittest.TestCase):
                 self.assertIn(phrase, plan + exec_, f"{runtime}: plan.md/exec.md: {phrase}")
             self.assertIn("all seven modes fit", integration)
             self.assertIn("cleanup-codebase: off", integration)
+
+    def test_cleanup_report_loop_in_plan_and_exec(self):
+        # 0.8.0: raport -> przegląd operatora -> plan (--from-report, ## Source, ref) -> exec (kontrola skrótu, ponowne sprawdzenie) -> dziennik.
+        codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
+        for runtime, placeholders in (("claude", self.placeholders), ("codex", codex_spec["placeholders"])):
+            plan = render.render_one("commands/plan.md", placeholders, runtime)
+            exec_ = render.render_one("commands/exec.md", placeholders, runtime)
+            reference = render.render_one("skills/adhoc-sdlc/reference.md", placeholders, runtime)
+            skill = render.render_one("skills/adhoc-sdlc/SKILL.md", placeholders, runtime)
+            section = plan.split("## Plan from a cleanup report")[1].split("## Phase 0")[0]
+            for phrase in (
+                "a review of its items comes first and is mandatory",
+                "The operator's knowledge is evidence and can change a verdict",
+                "the source `operator`",
+                "IDs never change",
+                "means a new assessment, not a patched report",
+                "Only items whose verdict after the review is `remove` or `merge` enter the plan",
+                "K or U items only with a recorded operator decision",
+                "Refuse an ID that is neither in the report nor in the review's decisions",
+                "Under \"don't ask\" nothing from the report enters the plan",
+                "Plan CoVe does not verify them again",
+                "pass `--source-report <report>` to the helper",
+            ):
+                self.assertIn(phrase, section, f"{runtime}: plan.md --from-report: {phrase}")
+            self.assertIn("[--source-report <report>]", plan)
+            self.assertIn("`- [T1] R1: <action> (ref: <report path>#R1)`", plan)
+            self.assertIn("--from-report <report> --ids R1,M1", skill)
+            step4 = exec_.split("\n4. ")[1].split("\n5. ")[0]
+            self.assertIn("check `source_report.match`", step4, runtime)
+            self.assertIn("Stop and ask the user how to proceed", step4, runtime)
+            step5 = exec_.split("\n5. ")[1].split("\n6. ")[0]
+            for phrase in ("A task with a `ref`", "<ID> -> already done", "<ID> -> unresolved: <reason>",
+                           "Name the ID in every entry of such a task"):
+                self.assertIn(phrase, step5, f"{runtime}: exec.md krok 5: {phrase}")
+            for phrase in ("`--source-report <report>` (optional)", "`- sha256: <hash of the report at planning time>`",
+                           "with an optional `ref`", "`(ref: <path>#<ID>)` with an ID `R<n>`, `M<n>`, `K<n>` or `U<n>`",
+                           "`source_report` (`null`, or `{path, sha256, sha256_now, match}`"):
+                self.assertIn(phrase, reference, f"{runtime}: reference.md: {phrase}")
+            # Wzorzec ref w szablonach zgodny z regexem helpera.
+            src = (render.REPO_ROOT / "claude/skills/adhoc-sdlc/scripts/adhoc_sdlc.py").read_text(encoding="utf-8")
+            self.assertIn('TASK_REF_RE = re.compile(r"\\s*\\(ref:\\s*([^()\\s]+#[RMKU][1-9][0-9]*)\\)\\s*$")', src)
 
     def test_task_state_read_as_json_and_verification_tied_to_task(self):
         # Uzupełnienia po audycie #7934/#7935: pierwszy odczyt stanu zadań przez JSON, weryfikacje z --task, --decision bez zadania.

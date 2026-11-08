@@ -62,7 +62,9 @@ What: strategy hardening for plans, architecture, and implementation direction. 
 
 ### Cleanup codebase
 
-What: an evidence-based cleanup assessment for a given goal and scope: dead code, equivalent implementations, unneeded dependencies, and leftovers of changes, each checked against the categories of implicit entry points and given one verdict (`remove`, `merge`, `keep`, or `unresolved`). Why: an empty search is not proof that code is unused, so the process that edits files removes only what the evidence supports. The skill only assesses: it does not edit files, run git, build, or run tests. It ships as the `cleanup-codebase` skill and as the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan` (off by default): during planning it assesses the plan's scope and only `remove` and `merge` verdicts become plan changes; at the end of `exec` it assesses the leftovers of the change, which are cleaned up only after the user confirms. See [claude/skills/cleanup-codebase/README.md](claude/skills/cleanup-codebase/README.md) for details.
+What: an evidence-based cleanup assessment for a given goal and scope: dead code, equivalent implementations, unneeded dependencies, and leftovers of changes, each checked against the categories of implicit entry points and given one verdict and a stable ID (`remove` R1, `merge` M1, `keep` K1, `unresolved` U1). Why: an empty search is not proof that code is unused, and **cleaning up without fact verification costs far more than verifying first**: removing something that worked through an invisible entry point costs an outage, a diagnosis, and a restore. So the skill splits the scope into areas and has the claims behind every verdict verified by `cove`, for every candidate; no `remove` or `merge` verdict exists without that check.
+
+The skill only assesses: it does not change the project's code, run git, build, or run tests; its only effect is the report. In Claude Code the report is by default an interactive artifact that doubles as the review form (description, explanation, radio buttons with the recommendation preselected, notes, autosave), so the agent reads the operator's decisions per ID straight from it; in Codex it is a Markdown file. The loop then closes through adhoc-sdlc: operator review (their knowledge can reverse a verdict) -> `/adhoc-sdlc:plan --from-report <report> --ids R1,M1` (the plan records the report's SHA-256 and each task's `ref` to its ID) -> `exec` (hash check, evidence re-check per item) -> a journal that shows what was done and which report item it came from. It also ships as the optional `cleanup-codebase` mode of `/adhoc-sdlc:plan` (off by default): during planning it assesses the plan's scope, and at the end of `exec` the leftovers of the change, which are cleaned up only after the user confirms. See [claude/skills/cleanup-codebase/README.md](claude/skills/cleanup-codebase/README.md) for details.
 
 ## How it fits together
 
@@ -72,6 +74,7 @@ The skills are one workflow: settle the intent, plan the change, verify the fact
 flowchart LR
     plan(["adhoc-sdlc:plan"]) -.->|optional| cove{{"cove (verify facts)"}}
     plan -.->|optional| temper{{"temper (harden strategy)"}}
+    cleanup{{"cleanup-codebase (report verified by cove)"}} -.->|"operator review, --from-report"| plan
     plan --> exec(["adhoc-sdlc:exec"])
     exec -.->|optional| ecove{{"execution cove"}}
     ecove ==> disk[("plan + journal<br/>on disk")]
@@ -84,11 +87,11 @@ flowchart LR
     classDef gate fill:#fff3cd,stroke:#b8860b,color:#3d2f00
     classDef store fill:#eceff1,stroke:#37474f,color:#1c2833
     class plan,exec,handoff,history cmd
-    class cove,temper,ecove gate
+    class cove,temper,ecove,cleanup gate
     class disk store
 ```
 
-Shapes carry the meaning: rounded is a command, a hexagon is an optional gate (`cove` and `temper` before the plan is saved, execution `cove` before execution closes), and the cylinder is the on-disk record. Solid edges are the main flow, dotted edges are optional or read-only, and thick edges write to the plan and journal that outlive a context reset, which is what `handoff` and `resume` bridge.
+Shapes carry the meaning: rounded is a command, a hexagon is an optional gate (`cove` and `temper` before the plan is saved, execution `cove` before execution closes, and a reviewed `cleanup-codebase` report as the input of a plan), and the cylinder is the on-disk record. Solid edges are the main flow, dotted edges are optional or read-only, and thick edges write to the plan and journal that outlive a context reset, which is what `handoff` and `resume` bridge.
 
 ## Research basis
 

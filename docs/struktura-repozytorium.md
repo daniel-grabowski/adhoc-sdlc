@@ -89,6 +89,7 @@ Używane placeholdery (i ile razy występują w szablonach):
 | `{{SKILL_HOME_NOTE}}`| objaśnienie ścieżki skilla (puste dla Claude)       | 1         |
 | `{{COMMANDS_HOME}}`  | katalog komend                                      | 2         |
 | `{{ASSETS}}`         | prefiks ścieżki do katalogu assets (per runtime)    | 2         |
+| `{{REPORT_DELIVERY}}`| forma dostarczenia raportu `cleanup-codebase` (Claude: interaktywny artefakt, Codex: plik Markdown) | 1 |
 
 Placeholdery rozdzielono celowo: `SKILL_HOME` (katalog skilla) i `COMMANDS_HOME`
 (katalog komend) to dwie różne kotwice layoutu, bo Claude trzyma komendy w roocie
@@ -98,13 +99,21 @@ mówi akcjami, nie nazwami narzędzi). `SKILL_VIA` wiąże odwołanie do innego 
 w Claude narzędzie `Skill` z nazwą `adhoc-sdlc:<name>` dla skilli pluginu, w Codex
 `$<name>` (hipoteza oparta na jedynym dowodzie, `$cove` w `cove/agents/openai.yaml`). `ASSETS` to prefiks ścieżki do katalogu
 `assets/`, różny per runtime (Claude trzy poziomy w górę, Codex cztery), bo README
-skilli leżą na różnej głębokości względem korzenia repo.
+skilli leżą na różnej głębokości względem korzenia repo. `REPORT_DELIVERY` (od 0.8.0)
+opisuje dostarczenie raportu `cleanup-codebase`: w Claude domyślnie interaktywny
+artefakt z danymi decyzji operatora, w Codex (i w szkielecie antigravity) plik
+Markdown. Klucz musi mieć wartość w każdym `runtimes/*.json`, bo brak mapowania
+przerywa render.
 
 Lista zadań wykonania nie ma placeholdera (od wydania 0.6.0): plan definiuje zadania
 w sekcji `## Tasks` (punkty `- [T1] <tytuł>`), a ich stan prowadzi helper w dzienniku
 `execute-*.json` (`schema: 2`, flagi `--task`, `--task-status`, `--task-add`, komenda
 `tasks`), tak samo w Claude Code i Codex. Szablony nie odwołują się do natywnego
-narzędzia listy zadań żadnego runtime'u.
+narzędzia listy zadań żadnego runtime'u. Od 0.8.0 zadanie może nieść odwołanie do
+pozycji raportu `cleanup-codebase` (`(ref: <raport>#R1)`, pole `ref`), a plan
+zbudowany z raportu ma sekcję `## Source` ze skrótem SHA-256 raportu (`plan
+--source-report`), który `tasks --format json` porównuje z bieżącym plikiem
+(`source_report.match`).
 
 Szablony edytujesz ręcznie. To jedyne miejsce, gdzie zmieniasz treść promptów.
 
@@ -195,7 +204,7 @@ daje poprawną ścieżkę do `assets/`).
 
 ```
 plugins/adhoc-sdlc/
-├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.7.0)
+├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.8.0)
 └── skills/
     ├── adhoc-sdlc/             SKILL.md, reference.md, README.md, README.pl.md, commands/, scripts/ (generowane + helper)
     ├── cove/                   SKILL.md, README.md, README.pl.md, agents/openai.yaml (generowane)
@@ -248,7 +257,7 @@ różne mechanizmy dla dwóch różnych rodzajów treści.
 | `.claude-plugin/marketplace.json` | Claude Code             | `./claude`             |
 | `.agents/plugins/marketplace.json`| Codex / Antigravity     | `./plugins/adhoc-sdlc` |
 
-`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.7.0`). To pliki,
+`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.8.0`). To pliki,
 które środowisko czyta, żeby wiedzieć, skąd zainstalować plugin. Instalacja i
 aktualizacja idą z GitHuba (`codex plugin marketplace add daniel-grabowski/adhoc-sdlc`,
 `/plugin marketplace add ...`), nie z lokalnego checkoutu.

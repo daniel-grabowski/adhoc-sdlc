@@ -10,7 +10,8 @@
     "SKILL_HOME": "TODO-confirm-antigravity-skill-home",
     "SKILL_HOME_NOTE": "TODO-confirm-antigravity-skill-home-note",
     "COMMANDS_HOME": "TODO-confirm-antigravity-commands-home",
-    "ASSETS": "TODO-confirm-antigravity-assets-path"
+    "ASSETS": "TODO-confirm-antigravity-assets-path",
+    "REPORT_DELIVERY": "On demand, deliver the report as a Markdown file:\n\n1. Write it to the location the user gives, or the project's convention, otherwise `research/cleanup-<scope>-<YYYY-MM-DD-HHMM>.md`.\n2. Choose a name that does not overwrite an existing report.\n3. Write the full report to the file. The request to use the skill authorizes writing this file without a separate question.\n4. Reply with a clickable link to the file that actually exists and a short summary of the result; do not repeat the tables in the chat by default.\n5. Say that the file is untracked and do not add it to git.\n6. When writing is not possible, report the reason; never claim a file that does not exist.\n\nThe operator reviews the items in that file (confirm, reject, or discuss each ID); their decisions and notes are the input of `/adhoc-sdlc:plan --from-report`."
   },
   "files": []
 }

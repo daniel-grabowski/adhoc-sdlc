@@ -8,7 +8,7 @@ authors:
     given-names: Daniel
     email: daniel.grabowski@faktoria.io
 license: Apache-2.0
-version: "0.7.0"
+version: "0.8.0"
 repository-code: "https://github.com/daniel-grabowski/adhoc-sdlc"
 url: "https://github.com/daniel-grabowski/adhoc-sdlc"
 keywords:
