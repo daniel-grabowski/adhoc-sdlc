@@ -40,7 +40,9 @@ flowchart TD
    widening of the user's words.
 2. Treat binding decisions, run records, and handoff warnings as evidence; treat a
    memory hit as background until its entry or a source confirms it.
-3. Spend one bounded memory read, then ask instead of searching further.
+3. Spend one bounded memory read, then ask instead of searching further. Memory and
+   the `forge` binary are optional: without them the skill records "sources
+   unavailable" and works on local sources.
 4. Settle the decision anchors that matter: scope, variants with a recommendation,
    edge cases, test strategy.
 

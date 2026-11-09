@@ -41,6 +41,8 @@ flowchart TD
 2. Obowiązujące decyzje, przebiegi i ostrzeżenia z handoffu traktuj jako dowód;
    trafienie pamięci to tło, dopóki nie potwierdzi go wpis albo źródło.
 3. Wykonaj jeden ograniczony odczyt pamięci, potem pytaj zamiast dalej szukać.
+   Pamięć i binarka `forge` są opcjonalne: bez nich skill zapisuje „źródła
+   niedostępne” i pracuje na źródłach lokalnych.
 4. Ustal kotwice decyzji, które mają znaczenie: zakres, warianty z rekomendacją,
    przypadki brzegowe, strategię testów.
 

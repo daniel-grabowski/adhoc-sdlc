@@ -56,6 +56,13 @@ Skip deepening for a small unambiguous change, a task with exact acceptance crit
 
 One bounded memory read following the `memory` skill (a user skill outside this plugin, invoked by its own name `memory`): one search, then a read of the hits that matter. Add the decisions and run records already at hand. When the `memory` skill or the `forge` binary is not available, record `sources unavailable` (`źródła niedostępne`) and continue on local sources; do not pretend to know. Once the budget is spent, ask instead of searching further.
 
+Sources unavailable mode: this plugin depends on nothing outside itself, so the `memory` skill and the `forge` binary are optional sources, never prerequisites. A source is unavailable when the `memory` skill is not installed, the `forge` command is not on `PATH`, or the call fails or is refused. Then:
+
+- do not retry, install, or work around the missing source, and do not ask the user to restore it;
+- record `sources unavailable` (`źródła niedostępne`) in the output, naming the missing source;
+- continue on local sources: the request, the repository, the plan and journals at hand, and the decisions the user cites;
+- every other step runs unchanged: the depth rules, the question or the `interpretacja` assumptions, the anchors, and the output.
+
 ### 4. Decision anchors
 
 Settle only the anchors that matter for this request:
@@ -86,6 +93,7 @@ Return to the caller, without writing anything:
 - interpretations, including every narrowing or widening;
 - the question asked, or the assumptions made;
 - anchor decisions;
+- `sources unavailable` (`źródła niedostępne`) with the missing source, when the memory read could not run;
 - `Kandydaci do pamięci` (P0), or none.
 
 The caller records the result in its existing sections:
