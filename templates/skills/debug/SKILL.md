@@ -1,0 +1,104 @@
+---
+name: debug
+description: "What: systematic debugging discipline for any bug, failing test, build failure, or unexpected behavior: find the root cause before proposing a fix, in four phases (root cause investigation, pattern analysis, one tested hypothesis, a fix proven by a failing test), with a stop rule after three failed fixes. Why: guessing at fixes costs more than investigating first, and a fix without a known cause moves the failure elsewhere. Optional steps: the cove skill checks the factual claims of the diagnosis, the temper skill pressure-tests a fix that changes the design. Trigger phrases: debug, systematic debugging, root cause, find the cause, flaky test, failing test, błąd, debugowanie, znajdź przyczynę, dlaczego to nie działa."
+---
+
+# Debug
+
+## What
+
+`debug` is a discipline for working out why something is broken before changing anything. It applies to every technical failure: a failing test, a bug, a build or integration error, unexpected behavior, a performance problem. It produces a confirmed root cause and a fix that addresses it, or an honest statement that the cause is not understood.
+
+It is a method, not a tool: it reads, runs, and edits only what the investigation needs, and it adds no files of its own.
+
+## Why
+
+A fix proposed before the cause is known is a guess. A guess that happens to silence the symptom hides the defect, and the next fix then lands on top of the first one. Investigating first is faster than a chain of fixes that cannot be told apart. The pressure to skip the method is strongest exactly when it matters most: time pressure, an "obvious" one-line fix, a second or third failed attempt.
+
+## The rule
+
+```text
+No fix without a confirmed root cause.
+```
+
+Until phase 1 is complete, do not propose or apply a fix. A diagnostic change that only observes (a log line, a printed value, an assertion) is not a fix.
+
+## When to use
+
+Use it for any failure, and especially when:
+
+- there is time pressure or a "quick fix" looks obvious;
+- an earlier fix did not work;
+- the failure is intermittent or you do not understand it;
+- the issue looks too simple to need a method (simple bugs have causes too).
+
+## Phases
+
+Finish each phase before starting the next.
+
+### 1. Root cause investigation
+
+1. Read the error completely: message, stack trace, line numbers, exit codes. Warnings often name the cause.
+2. Reproduce it with exact steps. If it is not reproducible, gather more data instead of guessing.
+3. Check what changed: recent commits, the diff, dependencies, configuration, environment.
+4. In a system with several components (caller, service, database; build, sign, publish), observe each boundary once: what enters, what leaves, what the configuration looks like on each side. Run it once to see where the data goes wrong, then investigate that component only.
+5. Trace the bad value backward: where did it originate, who passed it on? Keep going up the call chain to the source and fix there, not where the symptom shows.
+
+Phase 1 ends with a statement of what happens and why, in your own words.
+
+### 2. Pattern analysis
+
+1. Find similar code that works in the same codebase.
+2. Read the reference implementation completely, not as a skim.
+3. List every difference between the working and the broken case, however small; do not discard one because "it cannot matter".
+4. Note the dependencies and assumptions the broken code relies on: settings, environment, ordering.
+
+### 3. Hypothesis and test
+
+1. State one hypothesis: "the cause is X because Y". Write it down.
+2. Test it with the smallest possible change, one variable at a time.
+3. Confirmed: go to phase 4. Refuted: form a new hypothesis from what you learned; do not stack another change on top.
+4. When you do not know, say "I do not understand X" and gather more evidence or ask. Do not present a guess as a finding.
+
+### 4. Fix
+
+1. Write a failing test that reproduces the bug (use the `tdd` skill{{SKILL_VIA}} for the test). Without a test framework, a one-off reproduction script serves; the point is a repeatable failure before the fix.
+2. Make one change that addresses the root cause. No "while I am here" cleanups, no bundled refactoring.
+3. Run the reproduction and the project's whole test suite. A pass of the new test alone is not a green suite; any failure the run shows, including one you did not cause, goes into the report by name.
+4. If the fix did not work, stop and count the attempts. Fewer than three: return to phase 1 with the new information. Three or more: the problem is probably in the design, not in the code. Stop fixing and raise it with the user (see Stop rule).
+
+## Stop rule
+
+After three failed fixes, do not attempt a fourth without a conversation. Signs of a design problem: every fix reveals shared state or coupling somewhere else, a fix needs a large refactoring, or each fix creates a new symptom elsewhere. Report what was tried, what each attempt showed, and the design question, then wait for the decision.
+
+## Red flags
+
+If you catch yourself thinking any of these, go back to phase 1:
+
+- "Quick fix now, investigate later."
+- "Just try changing X and see."
+- "I will change several things and run the tests."
+- "It is probably X" (without evidence).
+- "I do not fully understand it, but this might work."
+- "One more attempt" after two failures.
+
+## Optional steps
+
+Both steps are optional; use them where they help, not by reflex.
+
+- `cove`: when the diagnosis rests on factual claims you cannot see directly (what a dependency does in a given version, what a configuration value defaults to, what an external system returns), run the `cove` skill{{SKILL_VIA}} on those claims before building the fix on them. Skip it for a cause you observed yourself in a reproduction.
+- `temper`: when the fix changes a design, an interface, or a contract, or needs a wide refactoring, run the `temper` skill{{SKILL_VIA}} on the fix plan before applying it. Skip it for a local, small fix.
+
+Neither skill replaces the phases above, and this skill does not repeat their procedures.
+
+## Output
+
+Return to the caller:
+
+- the root cause, with the evidence that confirms it (reproduction, trace, observed values);
+- the fix, and the test that failed before it and passes after it;
+- the result of the whole suite, including failures you did not cause;
+- what stays unverified;
+- or, when the cause is not found: what was investigated, what was ruled out, and what is needed next.
+
+Keep it short: omit anything empty.

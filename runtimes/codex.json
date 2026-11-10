@@ -37,6 +37,12 @@
     ["skills/intention-hardening/README.pl.md", "plugins/adhoc-sdlc/skills/intention-hardening/README.pl.md"],
     ["skills/cleanup-codebase/SKILL.md", "plugins/adhoc-sdlc/skills/cleanup-codebase/SKILL.md"],
     ["skills/cleanup-codebase/README.md", "plugins/adhoc-sdlc/skills/cleanup-codebase/README.md"],
-    ["skills/cleanup-codebase/README.pl.md", "plugins/adhoc-sdlc/skills/cleanup-codebase/README.pl.md"]
+    ["skills/cleanup-codebase/README.pl.md", "plugins/adhoc-sdlc/skills/cleanup-codebase/README.pl.md"],
+    ["skills/debug/SKILL.md", "plugins/adhoc-sdlc/skills/debug/SKILL.md"],
+    ["skills/debug/README.md", "plugins/adhoc-sdlc/skills/debug/README.md"],
+    ["skills/debug/README.pl.md", "plugins/adhoc-sdlc/skills/debug/README.pl.md"],
+    ["skills/tdd/SKILL.md", "plugins/adhoc-sdlc/skills/tdd/SKILL.md"],
+    ["skills/tdd/README.md", "plugins/adhoc-sdlc/skills/tdd/README.md"],
+    ["skills/tdd/README.pl.md", "plugins/adhoc-sdlc/skills/tdd/README.pl.md"]
   ]
 }

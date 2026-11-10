@@ -36,6 +36,12 @@
     ["skills/intention-hardening/README.pl.md", "claude/skills/intention-hardening/README.pl.md"],
     ["skills/cleanup-codebase/SKILL.md", "claude/skills/cleanup-codebase/SKILL.md"],
     ["skills/cleanup-codebase/README.md", "claude/skills/cleanup-codebase/README.md"],
-    ["skills/cleanup-codebase/README.pl.md", "claude/skills/cleanup-codebase/README.pl.md"]
+    ["skills/cleanup-codebase/README.pl.md", "claude/skills/cleanup-codebase/README.pl.md"],
+    ["skills/debug/SKILL.md", "claude/skills/debug/SKILL.md"],
+    ["skills/debug/README.md", "claude/skills/debug/README.md"],
+    ["skills/debug/README.pl.md", "claude/skills/debug/README.pl.md"],
+    ["skills/tdd/SKILL.md", "claude/skills/tdd/SKILL.md"],
+    ["skills/tdd/README.md", "claude/skills/tdd/README.md"],
+    ["skills/tdd/README.pl.md", "claude/skills/tdd/README.pl.md"]
   ]
 }

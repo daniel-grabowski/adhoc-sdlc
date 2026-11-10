@@ -9,7 +9,7 @@ edytować prompty skilla albo dodawać nowy runtime.
 
 Repozytorium dystrybuuje skill `adhoc-sdlc` (lekki cykl SDLC: plan + wznawialny
 dziennik wykonania) oraz skille pomocnicze `intention-hardening` (utwardzanie
-zamiaru przed planem), `cove` (weryfikacja faktów), `temper` (hartowanie strategii) i `cleanup-codebase` (ocena porządków w kodzie) do kilku środowisk agentów AI: Claude Code, Codex,
+zamiaru przed planem), `cove` (weryfikacja faktów), `temper` (hartowanie strategii), `cleanup-codebase` (ocena porządków w kodzie), `debug` (systematyczne debugowanie) i `tdd` (programowanie sterowane testami) do kilku środowisk agentów AI: Claude Code, Codex,
 Antigravity (Gemini). Każde środowisko nazywa swoje narzędzia inaczej (np.
 pytanie do użytkownika to `AskUserQuestion` w Claude Code, a w Codex opisowo
 "a structured question" z natywnym UI wyboru), więc ten sam prompt musi istnieć w
@@ -74,7 +74,9 @@ templates/
     ├── cove/                SKILL.md, README.md, README.pl.md, agents/openai.yaml (metadane Codex)
     ├── temper/              SKILL.md, README.md, README.pl.md, examples/, integration/
     ├── intention-hardening/ SKILL.md, README.md, README.pl.md
-    └── cleanup-codebase/    SKILL.md, README.md, README.pl.md
+    ├── cleanup-codebase/    SKILL.md, README.md, README.pl.md
+    ├── debug/               SKILL.md, README.md, README.pl.md
+    └── tdd/                 SKILL.md, README.md, README.pl.md
 ```
 
 Używane placeholdery (i ile razy występują w szablonach):
@@ -192,7 +194,9 @@ claude/
     ├── cove/                      SKILL.md, README.md, README.pl.md (generowane)
     ├── temper/                    SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
     ├── intention-hardening/       SKILL.md, README.md, README.pl.md (generowane)
-    └── cleanup-codebase/          SKILL.md, README.md, README.pl.md (generowane)
+    ├── cleanup-codebase/          SKILL.md, README.md, README.pl.md (generowane)
+    ├── debug/                     SKILL.md, README.md, README.pl.md (generowane)
+    └── tdd/                       SKILL.md, README.md, README.pl.md (generowane)
 ```
 
 Komendy leżą w roocie pluginu (`commands/`), bo Claude Code tak je odkrywa.
@@ -204,13 +208,15 @@ daje poprawną ścieżkę do `assets/`).
 
 ```
 plugins/adhoc-sdlc/
-├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.8.0)
+├── .codex-plugin/plugin.json   manifest pluginu (wersja 0.9.0)
 └── skills/
     ├── adhoc-sdlc/             SKILL.md, reference.md, README.md, README.pl.md, commands/, scripts/ (generowane + helper)
     ├── cove/                   SKILL.md, README.md, README.pl.md, agents/openai.yaml (generowane)
     ├── temper/                 SKILL.md, README.md, README.pl.md, examples/, integration/ (generowane)
     ├── intention-hardening/    SKILL.md, README.md, README.pl.md (generowane)
-    └── cleanup-codebase/       SKILL.md, README.md, README.pl.md (generowane)
+    ├── cleanup-codebase/       SKILL.md, README.md, README.pl.md (generowane)
+    ├── debug/                  SKILL.md, README.md, README.pl.md (generowane)
+    └── tdd/                    SKILL.md, README.md, README.pl.md (generowane)
 ```
 
 Komendy są zagnieżdżone w skillu (`skills/adhoc-sdlc/commands/`), inaczej niż w
@@ -257,7 +263,7 @@ różne mechanizmy dla dwóch różnych rodzajów treści.
 | `.claude-plugin/marketplace.json` | Claude Code             | `./claude`             |
 | `.agents/plugins/marketplace.json`| Codex / Antigravity     | `./plugins/adhoc-sdlc` |
 
-`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.8.0`). To pliki,
+`.claude-plugin/marketplace.json` niesie też wersję pakietu (`0.9.0`). To pliki,
 które środowisko czyta, żeby wiedzieć, skąd zainstalować plugin. Instalacja i
 aktualizacja idą z GitHuba (`codex plugin marketplace add daniel-grabowski/adhoc-sdlc`,
 `/plugin marketplace add ...`), nie z lokalnego checkoutu.
@@ -285,7 +291,7 @@ trafiają plany i dzienniki konkretnych zadań prowadzonych przez skill.
 ## 9. Stan obecny i dług
 
 - Generator produkuje oba realne warianty: `claude/` i `plugins/adhoc-sdlc/`
-  (oba `active=true`), wraz ze skillami `intention-hardening`, `cove`, `temper` i `cleanup-codebase`, ich README (EN+PL) oraz
+  (oba `active=true`), wraz ze skillami `intention-hardening`, `cove`, `temper`, `cleanup-codebase`, `debug` i `tdd`, ich README (EN+PL) oraz
   metadanymi Codex `cove/agents/openai.yaml`. Brak już ręcznie utrzymywanej prozy
   dystrybucyjnej i brak legacy wariantu `codex/`.
 - `antigravity.json` to wciąż szkielet (`active=false`) z placeholderami do

@@ -4,7 +4,7 @@
 
 ## What
 
-`adhoc-sdlc` is a small SDLC toolkit for AI coding agents. It packages five reusable skills: `adhoc-sdlc` for lightweight implementation work with a durable plan and execution journal, `intention-hardening` for settling what the user actually asked for before a plan is written, `cove` for Chain-of-Verification before factual claims reach a user, `temper` for hardening a plan's strategy against failure modes before execution, and `cleanup-codebase` for an evidence-based assessment of what code can be cleaned up safely.
+`adhoc-sdlc` is a small SDLC toolkit for AI coding agents. It packages seven reusable skills: `adhoc-sdlc` for lightweight implementation work with a durable plan and execution journal, `intention-hardening` for settling what the user actually asked for before a plan is written, `cove` for Chain-of-Verification before factual claims reach a user, `temper` for hardening a plan's strategy against failure modes before execution, `cleanup-codebase` for an evidence-based assessment of what code can be cleaned up safely, `debug` for systematic root-cause debugging, and `tdd` for test-driven development.
 
 ## Why
 
@@ -108,21 +108,25 @@ One directory per agent runtime, each packaged in that runtime's native format. 
 ```
 .claude-plugin/marketplace.json   Claude Code marketplace entry
 .agents/plugins/marketplace.json  Codex marketplace entry
-claude/                           Claude Code plugin: adhoc-sdlc + intention-hardening + cove + temper + cleanup-codebase
+claude/                           Claude Code plugin: adhoc-sdlc + intention-hardening + cove + temper + cleanup-codebase + debug + tdd
   .claude-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/intention-hardening/
   skills/cove/
   skills/temper/
   skills/cleanup-codebase/
+  skills/debug/
+  skills/tdd/
   commands/                       /adhoc-sdlc:plan :exec :handoff :resume :history
-plugins/adhoc-sdlc/            Codex plugin: adhoc-sdlc + intention-hardening + cove + temper + cleanup-codebase
+plugins/adhoc-sdlc/            Codex plugin: adhoc-sdlc + intention-hardening + cove + temper + cleanup-codebase + debug + tdd
   .codex-plugin/plugin.json
   skills/adhoc-sdlc/
   skills/intention-hardening/
   skills/cove/
   skills/temper/
   skills/cleanup-codebase/
+  skills/debug/
+  skills/tdd/
 antigravity/                      roadmap: extension format to be confirmed
 ```
 

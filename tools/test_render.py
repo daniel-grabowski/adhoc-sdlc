@@ -446,6 +446,56 @@ class RenderTests(unittest.TestCase):
             self.assertIn("`decisions` (optional `task`, set only by `--task-add`)", reference)
             self.assertIn("it is never tied to a task (`--task` does not apply to it)", reference)
 
+    def test_debug_and_tdd_skills(self):
+        # AC-022/AC-023 (#8001): skille debug i tdd w obu runtime'ach; cove i temper tylko jako kroki opcjonalne, bez kopiowania ich treści.
+        codex_spec = json.loads((render.RUNTIMES_DIR / "codex.json").read_text(encoding="utf-8"))
+        for runtime, spec_files, placeholders, prefix in (
+            ("claude", self.files, self.placeholders, "claude/"),
+            ("codex", codex_spec["files"], codex_spec["placeholders"], "plugins/adhoc-sdlc/"),
+        ):
+            via = placeholders["SKILL_VIA"]
+            for skill_name in ("debug", "tdd"):
+                outputs = [o for t, o in spec_files if t.startswith(f"skills/{skill_name}/")]
+                self.assertEqual(
+                    sorted(outputs),
+                    sorted(prefix + f"skills/{skill_name}/" + n for n in ("SKILL.md", "README.md", "README.pl.md")),
+                    f"{runtime}: {skill_name}",
+                )
+                out = render.render_one(f"skills/{skill_name}/SKILL.md", placeholders, runtime)
+                self.assertIn(f"name: {skill_name}\n", out, f"{runtime}: {skill_name}")
+                self.assertIn("## Optional steps", out, f"{runtime}: {skill_name}")
+                self.assertIn("Both steps are optional", out, f"{runtime}: {skill_name}")
+                self.assertIn("run the `cove` skill" + via, out, f"{runtime}: {skill_name}")
+                self.assertIn("run the `temper` skill" + via, out, f"{runtime}: {skill_name}")
+                self.assertIn("this skill does not repeat their procedures", out, f"{runtime}: {skill_name}")
+                self.assertNotIn("{{", out, f"{runtime}: {skill_name}")
+                # Treść cove i temper (werdykty, słownik decyzji) nie jest kopiowana do tych skilli.
+                for copied in ("CONSISTENT", "INCONSISTENT", "INCONCLUSIVE", "Accepted Risks", "Operator options", "Tempered Risks"):
+                    self.assertNotIn(copied, out, f"{runtime}: {skill_name} kopiuje treść cove/temper: {copied}")
+            debug = render.render_one("skills/debug/SKILL.md", placeholders, runtime)
+            for phrase in (
+                "No fix without a confirmed root cause.",
+                "### 1. Root cause investigation",
+                "### 2. Pattern analysis",
+                "### 3. Hypothesis and test",
+                "### 4. Fix",
+                "After three failed fixes, do not attempt a fourth without a conversation.",
+                "use the `tdd` skill" + via,
+            ):
+                self.assertIn(phrase, debug, f"{runtime}: debug: {phrase}")
+            tdd = render.render_one("skills/tdd/SKILL.md", placeholders, runtime)
+            for phrase in (
+                "No production code without a failing test first.",
+                "### Red: one failing test",
+                "### Verify red: watch it fail",
+                "### Green: minimal code",
+                "### Verify green: watch it pass",
+                "### Refactor: only on green",
+                "The project's whole test suite passes, not only the new file.",
+                "Use the `debug` skill" + via,
+            ):
+                self.assertIn(phrase, tdd, f"{runtime}: tdd: {phrase}")
+
     def test_disk_matches_render(self):
         # Odpowiednik `render.py --check`: dysk == render dla aktywnego runtime claude.
         for template_rel, output_rel in self.files:

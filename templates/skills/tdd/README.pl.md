@@ -1,0 +1,40 @@
+# tdd
+
+*[English](README.md) · Polski*
+
+## Co to jest
+
+`tdd` to dyscyplina programowania sterowanego testami dla funkcji, poprawek błędów, refaktoryzacji i zmian zachowania. Każdy cykl to czerwony (jeden nieprzechodzący test, obejrzany jako nieprzechodzący z właściwego powodu), zielony (minimalny kod, który przechodzi, przy zielonym całym zestawie) i refaktoryzacja (porządki wyłącznie na zielono).
+
+## Dlaczego
+
+Test napisany po kodzie przechodzi od razu, więc nie dowodzi, że wyłapie defekt, i zwykle opisuje implementację. Test, który widziałeś jako nieprzechodzący, dowodzi, że sprawdza coś realnego, a małe cykle ułatwiają rozumowanie o każdym kroku.
+
+## Czym nie jest
+
+Nie jest frameworkiem testowym i nie dodaje narzędzi: używa komend testowych projektu. Nie weryfikuje faktów (to robi `cove`) i nie hartuje strategii (to robi `temper`); oba są krokami opcjonalnymi, do których skill odsyła tam, gdzie pomagają.
+
+## Przebieg
+
+```mermaid
+flowchart LR
+    R["Czerwony: jeden test nie przechodzi"] --> VR{"Nie przechodzi z właściwego powodu?"}
+    VR -->|"nie"| R
+    VR -->|"tak"| G["Zielony: minimalny kod"]
+    G --> VG{"Cały zestaw zielony?"}
+    VG -->|"nie"| G
+    VG -->|"tak"| F["Refaktoryzacja na zielono"]
+    F --> VG
+    VG -->|"tak, koniec"| N["Następny test"]
+    N --> R
+```
+
+Kroki opcjonalne: `cove` sprawdza fakt, który zakłada test, a `temper` poddaje próbie strategię testów ryzykownej zmiany. Przy błędzie o nieznanej przyczynie najpierw skill `debug` znajduje przyczynę, a ten skill pisze test regresji.
+
+## Jak używać
+
+Wywołaj go jako skill naturalnym zleceniem („zrób to najpierw testem”, „czerwony, zielony, refaktoryzacja”) albo po nazwie: `adhoc-sdlc:tdd` w Claude Code, `$tdd` w Codexie.
+
+## Źródło
+
+Metoda wywodzi się ze skilla `test-driven-development` wtyczki Superpowers; sformułowania w tym repozytorium są własne.

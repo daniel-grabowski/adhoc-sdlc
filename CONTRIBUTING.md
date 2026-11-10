@@ -2,7 +2,7 @@
 
 *English · [Polski](CONTRIBUTING.pl.md)*
 
-The repository is the single source of truth for the `adhoc-sdlc` plugin and its `adhoc-sdlc`, `intention-hardening`, `cove`, `temper`, and `cleanup-codebase` skills. Edit it here, test, then publish. Do not edit the installed copies under `~/.claude` or `~/.codex` and copy them back; that splits the source and lets the variants drift.
+The repository is the single source of truth for the `adhoc-sdlc` plugin and its `adhoc-sdlc`, `intention-hardening`, `cove`, `temper`, `cleanup-codebase`, `debug`, and `tdd` skills. Edit it here, test, then publish. Do not edit the installed copies under `~/.claude` or `~/.codex` and copy them back; that splits the source and lets the variants drift.
 
 ## Runtimes
 
