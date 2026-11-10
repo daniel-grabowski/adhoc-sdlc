@@ -35,4 +35,4 @@ Wywołaj go jako skill naturalnym zleceniem („zdebuguj ten test”, „znajdź
 
 ## Źródło
 
-Metoda wywodzi się ze skilla `systematic-debugging` wtyczki Superpowers; sformułowania w tym repozytorium są własne.
+Metoda wywodzi się ze skilla `systematic-debugging` z publicznego zbioru skilli; sformułowania w tym repozytorium są własne.

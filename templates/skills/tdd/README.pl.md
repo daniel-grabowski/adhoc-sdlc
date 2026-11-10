@@ -37,4 +37,4 @@ Wywołaj go jako skill naturalnym zleceniem („zrób to najpierw testem”, „
 
 ## Źródło
 
-Metoda wywodzi się ze skilla `test-driven-development` wtyczki Superpowers; sformułowania w tym repozytorium są własne.
+Metoda wywodzi się ze skilla `test-driven-development` z publicznego zbioru skilli; sformułowania w tym repozytorium są własne.

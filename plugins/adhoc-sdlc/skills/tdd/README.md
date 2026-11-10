@@ -38,4 +38,4 @@ Invoke it as a skill with a natural request ("do this test first", "red-green-re
 
 ## Source
 
-The method is adapted from the `test-driven-development` skill of the Superpowers plugin; the wording here is the repository's own.
+The method is adapted from the `test-driven-development` skill of a public skill collection; the wording here is the repository's own.

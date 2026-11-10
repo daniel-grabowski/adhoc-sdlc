@@ -35,4 +35,4 @@ Invoke it as a skill with a natural request ("debug this failing test", "find th
 
 ## Source
 
-The method is adapted from the `systematic-debugging` skill of the Superpowers plugin; the wording here is the repository's own.
+The method is adapted from the `systematic-debugging` skill of a public skill collection; the wording here is the repository's own.
